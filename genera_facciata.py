@@ -14,40 +14,55 @@ Output (nella stessa cartella dello script):
   - Facciata_Duomo_Siena.glb (se abilitato in config)
 
 Coordinate: X = larghezza (m), Y = profondita' (fronte verso -Y), Z = altezza (m).
-Larghezza totale ~30 m, altezza all'angelo ~34 m (proporzioni della facciata reale).
-Tutto il modello viene poi riscalato di "scala_globale" (default 3.0) -> ~90 x ~102 m.
+Larghezza totale ~30 m, altezza all'angelo ~35 m (proporzioni della facciata reale).
+Tutto il modello viene poi riscalato di "scala_globale" (default 3.0) -> ~90 x ~105 m.
 
-MIGLIORAMENTI v1.1:
-  1. Configurazione JSON esterna (config_facciata.json)
-  2. UV unwrapping automatico per tutti i mesh (pronti per texture)
-  3. Esportazione glTF/GLB (formato standard web/game engine)
-
-MIGLIORAMENTI v1.2 (fedelta' alla fotografia di riferimento):
-  1. Al posto del rosone gotico a raggiera: il vero OCULO di Camaino di Crescentino,
-     con la corona di 34 nicchie gotiche (mezzi busti degli Antenati di Cristo) e la
-     Madonna col Bambino nella nicchia centrale superiore.
-  2. Silhouette "tricuspidale" corretta: le due guglie sottili spostate a ridosso del
-     timpano centrale (x = +-5.2 m e non +-6.9 m, cosi' fra guglia e settore laterale
-     torna il vuoto verso il cielo), cuspidi laterali con i mosaici della
-     Presentazione e della Nativita' alzate a coronare i settori laterali (con i due
-     ordini di loggette), torrioni laterali tozzi con edicole cuspidate e pinnacoli.
-  3. Portali di Giovanni Pisano: colonne ritorte, archivolti ritorti con chiave di
-     volta a testa di satiro, ghimberghe cuspidate con foglie rampanti e, in sommita',
-     la Vergine (al centro) e gli Angeli (ai lati).
-  + Il modello viene ingrandito di 3 volte (scala_globale nel JSON).
+MIGLIORAMENTI v1.3 (3 miglioramenti di fedelta' all'originale):
+  1. Partizione gotica reale del registro superiore e dei torrioni angolari:
+     - Oculo di Camaino incassato in una CORNICE QUADRATA GOTICA (non piu' un anello
+       circolare isolato sul muro vuoto), con vetrata munita di griglia metallica 5x4,
+       pennacchi angolari dei Quattro Evangelisti, 36 edicole gotiche cuspidate coi busti
+       di Patriarchi e Profeti disposte sui quattro lati del quadrato e statua della
+       Madonna col Bambino al centro inferiore;
+     - Pilastri contrafforti centrali continui fino alle guglie sottili coronate da statue;
+     - Posizione corretta invertita fra i settori laterali (loggette gotiche a 5 archetti
+       acuti su colonnine binate + cuspidi dorate, riportate all'interno in asse coi portali
+       laterali a x = +-8.05 m) e i torrioni gotici angolari a due campate (riportati
+       all'esterno a x = +-12.7 m, con bifore bicrome, doccioni sporgenti e lanterna
+       ottagonale a gradoni piu' alta delle cuspidi laterali).
+  2. Ordine inferiore di Giovanni Pisano a tre grandi portali contigui e specchiature bicrome:
+     - Rimossa la trabeazione passante a quota 8.1 m che tagliava a meta' le lunette;
+       introdotta la vera trabeazione scolpita d'imposta sotto gli archi (z = 8.45 m);
+     - Tre grandi portali strombati contigui (x = -7.15 / 0.0 / +7.15 m) con 5 ordini
+       concentrici di archivolti bianchi e rosa su fasci di colonne ritorte e scanalate,
+       lunetta centrale a raggiera bicroma col Sole di San Bernardino, ghimberghe ripide
+       svettanti oltre il cornicione della galleria e specchiature in marmo verde-nero di
+       Prato con rosoni scolpiti nei timpani triangolari.
+  3. Mosaici dorati figurati reali, policromia marmorea PBR e inquadratura/luce da Piazza del Duomo:
+     - Sostituiti i dischi piatti blu/rossi con texture ad alta risoluzione dei veri mosaici
+       dorati (Incoronazione, Presentazione al Tempio, Nativita'), dei portoni e della vetrata,
+       incorporate (.pack()) nel .blend e nel .glb, insieme a texture PBR venate per marmi
+       senesi bianco/rosa e serpentino verde-nero di Prato;
+     - Camera frontale centrata ad altezza sagrato e luce solare pomeridiana radente da destra
+       su cielo azzurro limpido con denoising Cycles.
 """
 
 import bpy
+import bmesh
 import math
 import os
+import sys
 import json
-from mathutils import Vector
+import tempfile
+import numpy as np
+from mathutils import Vector, Matrix
 
 # -----------------------------------------------------------------------------
 # Configurazione
 # -----------------------------------------------------------------------------
 OUT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(OUT_DIR, "config_facciata.json")
+REF_PATH = os.path.join(OUT_DIR, "riferimento_facciata.jpg")
 BLEND_PATH = os.path.join(OUT_DIR, "Facciata_Duomo_Siena.blend")
 PNG_PATH = os.path.join(OUT_DIR, "anteprima_facciata.png")
 GLB_PATH = os.path.join(OUT_DIR, "Facciata_Duomo_Siena.glb")
@@ -55,14 +70,13 @@ GLB_PATH = os.path.join(OUT_DIR, "Facciata_Duomo_Siena.glb")
 
 def load_config():
     """Carica configurazione da JSON, con fallback ai default hardcoded."""
-    default = {}
     if os.path.exists(CONFIG_PATH):
         try:
             with open(CONFIG_PATH, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
-            print(f"⚠ Errore lettura config: {e}. Uso default.")
-    return default
+            print(f"Attenzione: errore lettura config ({e}). Uso default.")
+    return {}
 
 
 CFG = load_config()
@@ -72,9 +86,15 @@ CFG = load_config()
 # -----------------------------------------------------------------------------
 bpy.ops.object.select_all(action="SELECT")
 bpy.ops.object.delete()
-# rimuovi datablock orfani
-for block in (bpy.data.meshes, bpy.data.curves, bpy.data.cameras, bpy.data.lights, bpy.data.materials):
-    for item in block:
+for block in (
+    bpy.data.meshes,
+    bpy.data.curves,
+    bpy.data.cameras,
+    bpy.data.lights,
+    bpy.data.materials,
+    bpy.data.images,
+):
+    for item in list(block):
         if item.users == 0:
             block.remove(item)
 
@@ -82,7 +102,8 @@ scene = bpy.context.scene
 scene.unit_settings.system = "METRIC"
 scene.unit_settings.scale_length = 1.0
 scene["titolo"] = "Duomo di Siena — solo facciata ovest"
-scene["nota"] = "Modello procedurale stilizzato da fotografia: solo la facciata, spessore ridotto, retro piatto."
+scene["nota"] = "Modello procedurale v1.3 fedele alla fotografia di riferimento: solo facciata, retro piatto."
+
 
 # -----------------------------------------------------------------------------
 # Collezioni
@@ -102,37 +123,262 @@ COL_NAMES = CFG.get("collezioni", {
     "dettagli": "06_Dettagli",
 })
 COL = {k: make_collection(v) for k, v in COL_NAMES.items()}
+S = COL["struttura"]
+P = COL["portali"]
+R = COL["rosone_e_logge"]
+G = COL["guglie_e_pinnacoli"]
+ST = COL["statue"]
+D = COL["dettagli"]
+
 
 # -----------------------------------------------------------------------------
-# Materiali da config
+# Generatore texture PBR incorporate (.pack()) per marmi, portoni e mosaici
+# -----------------------------------------------------------------------------
+def _save_packed_image(name, rgb_bottom_up):
+    """Converte un array float [H, W, 3] in [0..1] (riga 0 = basso) in una
+    bpy.types.Image PNG compressa e impacchettata dentro il file .blend."""
+    h, w, _ = rgb_bottom_up.shape
+    rgba = np.ones((h, w, 4), dtype=np.float32)
+    rgba[:, :, :3] = np.clip(rgb_bottom_up, 0.0, 1.0)
+    img = bpy.data.images.new(name=name, width=w, height=h, alpha=False)
+    img.pixels.foreach_set(rgba.ravel())
+    fd, tmp_path = tempfile.mkstemp(suffix=".png")
+    os.close(fd)
+    try:
+        img.filepath_raw = tmp_path
+        img.file_format = "PNG"
+        img.save()
+        img.pack()
+        img.filepath = ""
+        img.filepath_raw = ""
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+    return img
+
+
+def _fbm2d(size, seed=0, octaves=4):
+    """Rumore frattale morbido periodico [0..1] con solo numpy."""
+    rng = np.random.default_rng(seed)
+    acc = np.zeros((size, size), dtype=np.float32)
+    amp = 1.0
+    norm = 0.0
+    y_idx = np.linspace(0, 1, size, endpoint=False, dtype=np.float32)
+    x_idx = np.linspace(0, 1, size, endpoint=False, dtype=np.float32)
+    yy, xx = np.meshgrid(y_idx, x_idx, indexing="ij")
+    for o in range(octaves):
+        freq = 2 ** (o + 1)
+        ph1 = rng.uniform(0, 2 * math.pi, (freq, freq))
+        am1 = rng.uniform(0.3, 1.0, (freq, freq))
+        field = np.zeros((size, size), dtype=np.float32)
+        for ky in range(min(freq, 6)):
+            for kx in range(min(freq, 6)):
+                field += am1[ky, kx] * np.sin(
+                    2 * math.pi * ((kx + 1) * xx + (ky + 1) * yy) + ph1[ky, kx]
+                )
+        field = (field - field.min()) / max(float(field.max() - field.min()), 1e-5)
+        acc += amp * field
+        norm += amp
+        amp *= 0.5
+    return acc / norm
+
+
+def _make_marble_tex(name, base_srgb, vein_srgb, courses=8, seed=1, contrast=0.14):
+    """Lastra marmorea a conci con venature senesi sottili."""
+    sz = 256
+    n1 = _fbm2d(sz, seed=seed, octaves=4)
+    n2 = _fbm2d(sz, seed=seed + 17, octaves=3)
+    yy, xx = np.meshgrid(
+        np.linspace(0, 1, sz, endpoint=False),
+        np.linspace(0, 1, sz, endpoint=False),
+        indexing="ij",
+    )
+    veins = 0.5 + 0.5 * np.sin(2.0 * math.pi * (3.0 * yy + 1.15 * n1 + 0.35 * n2))
+    veins = veins ** 2.2
+
+    # Leggera variazione di tono fra un concio lapideo e l'altro + giunti sottili
+    row_id = np.floor(yy * courses).astype(np.int32)
+    stagger = (row_id % 2) * 0.5
+    col_id = np.floor((xx * (courses // 2) + stagger) % (courses // 2)).astype(np.int32)
+    rng = np.random.default_rng(seed + 99)
+    block_lut = rng.uniform(1.0 - contrast * 0.55, 1.0 + contrast * 0.45, (courses + 1, courses + 1))
+    block_tone = block_lut[row_id, col_id]
+
+    fy = np.abs((yy * courses) % 1.0 - 0.5)
+    fx = np.abs(((xx * (courses // 2) + stagger)) % 1.0 - 0.5)
+    mortar = np.where((fy > 0.475) | (fx > 0.482), 0.86, 1.0)
+
+    base = np.array(base_srgb, dtype=np.float32)[None, None, :]
+    vein = np.array(vein_srgb, dtype=np.float32)[None, None, :]
+    col = base * (1.0 - 0.30 * veins[:, :, None]) + vein * (0.30 * veins[:, :, None])
+    col = col * block_tone[:, :, None] * mortar[:, :, None]
+    return _save_packed_image(name, col)
+
+
+def _bilinear_sample(topdown_rgb, x_coords, y_coords):
+    """Campionamento bilineare vettoriale su immagine [H, W, 3] top-down."""
+    h, w, _ = topdown_rgb.shape
+    x = np.clip(x_coords, 0.0, w - 1.001)
+    y = np.clip(y_coords, 0.0, h - 1.001)
+    x0 = np.floor(x).astype(np.int32)
+    y0 = np.floor(y).astype(np.int32)
+    x1 = np.minimum(x0 + 1, w - 1)
+    y1 = np.minimum(y0 + 1, h - 1)
+    wx = (x - x0)[:, :, None]
+    wy = (y - y0)[:, :, None]
+    c00 = topdown_rgb[y0, x0]
+    c10 = topdown_rgb[y0, x1]
+    c01 = topdown_rgb[y1, x0]
+    c11 = topdown_rgb[y1, x1]
+    return (1 - wy) * ((1 - wx) * c00 + wx * c10) + wy * ((1 - wx) * c01 + wx * c11)
+
+
+def _extract_triangle_tex(name, topdown_rgb, p_bl, p_br, p_top, size=512, boost=1.10):
+    """Rettifica baricentrica di un mosaico triangolare verso UV (0,0)-(1,0)-(0.5,1)."""
+    # Riga 0 in Blender = v=0 (base del triangolo), riga size-1 = v=1 (vertice alto)
+    v_lin = np.linspace(0.0, 1.0, size, dtype=np.float32)
+    u_lin = np.linspace(0.0, 1.0, size, dtype=np.float32)
+    vv, uu = np.meshgrid(v_lin, u_lin, indexing="ij")
+    denom = np.maximum(1.0 - vv, 1e-3)
+    s = np.clip((uu - 0.5 * vv) / denom, 0.0, 1.0)
+    px = (1.0 - vv) * ((1.0 - s) * p_bl[0] + s * p_br[0]) + vv * p_top[0]
+    py = (1.0 - vv) * ((1.0 - s) * p_bl[1] + s * p_br[1]) + vv * p_top[1]
+    sampled = _bilinear_sample(topdown_rgb, px, py)
+    # Leggera compensazione per evitare doppia attenuazione d'illuminazione in Cycles
+    sampled = np.clip(sampled * boost, 0.0, 1.0)
+    return _save_packed_image(name, sampled)
+
+
+def _extract_rect_tex(name, topdown_rgb, x0, y0_top, x1, y1_bot, w_out=256, h_out=384, boost=1.08):
+    """Estrae una regione rettangolare (portone/vetrata) orientata bottom-up per Blender."""
+    v_lin = np.linspace(1.0, 0.0, h_out, dtype=np.float32)  # riga 0 -> y1_bot (basso)
+    u_lin = np.linspace(0.0, 1.0, w_out, dtype=np.float32)
+    vv, uu = np.meshgrid(v_lin, u_lin, indexing="ij")
+    px = x0 + uu * (x1 - x0)
+    py = y0_top + vv * (y1_bot - y0_top)
+    sampled = np.clip(_bilinear_sample(topdown_rgb, px, py) * boost, 0.0, 1.0)
+    return _save_packed_image(name, sampled)
+
+
+def build_all_textures():
+    tex = {}
+    tex["marmo_bianco"] = _make_marble_tex(
+        "Tex_Marmo_Bianco", (0.75, 0.70, 0.62), (0.60, 0.54, 0.46), courses=8, seed=3, contrast=0.12
+    )
+    tex["marmo_caldo"] = _make_marble_tex(
+        "Tex_Marmo_Caldo", (0.70, 0.63, 0.53), (0.54, 0.47, 0.39), courses=8, seed=11, contrast=0.14
+    )
+    tex["pietra_statue"] = _make_marble_tex(
+        "Tex_Pietra_Statue", (0.73, 0.67, 0.58), (0.57, 0.51, 0.43), courses=4, seed=21, contrast=0.08
+    )
+    tex["gradinata"] = _make_marble_tex(
+        "Tex_Gradinata", (0.58, 0.59, 0.63), (0.44, 0.46, 0.50), courses=12, seed=31, contrast=0.16
+    )
+    tex["marmo_rosa"] = _make_marble_tex(
+        "Tex_Marmo_Rosa", (0.58, 0.41, 0.37), (0.42, 0.28, 0.24), courses=6, seed=41, contrast=0.15
+    )
+    tex["marmo_rosa_chiaro"] = _make_marble_tex(
+        "Tex_Marmo_Rosa_Chiaro", (0.67, 0.53, 0.47), (0.52, 0.39, 0.34), courses=6, seed=51, contrast=0.12
+    )
+    tex["serpentino"] = _make_marble_tex(
+        "Tex_Serpentino_Prato", (0.17, 0.19, 0.19), (0.10, 0.13, 0.12), courses=6, seed=61, contrast=0.12
+    )
+
+    if os.path.exists(REF_PATH):
+        ref_img = bpy.data.images.load(REF_PATH)
+        rw, rh = ref_img.size
+        buf = np.empty(rw * rh * 4, dtype=np.float32)
+        ref_img.pixels.foreach_get(buf)
+        bpy.data.images.remove(ref_img)
+        # In Blender riga 0 = basso -> invertiamo per avere y=0 in alto come nella foto
+        topdown = buf.reshape((rh, rw, 4))[::-1, :, :3].copy()
+        sx = rw / 2560.0
+        sy = rh / 2438.0
+        tex["mosaico_centrale"] = _extract_triangle_tex(
+            "Tex_Mosaico_Incoronazione",
+            topdown,
+            (1102 * sx, 780 * sy),
+            (1564 * sx, 770 * sy),
+            (1332 * sx, 478 * sy),
+            size=512,
+            boost=1.18,
+        )
+        tex["mosaico_sx"] = _extract_triangle_tex(
+            "Tex_Mosaico_Presentazione",
+            topdown,
+            (724 * sx, 1146 * sy),
+            (914 * sx, 1143 * sy),
+            (822 * sx, 1016 * sy),
+            size=256,
+            boost=1.20,
+        )
+        tex["mosaico_dx"] = _extract_triangle_tex(
+            "Tex_Mosaico_Nativita",
+            topdown,
+            (1750 * sx, 1110 * sy),
+            (1944 * sx, 1102 * sy),
+            (1850 * sx, 972 * sy),
+            size=256,
+            boost=1.20,
+        )
+        tex["bronzo_porta"] = _extract_rect_tex(
+            "Tex_Porta_Bronzo", topdown, 1232 * sx, 1887 * sy, 1454 * sx, 2252 * sy, 256, 384, boost=1.22
+        )
+        tex["legno_porta"] = _extract_rect_tex(
+            "Tex_Porta_Legno", topdown, 836 * sx, 1974 * sy, 972 * sx, 2245 * sy, 256, 384, boost=1.18
+        )
+        tex["oculo_vetro"] = _extract_rect_tex(
+            "Tex_Oculo_Vetro", topdown, 1126 * sx, 952 * sy, 1560 * sx, 1314 * sy, 256, 256, boost=1.12
+        )
+    else:
+        # Fallback procedurale autonomo
+        oro = _make_marble_tex("Tex_Mosaico_Fallback", (0.72, 0.58, 0.28), (0.45, 0.28, 0.16), courses=16, seed=7)
+        for k in ("mosaico_centrale", "mosaico_sx", "mosaico_dx"):
+            tex[k] = oro
+        tex["bronzo_porta"] = _make_marble_tex("Tex_Bronzo_Fb", (0.18, 0.19, 0.19), (0.11, 0.12, 0.11), courses=6, seed=8)
+        tex["legno_porta"] = _make_marble_tex("Tex_Legno_Fb", (0.30, 0.21, 0.15), (0.20, 0.13, 0.09), courses=6, seed=9)
+        tex["oculo_vetro"] = _make_marble_tex("Tex_Vetro_Fb", (0.22, 0.27, 0.34), (0.15, 0.19, 0.25), courses=4, seed=10)
+    return tex
+
+
+TEXTURES = build_all_textures()
+
+
+# -----------------------------------------------------------------------------
+# Materiali PBR da config + texture incorporate
 # -----------------------------------------------------------------------------
 def mat_from_cfg(name, cfg):
-    """Crea materiale Principled BSDF da dict config."""
+    """Crea materiale Principled BSDF compatibile sia con Cycles che con export GLB."""
     m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
     m.use_nodes = True
     nodes = m.node_tree.nodes
     links = m.node_tree.links
-    bsdf = nodes.get("Principled BSDF")
-    if not bsdf:
-        bsdf = nodes.new("ShaderNodeBsdfPrincipled")
-        out = nodes.get("Material Output") or nodes.new("ShaderNodeOutputMaterial")
-        links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
+    nodes.clear()
 
-    c = cfg.get("color", [0.8, 0.8, 0.8])
+    out = nodes.new("ShaderNodeOutputMaterial")
+    out.location = (420, 0)
+    bsdf = nodes.new("ShaderNodeBsdfPrincipled")
+    bsdf.location = (120, 0)
+    links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
+
+    c = cfg.get("color", [0.4, 0.4, 0.4])
     bsdf.inputs["Base Color"].default_value = (*c, 1.0)
-    bsdf.inputs["Roughness"].default_value = cfg.get("roughness", 0.5)
+    bsdf.inputs["Roughness"].default_value = cfg.get("roughness", 0.55)
     bsdf.inputs["Metallic"].default_value = cfg.get("metallic", 0.0)
 
-    if "emission" in cfg:
-        bsdf.inputs["Emission Color"].default_value = (*cfg["emission"], 1.0)
-        bsdf.inputs["Emission Strength"].default_value = cfg.get("emission_strength", 1.0)
+    tex_key = cfg.get("tex")
+    if tex_key and tex_key in TEXTURES:
+        tex_node = nodes.new("ShaderNodeTexImage")
+        tex_node.location = (-260, 0)
+        tex_node.image = TEXTURES[tex_key]
+        links.new(tex_node.outputs["Color"], bsdf.inputs["Base Color"])
+        if cfg.get("emission_strength", 0.0) > 0.0:
+            links.new(tex_node.outputs["Color"], bsdf.inputs["Emission Color"])
+            bsdf.inputs["Emission Strength"].default_value = cfg["emission_strength"]
 
-    # Trasparenza per vetri
-    if cfg.get("transmission", 0) > 0:
-        bsdf.inputs["Transmission Weight"].default_value = cfg["transmission"]
-        bsdf.inputs["Alpha"].default_value = cfg.get("alpha", 1.0)
-        m.blend_method = "BLEND"
-        m.shadow_method = "HASHED"
+    if "emission" in cfg and not tex_key:
+        bsdf.inputs["Emission Color"].default_value = (*cfg["emission"], 1.0)
+        bsdf.inputs["Emission Strength"].default_value = cfg.get("emission_strength", 0.2)
 
     return m
 
@@ -140,72 +386,65 @@ def mat_from_cfg(name, cfg):
 MAT_CFG = CFG.get("materiali", {})
 MATS = {name: mat_from_cfg(name, cfg) for name, cfg in MAT_CFG.items()}
 
-# Shortcut per compatibilità con codice esistente
 BIANCO = MATS.get("Marmo_Bianco")
 BIANCO2 = MATS.get("Marmo_Bianco_Caldo")
+GRADINATA_MAT = MATS.get("Marmo_Gradinata", BIANCO2)
 ROSA = MATS.get("Marmo_Rosa")
 ROSA_C = MATS.get("Marmo_Rosato_Chiaro")
 VERDE = MATS.get("Marmo_Verde_Scuro")
+MOS_C = MATS.get("Mosaico_Centrale_Mat")
+MOS_SX = MATS.get("Mosaico_Sx_Mat")
+MOS_DX = MATS.get("Mosaico_Dx_Mat")
 ORO = MATS.get("Mosaico_Oro")
 ORO_C = MATS.get("Mosaico_Chiaro")
 BRONZO = MATS.get("Bronzo_Portale")
+BRONZO_D = MATS.get("Bronzo_Dorato", ORO)
 LEGNO = MATS.get("Legno_Portali")
 LEGNO_S = MATS.get("Legno_Scuro")
 VETRO = MATS.get("Vetro_Rosone")
-VETRO_C = MATS.get("Vetro_Chiaro")
+FERRO = MATS.get("Ferro_Griglia")
 PIETRA = MATS.get("Pietra_Statue")
 SCURO = MATS.get("Vano_Scuro")
-BLU = MATS.get("Mosaico_Blu")
-ROSSO = MATS.get("Mosaico_Rosso")
-
-# -----------------------------------------------------------------------------
-# UV Unwrapping helper
-# -----------------------------------------------------------------------------
-def unwrap_uv(obj, method="SMART", margin=0.001):
-    """Applica UV unwrap al mesh dell'oggetto."""
-    if not obj or obj.type != "MESH":
-        return
-    # Seleziona solo questo oggetto
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = obj
-    bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.mesh.select_all(action="SELECT")
-    # NB: in Blender 4.2 gli operatori si chiamano *_project (non *_projection)
-    try:
-        if method == "SMART":
-            bpy.ops.uv.smart_project(angle_limit=66, island_margin=margin, correct_aspect=True)
-        elif method == "CUBE":
-            bpy.ops.uv.cube_project()
-        elif method == "SPHERE":
-            bpy.ops.uv.sphere_project()
-        elif method == "CYLINDER":
-            bpy.ops.uv.cylinder_project()
-    except Exception as e:
-        # un UV qualsiasi e' meglio di niente: lo script non deve interrompersi
-        print(f"⚠ UV unwrap '{method}' non riuscito su {obj.name}: {e}")
-    bpy.ops.object.mode_set(mode="OBJECT")
-    bpy.ops.object.select_all(action="DESELECT")
-
-
-def add_uv_map(obj, name="UVMap"):
-    """Assicura che esista una UV map."""
-    if obj.type == "MESH" and not obj.data.uv_layers:
-        obj.data.uv_layers.new(name=name)
 
 
 # -----------------------------------------------------------------------------
-# Helper di costruzione con UV
+# Helper di costruzione rapidi con UV analitici privi di distorsione e triangolati
 # -----------------------------------------------------------------------------
-def link(obj, col):
-    for c in obj.users_collection:
-        c.objects.unlink(obj)
-    col.objects.link(obj)
-    return obj
+def _finish_bmesh(bm, mesh, uv_scale=(1.0, 1.0), planar_uv=False):
+    """Calcola normali esterne, coordinate UV pulite e triangola eventuali n-gon."""
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    uv_layer = bm.loops.layers.uv.verify()
+    if planar_uv:
+        xs = [v.co.x for v in bm.verts]
+        zs = [v.co.z for v in bm.verts]
+        x0, dx = min(xs), max(max(xs) - min(xs), 1e-4)
+        z0, dz = min(zs), max(max(zs) - min(zs), 1e-4)
+        for f in bm.faces:
+            for loop in f.loops:
+                loop[uv_layer].uv = ((loop.vert.co.x - x0) / dx, (loop.vert.co.z - z0) / dz)
+    else:
+        su, sv = uv_scale
+        for f in bm.faces:
+            n = f.normal
+            ax, ay, az = abs(n.x), abs(n.y), abs(n.z)
+            for loop in f.loops:
+                co = loop.vert.co
+                if ay >= ax and ay >= az:
+                    u, v = (co.x + 0.5) * su, (co.z + 0.5) * sv
+                elif ax >= az:
+                    u, v = (co.y + 0.5) * su, (co.z + 0.5) * sv
+                else:
+                    u, v = (co.x + 0.5) * su, (co.y + 0.5) * sv
+                loop[uv_layer].uv = (u, v)
+    ngons = [f for f in bm.faces if len(f.verts) > 4]
+    if ngons:
+        bmesh.ops.triangulate(bm, faces=ngons)
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()
 
 
 def _create_mesh_object(name, mesh, col, location=(0, 0, 0), rotation=(0, 0, 0), scale=(1, 1, 1), material=None):
-    """Crea oggetto da mesh data (più veloce di bpy.ops)."""
     obj = bpy.data.objects.new(name, mesh)
     obj.location = location
     obj.rotation_euler = rotation
@@ -216,642 +455,1000 @@ def _create_mesh_object(name, mesh, col, location=(0, 0, 0), rotation=(0, 0, 0),
     return obj
 
 
-def box(name, col, x, y, z, sx, sy, sz, material, rot_z=0.0, rot_x=0.0, rot_y=0.0, uv_method="CUBE"):
+def box(name, col, x, y, z, sx, sy, sz, material, rot_z=0.0, rot_x=0.0, rot_y=0.0, fit_uv=False):
     mesh = bpy.data.meshes.new(name + "Mesh")
     bm = bmesh.new()
-    # NB: create_cube(size=1) è GIÀ centrato sull'origine (vertici a ±0.5):
-    # una ulteriore traslazione di -0.5 sfalserebbe ogni blocco di metà dimensione.
     bmesh.ops.create_cube(bm, size=1.0, matrix=Matrix())
-    bm.to_mesh(mesh)
-    bm.free()
-    obj = _create_mesh_object(name, mesh, col, (x, y, z), (rot_x, rot_y, rot_z), (sx, sy, sz), material)
-    add_uv_map(obj)
-    unwrap_uv(obj, uv_method)
-    return obj
+    uv_scale = (1.0, 1.0) if fit_uv else (max(sx / 3.2, 0.25), max(sz / 3.2, 0.25))
+    _finish_bmesh(bm, mesh, uv_scale=uv_scale)
+    return _create_mesh_object(name, mesh, col, (x, y, z), (rot_x, rot_y, rot_z), (sx, sy, sz), material)
 
 
 def cyl(name, col, x, y, z, radius, depth, material, vertices=20,
-        rot_x=0.0, rot_y=0.0, rot_z=0.0, scale_y=1.0, uv_method="CYLINDER"):
+        rot_x=0.0, rot_y=0.0, rot_z=0.0, scale_x=1.0, scale_y=1.0, fit_uv=False):
     mesh = bpy.data.meshes.new(name + "Mesh")
     bm = bmesh.new()
-    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=vertices,
-                          radius1=radius, radius2=radius, depth=depth)
-    bm.to_mesh(mesh)
-    bm.free()
-    obj = _create_mesh_object(name, mesh, col, (x, y, z), (rot_x, rot_y, rot_z), (1.0, scale_y, 1.0), material)
-    add_uv_map(obj)
-    unwrap_uv(obj, uv_method)
-    return obj
+    bmesh.ops.create_cone(
+        bm, cap_ends=True, cap_tris=True, segments=vertices,
+        radius1=radius, radius2=radius, depth=depth, calc_uvs=True
+    )
+    if fit_uv:
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        uv_layer = bm.loops.layers.uv.verify()
+        for f in bm.faces:
+            for loop in f.loops:
+                co = loop.vert.co
+                loop[uv_layer].uv = (
+                    0.5 + co.x / max(2.0 * radius, 1e-4),
+                    0.5 + co.y / max(2.0 * radius, 1e-4),
+                )
+        bm.to_mesh(mesh)
+        bm.free()
+        mesh.update()
+    else:
+        _finish_bmesh(bm, mesh, uv_scale=(max(radius * 1.5, 0.3), max(depth / 3.0, 0.3)))
+    return _create_mesh_object(name, mesh, col, (x, y, z), (rot_x, rot_y, rot_z), (scale_x, scale_y, 1.0), material)
 
 
-def cone(name, col, x, y, z, r1, r2, depth, material, vertices=12, rot_x=0.0, rot_z=0.0, uv_method="CONE"):
+def cone(name, col, x, y, z, r1, r2, depth, material, vertices=12, rot_x=0.0, rot_y=0.0, rot_z=0.0):
     mesh = bpy.data.meshes.new(name + "Mesh")
     bm = bmesh.new()
-    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=vertices,
-                          radius1=r1, radius2=r2, depth=depth)
-    # create_cone(depth=d) è già centrato su z=0 (da -d/2 a +d/2)
-    bm.to_mesh(mesh)
-    bm.free()
-    obj = _create_mesh_object(name, mesh, col, (x, y, z), (rot_x, 0.0, rot_z), (1.0, 1.0, 1.0), material)
-    add_uv_map(obj)
-    unwrap_uv(obj, uv_method)
-    return obj
+    bmesh.ops.create_cone(
+        bm, cap_ends=True, cap_tris=True, segments=vertices,
+        radius1=r1, radius2=r2, depth=depth, calc_uvs=True
+    )
+    _finish_bmesh(bm, mesh, uv_scale=(0.6, max(depth / 3.0, 0.4)))
+    return _create_mesh_object(name, mesh, col, (x, y, z), (rot_x, rot_y, rot_z), (1.0, 1.0, 1.0), material)
 
 
-def sphere(name, col, x, y, z, radius, material, sy=1.0, uv_method="SPHERE"):
+def sphere(name, col, x, y, z, radius, material, sx=1.0, sy=1.0, sz=1.0):
     mesh = bpy.data.meshes.new(name + "Mesh")
     bm = bmesh.new()
-    bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=12, radius=radius)
+    bmesh.ops.create_uvsphere(bm, u_segments=14, v_segments=10, radius=radius, calc_uvs=True)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ngons = [f for f in bm.faces if len(f.verts) > 4]
+    if ngons:
+        bmesh.ops.triangulate(bm, faces=ngons)
     bm.to_mesh(mesh)
     bm.free()
-    obj = _create_mesh_object(name, mesh, col, (x, y, z), (0, 0, 0), (1.0, sy, 1.0), material)
-    add_uv_map(obj)
-    unwrap_uv(obj, uv_method)
-    return obj
+    mesh.update()
+    return _create_mesh_object(name, mesh, col, (x, y, z), (0, 0, 0), (sx, sy, sz), material)
 
 
-def torus(name, col, x, y, z, major, minor, material, rot_x=math.radians(90), rot_y=0.0, uv_method="SMART"):
-    """Toro (ghiera, anello, aureola). Costruito a mano: in Blender 4.2
-    bmesh non ha piu' l'operatore 'create_torus'."""
-    seg_u, seg_v = 40, 10
-    verts, faces = [], []
-    for i in range(seg_u + 1):
+def torus_ellipse(name, col, cx, y, cz, rx, rz, minor, material, seg_u=48, seg_v=12):
+    """Anello toroidale ellittico/circolare nel piano XZ (per oculo e cornici)."""
+    bm = bmesh.new()
+    grid = []
+    for i in range(seg_u):
         a = 2.0 * math.pi * i / seg_u
-        for j in range(seg_v + 1):
+        ca, sa = math.cos(a), math.sin(a)
+        row = []
+        for j in range(seg_v):
             b = 2.0 * math.pi * j / seg_v
-            r = major + minor * math.cos(b)
-            verts.append((r * math.cos(a), r * math.sin(a), minor * math.sin(b)))
+            cb, sb = math.cos(b), math.sin(b)
+            px = (rx + minor * cb) * ca
+            py = minor * sb
+            pz = (rz + minor * cb) * sa
+            row.append(bm.verts.new((px, py, pz)))
+        grid.append(row)
+    uv_layer = bm.loops.layers.uv.verify()
     for i in range(seg_u):
+        i2 = (i + 1) % seg_u
         for j in range(seg_v):
-            v0 = i * (seg_v + 1) + j
-            faces.append((v0, v0 + seg_v + 1, v0 + seg_v + 2, v0 + 1))
+            j2 = (j + 1) % seg_v
+            f = bm.faces.new((grid[i][j], grid[i2][j], grid[i2][j2], grid[i][j2]))
+            uvs = ((i / seg_u * 4, j / seg_v), ((i + 1) / seg_u * 4, j / seg_v),
+                   ((i + 1) / seg_u * 4, (j + 1) / seg_v), (i / seg_u * 4, (j + 1) / seg_v))
+            for loop, uv in zip(f.loops, uvs):
+                loop[uv_layer].uv = uv
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     mesh = bpy.data.meshes.new(name + "Mesh")
-    mesh.from_pydata(verts, [], faces)
+    bm.to_mesh(mesh)
+    bm.free()
     mesh.update()
-    obj = bpy.data.objects.new(name, mesh)
-    obj.location = (x, y, z)
-    obj.rotation_euler = (rot_x, rot_y, 0.0)
-    if material:
-        obj.data.materials.append(material)
-    col.objects.link(obj)
-    add_uv_map(obj)
-    unwrap_uv(obj, uv_method)
-    return obj
+    return _create_mesh_object(name, mesh, col, (cx, y, cz), (0, 0, 0), (1, 1, 1), material)
 
 
-def arch(name, col, cx, y, cz, major, minor, material, uv_method="SMART"):
-    """Archivolto a tutto sesto: mezzo toro nel piano XZ (solo meta' superiore)."""
-    seg_u, seg_v = 28, 10
-    verts, faces = [], []
+def torus(name, col, x, y, z, major, minor, material):
+    return torus_ellipse(name, col, x, y, z, major, major, minor, material, seg_u=36, seg_v=10)
+
+
+def arch(name, col, cx, y, cz, major, minor, material, seg_u=32, seg_v=10, pointed=0.0):
+    """Archivolto nel piano XZ: a tutto sesto (pointed=0) o acuto gotico (pointed>0)."""
+    bm = bmesh.new()
+    grid = []
     for i in range(seg_u + 1):
-        a = math.pi * i / seg_u
-        for j in range(seg_v + 1):
-            b = 2 * math.pi * j / seg_v
-            r = major + minor * math.cos(b)
-            verts.append((cx + r * math.cos(a), y + minor * math.sin(b), cz + r * math.sin(a)))
+        t = i / seg_u
+        a = math.pi * (1.0 - t)  # da sinistra (pi) a destra (0)
+        base_x = major * math.cos(a)
+        base_z = major * math.sin(a) + pointed * major * (1.0 - abs(2.0 * t - 1.0)) ** 0.85
+        row = []
+        for j in range(seg_v):
+            b = 2.0 * math.pi * j / seg_v
+            cb, sb = math.cos(b), math.sin(b)
+            nx, nz = math.cos(a), math.sin(a)
+            row.append(bm.verts.new((base_x + minor * cb * nx, minor * sb, base_z + minor * cb * nz)))
+        grid.append(row)
+    uv_layer = bm.loops.layers.uv.verify()
     for i in range(seg_u):
         for j in range(seg_v):
-            a = i * (seg_v + 1) + j
-            faces.append((a, a + seg_v + 1, a + seg_v + 2, a + 1))
+            j2 = (j + 1) % seg_v
+            f = bm.faces.new((grid[i][j], grid[i + 1][j], grid[i + 1][j2], grid[i][j2]))
+            for k, loop in enumerate(f.loops):
+                loop[uv_layer].uv = ((i + (1 if k in (1, 2) else 0)) / seg_u * 3.0, (j + (1 if k in (2, 3) else 0)) / seg_v)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     mesh = bpy.data.meshes.new(name + "Mesh")
-    mesh.from_pydata(verts, [], faces)
+    bm.to_mesh(mesh)
+    bm.free()
     mesh.update()
-    obj = bpy.data.objects.new(name, mesh)
-    if material:
-        obj.data.materials.append(material)
-    col.objects.link(obj)
-    add_uv_map(obj)
-    unwrap_uv(obj, uv_method)
-    return obj
+    return _create_mesh_object(name, mesh, col, (cx, y, cz), (0, 0, 0), (1, 1, 1), material)
 
 
-def prism(name, col, cx, y, z_base, width, height, depth, material, front_only_depth=None, uv_method="SMART"):
-    """Prisma triangolare (timpano): base orizzontale, apice centrato, estruso in Y."""
+def prism(name, col, cx, y, z_base, width, height, depth, material, mosaic_uv=False):
+    """Prisma triangolare con faccia frontale mappata esattamente su (0,0)-(1,0)-(0.5,1)."""
     w, h, d = width / 2.0, height, depth / 2.0
-    verts = [(-w, -d, 0), (w, -d, 0), (0, -d, h),
-             (-w,  d, 0), (w,  d, 0), (0,  d, h)]
-    faces = [(0, 1, 2), (5, 4, 3), (0, 3, 4, 1), (1, 4, 5, 2), (2, 5, 3, 0)]
+    bm = bmesh.new()
+    v0 = bm.verts.new((-w, -d, 0.0))
+    v1 = bm.verts.new((w, -d, 0.0))
+    v2 = bm.verts.new((0.0, -d, h))
+    v3 = bm.verts.new((-w, d, 0.0))
+    v4 = bm.verts.new((w, d, 0.0))
+    v5 = bm.verts.new((0.0, d, h))
+    f_front = bm.faces.new((v0, v1, v2))
+    f_back = bm.faces.new((v5, v4, v3))
+    f_bot = bm.faces.new((v0, v3, v4, v1))
+    f_r = bm.faces.new((v1, v4, v5, v2))
+    f_l = bm.faces.new((v2, v5, v3, v0))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    uv_layer = bm.loops.layers.uv.verify()
+    if mosaic_uv:
+        tri_map = {v0: (0.0, 0.0), v1: (1.0, 0.0), v2: (0.5, 1.0),
+                   v3: (0.0, 0.0), v4: (1.0, 0.0), v5: (0.5, 1.0)}
+        for f in bm.faces:
+            for loop in f.loops:
+                loop[uv_layer].uv = tri_map[loop.vert]
+    else:
+        for f in (f_front, f_back, f_bot, f_r, f_l):
+            for loop in f.loops:
+                co = loop.vert.co
+                loop[uv_layer].uv = ((co.x + w) / 3.2, co.z / 3.2)
     mesh = bpy.data.meshes.new(name + "Mesh")
-    mesh.from_pydata(verts, [], faces)
+    bm.to_mesh(mesh)
+    bm.free()
     mesh.update()
-    obj = bpy.data.objects.new(name, mesh)
-    obj.location = (cx, y, z_base)
-    if material:
-        obj.data.materials.append(material)
-    col.objects.link(obj)
-    add_uv_map(obj)
-    unwrap_uv(obj, uv_method)
-    return obj
+    return _create_mesh_object(name, mesh, col, (cx, y, z_base), (0, 0, 0), (1, 1, 1), material)
 
 
-def statue(name, col, x, y, z, h=1.5, material=PIETRA):
-    """Statua stilizzata: basamento, corpo a cono/cilindro, testa."""
-    box(name + "_base", col, x, y, z + 0.12, 0.42, 0.34, 0.24, BIANCO2)
-    cone(name + "_corpo", col, x, y, z + 0.24 + h * 0.36, 0.20, 0.11, h * 0.72, material, vertices=10)
-    sphere(name + "_testa", col, x, y, z + 0.24 + h * 0.82, 0.13, material)
-    box(name + "_braccia", col, x, y - 0.03, z + 0.24 + h * 0.52, 0.44, 0.16, 0.14, material)
+def spioventi_modanati(name, col, cx, y, z_base, width, height, thickness, depth, material):
+    """Doppia cornice inclinata aggettante lungo i due spioventi di un timpano/ghimberga."""
+    half = width / 2.0
+    slope_len = math.hypot(half, height) + thickness * 0.6
+    ang = math.atan2(height, half)
+    for s in (-1, 1):
+        mx = cx + s * half * 0.5
+        mz = z_base + height * 0.5 + thickness * 0.32
+        box(
+            f"{name}_Spiov_{s}", col, mx, y, mz,
+            slope_len, depth, thickness, material, rot_y=s * ang
+        )
 
 
-def finial(name, col, x, y, z):
-    cyl(name + "_fusto", col, x, y, z + 0.25, 0.07, 0.5, BIANCO, vertices=8)
-    sphere(name + "_palla", col, x, y, z + 0.6, 0.12, PIETRA)
-    cone(name + "_punta", col, x, y, z + 0.85, 0.09, 0.0, 0.4, PIETRA, vertices=8)
-
-
-# -----------------------------------------------------------------------------
-# MIGLIORAMENTO 3 — elementi di Giovanni Pisano: colonne ritorte, archivolti
-# ritorti, foglie rampanti, statue (Vergine / Angeli)
-# -----------------------------------------------------------------------------
-def colonna_ritorta(name, col, x, y, z, radius, height, material, turns=3.0,
-                    segments=12, rings=24, ridges=2, ridge_amp=0.17, taper=0.08):
-    """Colonna ritorta ('a vite'): costoloni elicoidali, come negli sguanci dei
-    tre portali della facciata inferiore."""
-    verts, faces = [], []
+def colonna_ritorta(name, col, x, y, z, radius, height, material, turns=3.2,
+                    segments=14, rings=26, ridges=3, ridge_amp=0.16, taper=0.05):
+    """Colonna tortile ('a vite') di Giovanni Pisano."""
+    bm = bmesh.new()
+    grid = []
     for i in range(rings + 1):
         t = i / float(rings)
         zz = -height / 2.0 + t * height
         ang0 = t * turns * 2.0 * math.pi
         rad = radius * (1.0 - taper * t)
+        row = []
         for j in range(segments):
             a = ang0 + 2.0 * math.pi * j / segments
             rr = rad * (1.0 + ridge_amp * math.cos(ridges * (a - ang0)))
-            verts.append((rr * math.cos(a), rr * math.sin(a), zz))
+            row.append(bm.verts.new((rr * math.cos(a), rr * math.sin(a), zz)))
+        grid.append(row)
+    uv_layer = bm.loops.layers.uv.verify()
     for i in range(rings):
         for j in range(segments):
             j2 = (j + 1) % segments
-            v0 = i * segments + j
-            v1 = i * segments + j2
-            v2 = (i + 1) * segments + j2
-            v3 = (i + 1) * segments + j
-            faces.append((v0, v1, v2, v3))
+            f = bm.faces.new((grid[i][j], grid[i][j2], grid[i + 1][j2], grid[i + 1][j]))
+            for k, loop in enumerate(f.loops):
+                loop[uv_layer].uv = (j / segments, (i + (1 if k >= 2 else 0)) / rings * 2.0)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     mesh = bpy.data.meshes.new(name + "Mesh")
-    mesh.from_pydata(verts, [], faces)
+    bm.to_mesh(mesh)
+    bm.free()
     mesh.update()
-    obj = bpy.data.objects.new(name, mesh)
-    if material:
-        obj.data.materials.append(material)
-    obj.location = (x, y, z)
-    col.objects.link(obj)
-    add_uv_map(obj)
-    unwrap_uv(obj, "SMART")
-    return obj
+    return _create_mesh_object(name, mesh, col, (x, y, z), (0, 0, 0), (1, 1, 1), material)
 
 
 def arco_ritorto(name, col, cx, y, cz, major, minor, material,
-                 seg_u=30, seg_v=14, ribs=8, turns=1.8, amp=0.24):
-    """Archivolto ritorto: i costoloni della ghiera girano a elica attorno
-    all'arco (come negli archivolti dei portali della facciata)."""
-    verts, faces = [], []
+                 seg_u=34, seg_v=12, ribs=7, turns=2.2, amp=0.22):
+    """Archivolto tortile scolpito di Giovanni Pisano."""
+    bm = bmesh.new()
+    grid = []
     for i in range(seg_u + 1):
-        a = math.pi * i / seg_u
+        a = math.pi * (1.0 - i / seg_u)
         helix = 2.0 * math.pi * turns * i / seg_u
-        for j in range(seg_v + 1):
+        row = []
+        for j in range(seg_v):
             b = 2.0 * math.pi * j / seg_v
             m = minor * (1.0 + amp * math.cos(ribs * b + helix))
             r = major + m * math.cos(b)
-            verts.append((cx + r * math.cos(a), y + m * math.sin(b), cz + r * math.sin(a)))
+            row.append(bm.verts.new((r * math.cos(a), m * math.sin(b), r * math.sin(a))))
+        grid.append(row)
+    uv_layer = bm.loops.layers.uv.verify()
     for i in range(seg_u):
         for j in range(seg_v):
-            v0 = i * (seg_v + 1) + j
-            faces.append((v0, v0 + seg_v + 1, v0 + seg_v + 2, v0 + 1))
+            j2 = (j + 1) % seg_v
+            f = bm.faces.new((grid[i][j], grid[i + 1][j], grid[i + 1][j2], grid[i][j2]))
+            for k, loop in enumerate(f.loops):
+                loop[uv_layer].uv = (i / seg_u * 4.0, j / seg_v)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     mesh = bpy.data.meshes.new(name + "Mesh")
-    mesh.from_pydata(verts, [], faces)
+    bm.to_mesh(mesh)
+    bm.free()
     mesh.update()
-    obj = bpy.data.objects.new(name, mesh)
-    if material:
-        obj.data.materials.append(material)
-    col.objects.link(obj)
-    add_uv_map(obj)
-    unwrap_uv(obj, "SMART")
-    return obj
+    return _create_mesh_object(name, mesh, col, (cx, y, cz), (0, 0, 0), (1, 1, 1), material)
 
 
-def testa_satiro(name, col, x, y, z, s=1.0):
-    """Chiave di volta degli archivolti: testa di satiro (con corna)."""
-    sphere(name + "_testa", col, x, y, z, 0.17 * s, PIETRA)
-    cone(name + "_muso", col, x, y - 0.12 * s, z - 0.04 * s, 0.07 * s, 0.04 * s, 0.16 * s,
-         PIETRA, vertices=8, rot_x=math.radians(90))
-    for s2 in (-1, 1):
-        cone(name + f"_corno_{s2}", col, x + s2 * 0.12 * s, y - 0.02 * s, z + 0.10 * s,
-             0.035 * s, 0.01 * s, 0.20 * s, PIETRA, vertices=6, rot_z=-s2 * math.radians(35))
-
-
-def foglie_rampanti(name, col, cx, y, z_base, width, height, material=PIETRA,
-                    n=6, size=0.30):
-    """Foglie rampanti (crocket) che corrono sulle due pendenze di una ghimberga."""
+def foglie_rampanti(name, col, cx, y, z_base, width, height, material=PIETRA, n=9, size=0.28):
+    """Foglie rampanti gotiche (crockets) lungo entrambi gli spioventi."""
     for s in (-1, 1):
         for i in range(n):
-            t = 0.14 + 0.78 * i / max(1, n - 1)
+            t = 0.08 + 0.85 * i / max(1, n - 1)
             x = cx + s * (width / 2.0) * (1.0 - t)
             z = z_base + height * t
-            cone(f"{name}_Foglia_{s}_{i}", col, x, y - 0.05, z + size * 0.45,
-                 size * 0.30, 0.015, size, material, vertices=6,
-                 rot_z=-s * math.radians(40))
-            sphere(f"{name}_Bocciolo_{s}_{i}", col, x, y - 0.05, z + size * 1.0,
-                   size * 0.15, material)
+            cone(
+                f"{name}_Foglia_{s}_{i}", col, x, y - 0.04, z + size * 0.42,
+                size * 0.28, 0.02, size * 0.92, material, vertices=7,
+                rot_y=-s * math.radians(32)
+            )
+            sphere(
+                f"{name}_Bocciolo_{s}_{i}", col, x - s * size * 0.14, y - 0.05,
+                z + size * 0.82, size * 0.14, material
+            )
 
 
-def statua_angelo(name, col, x, y, z, h=1.30, material=PIETRA):
-    """Statua d'angelo: corpo stilizzato + due ali spiegate."""
+def statue(name, col, x, y, z, h=1.5, material=PIETRA):
+    """Statua gotica panneggiata con piedistallo, manto e testa."""
+    box(name + "_base", col, x, y, z + 0.11, 0.40, 0.34, 0.22, BIANCO2)
+    cone(name + "_toga", col, x, y, z + 0.22 + h * 0.34, 0.20 * (h / 1.5), 0.13 * (h / 1.5),
+         h * 0.68, material, vertices=10)
+    cone(name + "_busto", col, x, y - 0.02, z + 0.22 + h * 0.60, 0.16 * (h / 1.5), 0.10 * (h / 1.5),
+         h * 0.30, material, vertices=10)
+    sphere(name + "_testa", col, x, y - 0.02, z + 0.22 + h * 0.82, 0.115 * (h / 1.5), material)
+    box(name + "_braccia", col, x, y - 0.05, z + 0.22 + h * 0.54, 0.34 * (h / 1.5), 0.15, 0.12, material)
+
+
+def statua_angelo(name, col, x, y, z, h=1.35, material=PIETRA, con_tromba=False):
     statue(name, col, x, y, z, h, material)
     for s in (-1, 1):
-        box(f"{name}_Ala_{s}", col, x + s * 0.24, y - 0.06, z + 0.24 + h * 0.58,
-            0.13, 0.44, 0.16, material, rot_z=-s * 0.55, rot_y=s * 0.30)
+        # Ali raccolte e slanciate verso l'alto a V come sull'apice del Duomo di Siena
+        for f_k in range(4):
+            ang_w = s * math.radians(16 + f_k * 8)
+            len_w = h * (0.78 - f_k * 0.09)
+            cone(
+                f"{name}_Penna_{s}_{f_k}", col,
+                x + s * (0.20 + f_k * 0.08) * (h / 1.35), y + 0.05,
+                z + 0.34 + h * (0.92 - f_k * 0.08),
+                0.105 * (h / 1.35), 0.02, len_w, material, vertices=8,
+                rot_x=math.radians(-10), rot_y=ang_w
+            )
+    if con_tromba:
+        cyl(
+            f"{name}_Tromba", col, x - 0.30, y - 0.08, z + h * 1.22,
+            0.030, h * 0.92, BRONZO_D, vertices=8, rot_y=math.radians(-15)
+        )
 
 
-def statua_vergine(name, col, x, y, z, h=1.45, material=PIETRA):
-    """Statua della Vergine col Bambino e aureola (ghimberga centrale)."""
+def lastra_forata_oculo(name, col, cx, y, cz, half_w, half_h, rx, rz, depth, material, seg=64):
+    """Pannello rettangolare con vero foro ellittico passante per l'oculo."""
+    bm = bmesh.new()
+    hd = depth * 0.5
+    inner_f, outer_f, inner_b, outer_b = [], [], [], []
+    for i in range(seg):
+        a = 2.0 * math.pi * i / seg
+        ca, sa = math.cos(a), math.sin(a)
+        ix, iz = rx * ca, rz * sa
+        # Proiezione del raggio sul bordo rettangolare [-half_w, half_w] x [-half_h, half_h]
+        tx = half_w / max(abs(ca), 1e-4)
+        tz = half_h / max(abs(sa), 1e-4)
+        t = min(tx, tz)
+        ox, oz = t * ca, t * sa
+        inner_f.append(bm.verts.new((ix, -hd, iz)))
+        outer_f.append(bm.verts.new((ox, -hd, oz)))
+        inner_b.append(bm.verts.new((ix, hd, iz)))
+        outer_b.append(bm.verts.new((ox, hd, oz)))
+    uv_layer = bm.loops.layers.uv.verify()
+    for i in range(seg):
+        i2 = (i + 1) % seg
+        faces = [
+            bm.faces.new((inner_f[i], outer_f[i], outer_f[i2], inner_f[i2])),
+            bm.faces.new((inner_b[i2], outer_b[i2], outer_b[i], inner_b[i])),
+            bm.faces.new((inner_f[i2], inner_b[i2], inner_b[i], inner_f[i])),
+        ]
+        for f in faces:
+            for loop in f.loops:
+                co = loop.vert.co
+                loop[uv_layer].uv = ((co.x + half_w) / 3.2, (co.z + half_h) / 3.2)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    mesh = bpy.data.meshes.new(name + "Mesh")
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()
+    return _create_mesh_object(name, mesh, col, (cx, y, cz), (0, 0, 0), (1, 1, 1), material)
+
+
+def statua_vergine(name, col, x, y, z, h=1.55, material=PIETRA):
     statue(name, col, x, y, z, h, material)
-    sphere(f"{name}_Bambino", col, x + 0.17, y - 0.12, z + 0.24 + h * 0.52, 0.12, material)
-    torus(f"{name}_Aureola", col, x, y + 0.03, z + 0.24 + h * 0.88, 0.24, 0.05, ORO)
+    sphere(f"{name}_Bambino", col, x + 0.13, y - 0.11, z + 0.22 + h * 0.56, 0.11, material)
+    cone(f"{name}_Bambino_Veste", col, x + 0.13, y - 0.10, z + 0.22 + h * 0.44, 0.10, 0.06, 0.22, material, vertices=8)
 
 
-# Import bmesh e Matrix per i primitive helper
-import bmesh
-from mathutils import Matrix
+def finial(name, col, x, y, z, s=1.0):
+    cyl(name + "_fusto", col, x, y, z + 0.22 * s, 0.065 * s, 0.44 * s, BIANCO, vertices=8)
+    sphere(name + "_nodo", col, x, y, z + 0.50 * s, 0.10 * s, PIETRA)
+    cone(name + "_punta", col, x, y, z + 0.82 * s, 0.085 * s, 0.01, 0.52 * s, PIETRA, vertices=8)
 
-S = COL["struttura"]; P = COL["portali"]; R = COL["rosone_e_logge"]
-G = COL["guglie_e_pinnacoli"]; ST = COL["statue"]; D = COL["dettagli"]
+
+def edicola_gotica_busto(name, col, cx, y, z0, w, h, con_busto=True):
+    """Singola nicchia gotica cuspidata con archetto trilobo, ghimberga e mezzo busto."""
+    arch_h = h * 0.34
+    body_h = h - arch_h
+    # Fondo in ombra profonda
+    box(f"{name}_Vano", col, cx, y + 0.10, z0 + body_h * 0.5, w * 0.74, 0.22, body_h, SCURO)
+    prism(f"{name}_VanoCima", col, cx, y + 0.10, z0 + body_h, w * 0.74, arch_h * 0.9, 0.22, SCURO)
+    # Colonnine divisorie e ghimberga acuta
+    for s in (-1, 1):
+        box(f"{name}_Stip_{s}", col, cx + s * w * 0.46, y - 0.02, z0 + body_h * 0.5,
+            w * 0.11, 0.16, body_h, BIANCO2)
+    spioventi_modanati(f"{name}_Ghim", col, cx, y - 0.05, z0 + body_h * 0.86,
+                       w * 0.96, arch_h * 1.12, 0.075, 0.16, BIANCO)
+    cone(f"{name}_Fiorone", col, cx, y - 0.05, z0 + h + 0.09, 0.055, 0.01, 0.18, PIETRA, vertices=6)
+    if con_busto:
+        cone(f"{name}_Busto", col, cx, y - 0.01, z0 + body_h * 0.34,
+             w * 0.26, w * 0.16, body_h * 0.50, PIETRA, vertices=9)
+        sphere(f"{name}_Testa", col, cx, y - 0.02, z0 + body_h * 0.70, w * 0.17, PIETRA)
+
 
 # -----------------------------------------------------------------------------
-# Parametri da config
+# Lettura quote e parametri principali
 # -----------------------------------------------------------------------------
 DIM = CFG.get("dimensioni", {})
 W_TOT = DIM.get("larghezza_totale", 30.0)
-H_ANGELO = DIM.get("altezza_angelo", 34.0)
+H_ANGELO = DIM.get("altezza_angelo", 35.2)
 THICK = DIM.get("spessore_facciata", 2.6)
-H_BASE = DIM.get("altezza_basamento", 1.5)
-H_PORTALI = DIM.get("altezza_portali", 5.6)
-W_PORT_C = DIM.get("larghezza_portale_centrale", 3.7)
-W_PORT_L = DIM.get("larghezza_portali_laterali", 3.1)
-R_OCULO = DIM.get("raggio_oculo", 2.0)
-Z_OCULO = DIM.get("altezza_centro_oculo", 19.2)
-R_CORONA = DIM.get("raggio_corona_nicchie", 2.95)
-N_NICCHIE = int(DIM.get("numero_nicchie_oculo", 34))
-X_GUGLIE = DIM.get("x_guglie_centrali", 5.2)
-W_GUGLIA = DIM.get("larghezza_guglia_centrale", 1.25)
-Z0_GUGLIA = DIM.get("base_guglia_centrale", 20.6)
-Z1_GUGLIA = DIM.get("colmo_guglia_centrale", 26.2)
-Z_CUSP_LAT = DIM.get("base_cuspidi_laterali", 20.5)
+H_BASE = DIM.get("altezza_basamento", 1.9)
+H_PORTALI = DIM.get("altezza_portali", 5.65)
+W_PORT_C = DIM.get("larghezza_portale_centrale", 3.5)
+W_PORT_L = DIM.get("larghezza_portali_laterali", 2.35)
+X_PORT_L = DIM.get("asse_portali_laterali", 7.15)
+Z_IMPOSTA = DIM.get("quota_imposta_portali", 8.45)
+Z_GALLERIA = DIM.get("quota_cornicione_galleria", 15.35)
+Z_OCULO = DIM.get("altezza_centro_oculo", 19.75)
+RX_OCULO = DIM.get("raggio_oculo_x", 3.08)
+RZ_OCULO = DIM.get("raggio_oculo_z", 2.66)
+HALF_SQ = DIM.get("semilato_quadrato_oculo", 4.45)
+Z_TIMPANO = DIM.get("quota_base_timpano_centrale", 24.45)
+X_PIL_C = DIM.get("x_pilastri_centrali", 5.0)
+W_PIL_C = DIM.get("larghezza_pilastro_centrale", 1.15)
+Z_PIL_TOP = DIM.get("colmo_pilastro_centrale", 27.0)
+X_LAT = DIM.get("x_settori_laterali", 8.05)
+Z_CUSP_LAT = DIM.get("base_cuspidi_laterali", 19.75)
 H_CUSP_LAT = DIM.get("altezza_cuspidi_laterali", 4.6)
-
-# Fattore di ingrandimento globale del modello (richiesto: almeno il triplo)
+X_TORRI = DIM.get("x_torrioni_angolari", 12.7)
 SCALA = float(DIM.get("scala_globale", 3.0))
 
-# -----------------------------------------------------------------------------
-# 1. Gradinata e basamento (sagrato, parte integrante della facciata)
-# -----------------------------------------------------------------------------
-for i in range(6):
-    box(f"Gradino_{i+1}", S, 0, -3.4 - i * 0.85, 0.55 - i * 0.18,
-        36 - i * 0.6, 1.0, 0.19, BIANCO2)
-box("Basamento", S, 0, 0, 0.75, 32, 4.6, 1.5, ROSA_C)
-box("Zoccolo", S, 0, -0.4, 1.65, 30.5, 3.4, 0.5, BIANCO)
+# =============================================================================
+# 1. GRADINATA DEL SAGRATO E BASAMENTO ORIZZONTALE
+# =============================================================================
+for i in range(13):
+    box(
+        f"Gradino_{i+1}", S, 0.0, -2.1 - i * 0.65, 1.82 - i * 0.25,
+        42.0, 0.88, 0.28, GRADINATA_MAT
+    )
+box("Basamento_Pietra", S, 0.0, -0.35, 0.95, 31.2, 3.6, 1.9, BIANCO2)
+box("Zoccolo_Modanato", S, 0.0, -0.55, 1.92, 30.6, 3.3, 0.24, BIANCO)
 
-# -----------------------------------------------------------------------------
-# 2. Corpo principale — SOLO facciata (spessore 2.6 m, retro piatto)
-# -----------------------------------------------------------------------------
-box("Corpo_Inferiore", S, 0, 0, 7.0, 30, THICK, 10.2, BIANCO)
-box("Corpo_Superiore", S, 0, 0.15, 16.2, 19.5, 2.3, 8.6, BIANCO)
-box("Attico", S, 0, 0.15, 21.6, 13.5, 2.3, 2.6, BIANCO2)
-
-# Torri laterali
+# =============================================================================
+# 2. STRUTTURA DI FONDO — SOLO FACCIATA (retro piatto a Y = +1.30)
+# =============================================================================
+# Ordine inferiore in marmo bianco senese (retro compatto, spessore 2.6 m)
+box("Corpo_Inferiore", S, 0.0, 0.12, 8.55, 29.6, THICK - 0.24, 13.30, BIANCO)
+# Specchiatura di fondo in marmo verde-nero di Prato nella fascia dei timpani
+box("Specchiatura_Fondo_Prato", S, 0.0, -1.25, 12.80, 21.4, 0.14, 4.55, VERDE)
+# Corpo superiore centrale arretrato (faccia anteriore a Y = -0.55, dietro la vetrata dell'oculo!)
+box("Corpo_Superiore_Centrale", S, 0.0, 0.38, 19.60, 10.8, 1.85, 8.95, BIANCO)
+# Muri di spalla dietro le loggette laterali
 for side in (-1, 1):
-    x = 13.6 * side
-    box(f"Torre_Laterale_{side}", S, x, 0, 7.5, 3.0, 2.9, 11.2, BIANCO)
-    box(f"Torre_Media_{side}", S, x, 0, 15.2, 2.7, 2.7, 4.6, BIANCO2)
-    box(f"Torre_Alta_{side}", S, x, 0, 19.9, 2.3, 2.4, 4.8, BIANCO)
-    # fasce bicrome
-    for i in range(9):
-        m = VERDE if i % 2 == 0 else BIANCO
-        box(f"Fascia_Bicroma_{side}_{i}", D, x, -1.52, 2.6 + i * 0.62, 3.06, 0.10, 0.5, m)
-    # pannello a losanghe
-    for r in range(5):
-        for c in range(2):
-            box(f"Losanga_{side}_{r}_{c}", D, 11.15 * side + (c - 0.5) * 0.62, -1.36,
-                3.2 + r * 0.85, 0.36, 0.08, 0.36,
-                ROSA if (r + c) % 2 else BIANCO2, rot_y=math.radians(45))
+    box(f"Corpo_Settore_Lat_{side}", S, side * X_LAT, 0.35, 16.95, 5.2, 1.90, 3.75, BIANCO2)
 
-# Cornicioni orizzontali
-for z, w, m in [(2.0, 30.6, VERDE), (8.1, 30.4, BIANCO2), (12.15, 30.6, ROSA_C),
-                (22.95, 14.2, BIANCO2)]:
-    box(f"Cornicione_{z}", S, 0, -0.55, z, w, 3.3, 0.42, m)
-for z, m in [(13.55, BIANCO2), (21.05, ROSA_C)]:
-    for s in (-1, 1):
-        box(f"Cornicione_Rosone_{z}_{s}", S, s * 7.3, -0.55, z, 5.4, 3.3, 0.38, m)
+# =============================================================================
+# 3. ORDINE INFERIORE DI GIOVANNI PISANO: CONTRAFFORTI BICROMI, 4 PILONI A
+#    FASCIO, 3 PORTALI CONTIGUI STROMBATI E SPECCHIATURE CON ROSONI
+# =============================================================================
+# --- Contrafforti angolari inferiori a fasce bicrome + fascia a losanghe ---
+for side in (-1, 1):
+    # Campata esterna sporgente (fasce bicrome nette bianco / verde-nero di Prato)
+    xe = side * 13.85
+    box(f"Contrafforte_Base_Est_{side}", S, xe, -0.15, 5.15, 2.25, 2.95, 6.45, BIANCO)
+    for k in range(11):
+        mat_f = VERDE if k % 2 == 1 else BIANCO
+        h_f = 0.34 if k % 2 == 1 else 0.72
+        zk = 2.20 + k * 0.56
+        if zk < 8.15:
+            box(f"Fascia_Est_{side}_{k}", D, xe, -0.22, zk, 2.30, 2.92, h_f, mat_f)
+    # Feritoia stretta sul contrafforte destro/sinistro
+    box(f"Feritoia_Base_{side}", D, xe, -1.70, 5.05, 0.18, 0.10, 0.72, SCURO)
 
-# -----------------------------------------------------------------------------
-# 3. I tre portali
-# -----------------------------------------------------------------------------
-def portal(cx, door_w, door_h, door_mat, central=False):
-    tag = "Centrale" if central else f"Laterale_{int(cx)}"
-    front = -1.42
-    # vano e porta
-    box(f"Vano_{tag}", P, cx, front + 0.25, 1.9 + door_h / 2, door_w + 0.5, 0.5, door_h, SCURO)
-    door = box(f"Porta_{tag}", P, cx, front, 1.9 + door_h / 2, door_w, 0.18, door_h, door_mat)
-    # pannelli porta
-    for px in (-door_w / 4, door_w / 4):
-        for pz in range(3):
-            box(f"Pannello_{tag}_{px}_{pz}", P, cx + px, front - 0.11,
-                2.6 + pz * (door_h / 3.2), door_w / 2.4, 0.05, door_h / 4.2,
-                LEGNO_S if door_mat is LEGNO else BRONZO)
-    box(f"Soglia_{tag}", P, cx, front - 0.2, 1.95, door_w + 0.6, 0.7, 0.14, BIANCO2)
-    # lunetta
-    lun_z = 1.9 + door_h
-    cyl(f"Lunetta_{tag}", P, cx, front + 0.05, lun_z, door_w / 2 + 0.25, 0.22,
-        ORO if central else ROSA_C, vertices=28, rot_x=math.radians(90))
-    cyl(f"Lunetta_Vetro_{tag}", P, cx, front - 0.08, lun_z, door_w / 2 - 0.25, 0.10,
-        VETRO_C if central else SCURO, vertices=28, rot_x=math.radians(90))
-    if central:
-        # trigramma bronzeo del nome di Cristo sulla lunetta del portale centrale
-        sphere("Stemma_Sole", P, cx, front - 0.2, lun_z + 0.15, 0.42, BRONZO)
-        for a in range(12):
-            ang = a * math.pi / 6
-            box(f"Raggio_{a}", P, cx + math.cos(ang) * 0.72, front - 0.18,
-                lun_z + 0.15 + math.sin(ang) * 0.72, 0.42, 0.06, 0.09, BRONZO, rot_y=-ang)
-    # archivolto RITORTO + conci bicromi + chiave di volta a testa di satiro
-    arco_ritorto(f"Arco_{tag}", P, cx, front - 0.05, lun_z, door_w / 2 + 0.35, 0.30, BIANCO2,
-                 ribs=8, turns=1.8, amp=0.24)
-    for i in range(9):
-        ang = math.pi * (0.08 + 0.84 * i / 8)
-        box(f"Concio_{tag}_{i}", P,
-            cx + math.cos(ang) * (door_w / 2 + 0.72), front - 0.05,
-            lun_z + math.sin(ang) * (door_w / 2 + 0.72),
-            0.55, 0.28, 0.55, VERDE if i % 2 == 0 else BIANCO, rot_y=-ang)
-    # chiave di volta: testa di satiro
-    testa_satiro(f"Chiave_{tag}", P, cx, front - 0.12,
-                 lun_z + door_w / 2 + 0.70, 1.0 if central else 0.85)
-    # COLONNE RITORTE con capitelli a fogliame
+    # Campata interna arretrata con fasce bicrome + fascia a losanghe rosa/bianche
+    xi = side * 11.82
+    box(f"Contrafforte_Base_Int_{side}", S, xi, -0.05, 5.15, 1.90, 2.75, 6.45, BIANCO)
+    for k in range(9):
+        zk = 2.30 + k * 0.66
+        if not (4.15 <= zk <= 5.55):
+            box(f"Fascia_Int_{side}_{k}", D, xi, -1.45, zk, 1.92, 0.12, 0.30, VERDE)
+    # Fascia a 3 riquadri con losanghe intarsiate (come nella foto a quota ~4.8 m)
+    box(f"Cornice_Losanghe_{side}", D, xi, -1.44, 4.85, 1.88, 0.12, 1.05, BIANCO2)
+    for c in range(3):
+        lx = xi + (c - 1) * 0.58
+        box(f"Riquadro_Los_{side}_{c}", D, lx, -1.47, 4.85, 0.50, 0.10, 0.62, ROSA_C)
+        box(f"Losanga_{side}_{c}", D, lx, -1.51, 4.85, 0.32, 0.10, 0.32, VERDE, rot_y=math.radians(45))
+
+    # Trabeazione scolpita d'imposta sui contrafforti (z = 8.35 m, NON attraversa gli archi)
+    box(f"Trabeazione_Angolo_{side}", S, side * 12.85, -0.25, Z_IMPOSTA, 4.35, 3.05, 0.62, BIANCO2)
+    box(f"Cornice_Aggetto_Angolo_{side}", S, side * 12.85, -0.32, Z_IMPOSTA + 0.38, 4.50, 3.20, 0.22, ROSA_C)
+
+
+# --- 4 grandi piloni strombati a fascio di colonne (x = +-10.45 e +-3.85) ---
+def pilone_strombato(cx, central_side=False):
+    tag = f"Pilone_{cx:+.2f}"
+    y0 = -1.52
+    # Zoccolo modanato a gradoni
+    box(f"{tag}_Basamento", P, cx, y0 + 0.15, 2.18, 1.55, 0.95, 0.52, BIANCO2)
+    # Colonna principale frontale scolpita a candelabro/fogliame + 4 colonne tortili laterali
+    cyl(f"{tag}_ColFrontale", P, cx, y0 - 0.18, 5.10, 0.21, 5.30, BIANCO, vertices=16)
+    for r_i in range(7):
+        torus(f"{tag}_Rilievo_{r_i}", P, cx, y0 - 0.18, 2.85 + r_i * 0.72, 0.19, 0.055, PIETRA)
     for s in (-1, 1):
-        for k in range(3):
-            xx = cx + s * (door_w / 2 + 0.55 + k * 0.42)
-            colonna_ritorta(f"Colonna_{tag}_{s}_{k}", P,
-                            xx, front - 0.05 - (0.12 if k == 1 else 0),
-                            1.9 + door_h / 2, 0.16, door_h,
-                            BIANCO if k != 1 else ROSA,
-                            turns=3.0, ridges=2)
-            # collarino / base attorcigliata
-            cyl(f"Collarino_{tag}_{s}_{k}", P, xx, front - 0.05 - (0.12 if k == 1 else 0),
-                1.9 + door_h / 2, 0.19, 0.22, BIANCO2, vertices=12)
-            box(f"Capitello_{tag}_{s}_{k}", P, xx, front - 0.05, 1.9 + door_h + 0.05,
-                0.42, 0.42, 0.3, BIANCO2)
-            sphere(f"Fogliame_{tag}_{s}_{k}", P, xx, front - 0.05, 1.9 + door_h + 0.02,
-                   0.17, PIETRA, sy=0.6)
-            box(f"BaseCol_{tag}_{s}_{k}", P, xx, front - 0.05, 2.05, 0.42, 0.42, 0.3, BIANCO2)
-    # GHIMBERGA cuspidata: foglie rampanti sulle pendenze, busto nel medaglione
-    # (i busti dei beati senesi furono aggiunti nel XVII secolo) e, in sommita',
-    # la Vergine su quella centrale e gli Angeli su quelle laterali.
-    gz = 1.9 + door_h + door_w / 2 + 0.55
-    gw = door_w + 2.6          # larghezza della ghimberga
-    gh = 2.6                   # altezza della ghimberga
-    prism(f"Timpano_{tag}", P, cx, -0.85, gz, gw, gh, 1.1, BIANCO)
-    prism(f"Mosaico_Timpano_{tag}", P, cx, -1.48, gz + 0.35, door_w + 1.5, 1.8, 0.12, ORO_C)
-    foglie_rampanti(f"Ghimberga_{tag}", P, cx, -1.42, gz, gw, gh, PIETRA, n=6, size=0.30)
-    # cuspide sommitale della ghimberga
-    cone(f"Cuspide_Ghimberga_{tag}", P, cx, -1.30, gz + gh + 0.18, 0.16, 0.0, 0.55, PIETRA, vertices=8)
-    # medaglione con busto (beziers)
-    torus(f"Medaglione_{tag}", P, cx, front - 0.15, gz + 1.05, 0.48, 0.12, ROSA)
-    cyl(f"Medaglione_Centro_{tag}", P, cx, front - 0.12, gz + 1.05, 0.42, 0.1,
-        ORO, vertices=20, rot_x=math.radians(90))
-    sphere(f"Busto_Medaglione_{tag}", P, cx, front - 0.20, gz + 1.22, 0.20, PIETRA)
+        colonna_ritorta(
+            f"{tag}_Tort1_{s}", P, cx + s * 0.44, y0 - 0.06, 5.10, 0.155, 5.30,
+            ROSA if s > 0 else BIANCO, turns=3.5, ridges=3
+        )
+        colonna_ritorta(
+            f"{tag}_Tort2_{s}", P, cx + s * 0.80, y0 + 0.08, 5.10, 0.145, 5.30,
+            BIANCO2, turns=-3.0, ridges=4
+        )
+    # Capitelli compositi a fogliame d'acanto + trabeazione d'imposta spezzata
+    box(f"{tag}_Capitelli", P, cx, y0 - 0.02, 7.95, 1.85, 0.88, 0.46, PIETRA)
+    box(f"{tag}_Imposta", P, cx, y0 - 0.08, Z_IMPOSTA, 1.98, 1.00, 0.52, BIANCO2)
+    box(f"{tag}_ImpostaRosa", P, cx, y0 - 0.12, Z_IMPOSTA + 0.32, 2.06, 1.06, 0.20, ROSA)
+    # Leone / grifone stiloforo sporgente di Giovanni Pisano
+    box(f"{tag}_LeoneCorpo", ST, cx, y0 - 0.28, Z_IMPOSTA + 0.66, 0.36, 0.62, 0.36, PIETRA)
+    sphere(f"{tag}_LeoneTesta", ST, cx, y0 - 0.58, Z_IMPOSTA + 0.82, 0.20, PIETRA)
+    # Pilastrino e grande statua di Profeta/Sibilla nel pennacchio fra le ghimberghe
+    box(f"{tag}_ Contrafforte Alto", P, cx, -1.42, 12.15, 0.62, 0.44, 5.80, BIANCO)
+    statue(f"{tag}_StatuaProfeta", ST, cx, y0 - 0.18, 9.85, 1.85 if central_side else 1.70, PIETRA)
+    spioventi_modanati(f"{tag}_Baldacchino", P, cx, y0 - 0.20, 12.10, 0.86, 0.85, 0.09, 0.44, BIANCO)
+    finial(f"{tag}_Pinnacolo", G, cx, y0 - 0.10, 14.95, 0.95)
+
+
+for px_pier, is_c in [(-10.45, False), (-3.85, True), (3.85, True), (10.45, False)]:
+    pilone_strombato(px_pier, central_side=is_c)
+
+
+# --- I 3 grandi portali contigui (centrale + due laterali) ---
+def portale_pisano(cx, door_w, door_h, r_ext, gh_base, gh_apex, door_mat, central=False):
+    tag = "Centrale" if central else ("Sinistro" if cx < 0 else "Destro")
+    front = -1.32
+
+    # 1. Mostra marmorea aperta attorno al vano (2 stipiti + sopraluce, SENZA coprire la porta!)
+    show_w = door_w + (0.85 if central else 1.40)
+    jamb_w = (show_w - door_w) * 0.5
+    for s_j in (-1, 1):
+        box(
+            f"Stipite_Mostra_{tag}_{s_j}", P,
+            cx + s_j * (door_w * 0.5 + jamb_w * 0.5), front - 0.14, 1.95 + door_h * 0.5,
+            jamb_w, 0.24, door_h, BIANCO
+        )
+    # Vano ombroso e portone ben visibile con texture ad alta risoluzione
+    box(f"Vano_Porta_{tag}", P, cx, front + 0.08, 1.95 + door_h * 0.5, door_w + 0.10, 0.20, door_h + 0.06, SCURO)
+    box(f"Porta_{tag}", P, cx, front - 0.08, 1.95 + door_h * 0.5, door_w, 0.10, door_h, door_mat, fit_uv=True)
+    # Battente centrale sottile in rilievo
+    box(f"Battente_{tag}", P, cx, front - 0.14, 1.95 + door_h * 0.5, 0.06, 0.04, door_h,
+        BRONZO if central else LEGNO_S)
+
+    # Architrave scolpito e fregio a mensole sopra il portone (sotto la lunetta!)
+    z_lint = 2.02 + door_h + 0.24
+    box(f"Architrave_{tag}", P, cx, front - 0.16, z_lint, show_w + 0.15, 0.30, 0.44, PIETRA)
+    if not central:
+        # Nei portali laterali, fascia marmorea bianca e fregio scolpito fra porta e imposta
+        box(f"Sopraluce_Marmo_{tag}", P, cx, front - 0.12, 7.38, show_w, 0.24, 1.48, BIANCO)
+        for m_i in range(5):
+            box(f"Metopa_{tag}_{m_i}", P, cx + (m_i - 2) * 0.62, front - 0.20, 7.62, 0.44, 0.08, 0.48, PIETRA)
+    for d_i in range(9):
+        box(f"Mensolina_{tag}_{d_i}", P, cx + (d_i - 4) * (show_w / 9.0), front - 0.22,
+            Z_IMPOSTA - 0.16, 0.18, 0.18, 0.20, BIANCO)
+
+    # 2. Lunetta sopra la quota d'imposta Z_IMPOSTA (mai tagliata da alcun cornicione!)
+    r_in = r_ext - 1.52
+    cyl(f"Lunetta_Fondo_{tag}", P, cx, front + 0.04, Z_IMPOSTA + 0.12, r_in + 0.15, 0.20,
+        BIANCO2, vertices=36, rot_x=math.radians(90))
     if central:
-        statua_vergine("Statua_Vergine_Ghimberga", ST, cx, front - 0.1, gz + 2.45, 1.40)
+        # Raggiera bicroma bianco / verde-nero + Sole raggiante bronzeo di San Bernardino
+        n_rays_bg = 15
+        for k in range(n_rays_bg):
+            a = math.pi * (0.06 + 0.88 * k / (n_rays_bg - 1))
+            box(
+                f"Spicchio_Lunetta_{k}", P,
+                cx + math.cos(a) * (r_in * 0.62), front - 0.07,
+                Z_IMPOSTA + 0.15 + math.sin(a) * (r_in * 0.62),
+                0.24, 0.06, r_in * 0.95,
+                VERDE if k % 2 == 1 else BIANCO,
+                rot_y=(math.pi / 2.0 - a)
+            )
+        arch("Cornice_Interna_Sole", P, cx, front - 0.09, Z_IMPOSTA + 0.20, r_in * 0.92, 0.09, ROSA)
+        cyl("Disco_Sole_IHS", P, cx, front - 0.16, Z_IMPOSTA + 0.78, 0.44, 0.12,
+            BRONZO_D, vertices=24, rot_x=math.radians(90))
+        for a_i in range(16):
+            ang = a_i * 2.0 * math.pi / 16.0
+            cone(
+                f"Fiamma_Sole_{a_i}", P,
+                cx + math.cos(ang) * 0.70, front - 0.16,
+                Z_IMPOSTA + 0.78 + math.sin(ang) * 0.70,
+                0.085, 0.01, 0.56, BRONZO_D, vertices=6,
+                rot_y=math.pi / 2.0 - ang
+            )
     else:
-        statua_angelo(f"Statua_Angelo_Ghimberga_{tag}", ST, cx, front - 0.1, gz + 2.45, 1.25)
-    for s in (-1, 1):
-        statua_angelo(f"Statua_Porta_{tag}_{s}", ST, cx + s * (door_w / 2 + 1.15),
-                      front - 0.15, gz - 0.15, 1.30)
+        # Ghirlanda circolare scolpita nelle lunette laterali
+        arch(f"Lunetta_Rosa_{tag}", P, cx, front - 0.07, Z_IMPOSTA + 0.16, r_in * 0.86, 0.09, ROSA)
+        torus(f"Ghirlanda_{tag}", P, cx, front - 0.12, Z_IMPOSTA + 0.78, 0.40, 0.09, PIETRA)
+
+    # 3. Strombatura profonda a 5 ordini concentrici di archivolti bianchi e rosa
+    cz_arch = Z_IMPOSTA + 0.15
+    rings_spec = [
+        (r_in + 0.12, 0.13, -0.08, ROSA, False),
+        (r_in + 0.42, 0.15, -0.16, BIANCO, True),
+        (r_in + 0.76, 0.16, -0.24, ROSA, False),
+        (r_in + 1.12, 0.16, -0.32, PIETRA, True),
+        (r_ext - 0.08, 0.17, -0.40, BIANCO2, False),
+    ]
+    for idx, (rr, min_r, dy, mat_a, twisted) in enumerate(rings_spec):
+        if twisted:
+            arco_ritorto(f"Archivolto_{tag}_{idx}", P, cx, front + dy, cz_arch, rr, min_r, mat_a)
+        else:
+            arch(f"Archivolto_{tag}_{idx}", P, cx, front + dy, cz_arch, rr, min_r, mat_a, seg_u=38)
+    # Chiave di volta scolpita
+    sphere(f"Chiave_Volta_{tag}", P, cx, front - 0.46, cz_arch + r_ext - 0.05, 0.22, PIETRA)
+
+    # 4. Grande ghimberga triangolare ripida svettante oltre Z_GALLERIA
+    gh_w = r_ext * 2.0 + 0.15
+    gh_h = gh_apex - gh_base
+    # Corpo triangolare in marmo bianco + campo interno in marmo rosa/oro
+    prism(f"Ghimberga_Corpo_{tag}", P, cx, -1.42, gh_base, gh_w, gh_h, 0.46, BIANCO)
+    prism(f"Ghimberga_CampoRosa_{tag}", P, cx, -1.66, gh_base + 0.42, gh_w * 0.74, gh_h * 0.76, 0.10, ROSA)
+    prism(f"Ghimberga_CampoInterno_{tag}", P, cx, -1.72, gh_base + 0.62, gh_w * 0.60, gh_h * 0.62, 0.08, BIANCO2)
+    spioventi_modanati(f"Ghimberga_Cornice_{tag}", P, cx, -1.72, gh_base, gh_w, gh_h, 0.26, 0.36, BIANCO)
+    foglie_rampanti(f"Ghimberga_Foglie_{tag}", P, cx, -1.76, gh_base, gh_w, gh_h, PIETRA, n=11, size=0.30)
+
+    # Medaglione circolare scolpito col busto a mezz'altezza della ghimberga
+    z_med = gh_base + gh_h * 0.56
+    torus(f"Medaglione_Cornice_{tag}", P, cx, -1.78, z_med, 0.56, 0.11, BIANCO)
+    cyl(f"Medaglione_Fondo_{tag}", P, cx, -1.76, z_med, 0.50, 0.08, ROSA_C, vertices=24, rot_x=math.radians(90))
+    cone(f"Medaglione_Busto_{tag}", P, cx, -1.83, z_med - 0.12, 0.24, 0.14, 0.38, PIETRA, vertices=10)
+    sphere(f"Medaglione_Testa_{tag}", P, cx, -1.84, z_med + 0.16, 0.15, PIETRA)
+
+    # Statua di coronamento sul vertice della ghimberga
+    if central:
+        statua_vergine("Statua_Madonna_Oculo", ST, cx, -1.72, gh_apex + 0.05, 1.62, PIETRA)
+    else:
+        statue(f"Statua_Apice_Ghimberga_{tag}", ST, cx, -1.70, gh_apex + 0.02, 1.36, PIETRA)
 
 
-portal(-7.6, W_PORT_L, 5.0, LEGNO)
-portal(0.0, W_PORT_C, H_PORTALI, BRONZO, central=True)
-portal(7.6, W_PORT_L, 5.0, LEGNO)
+portale_pisano(-X_PORT_L, W_PORT_L, 4.55, 3.30, 10.25, 15.90, LEGNO, central=False)
+portale_pisano(0.0, W_PORT_C, H_PORTALI, 3.85, 10.55, 16.40, BRONZO, central=True)
+portale_pisano(X_PORT_L, W_PORT_L, 4.55, 3.30, 10.25, 15.90, LEGNO, central=False)
 
-# -----------------------------------------------------------------------------
-# 4. Settori laterali (DUE ORDINI DI LOGGETTE + cuspidi dorate) e OCULO centrale
-# -----------------------------------------------------------------------------
+# --- Specchiature marmoree incorniciate e rosoni scolpiti nei 6 timpani murari ---
+spandrel_positions = [
+    (-9.35, 13.75, 1.75, 2.05),
+    (-4.95, 13.75, 1.75, 2.05),
+    (-2.65, 13.85, 1.55, 1.90),
+    (2.65, 13.85, 1.55, 1.90),
+    (4.95, 13.75, 1.75, 2.05),
+    (9.35, 13.75, 1.75, 2.05),
+]
+for idx_s, (sx_pos, sz_pos, sw, sh) in enumerate(spandrel_positions):
+    # Cornice rettangolare bianca/rosa che racchiude la lastra scura in verde di Prato
+    box(f"Specch_CorniceEst_{idx_s}", D, sx_pos, -1.30, sz_pos, sw, 0.10, sh, BIANCO)
+    box(f"Specch_CorniceRosa_{idx_s}", D, sx_pos, -1.33, sz_pos, sw - 0.24, 0.10, sh - 0.24, ROSA)
+    box(f"Specch_LastraPrato_{idx_s}", D, sx_pos, -1.36, sz_pos, sw - 0.44, 0.10, sh - 0.44, VERDE)
+    # Rosone fogliato in marmo bianco scolpito al centro della specchiatura
+    torus(f"Specch_Rosone_{idx_s}", D, sx_pos, -1.41, sz_pos + 0.12, 0.34, 0.08, BIANCO)
+    for leaf_i in range(6):
+        la = leaf_i * math.pi / 3.0
+        cone(
+            f"Specch_Petalo_{idx_s}_{leaf_i}", D,
+            sx_pos + math.cos(la) * 0.26, -1.42, sz_pos + 0.12 + math.sin(la) * 0.26,
+            0.10, 0.02, 0.34, PIETRA, vertices=6, rot_y=math.pi / 2.0 - la
+        )
+
+# --- Cornicione orizzontale principale della galleria a mensole (z = 15.35 m) ---
+box("Cornicione_Galleria", S, 0.0, -0.35, Z_GALLERIA, 30.6, 3.05, 0.44, BIANCO2)
+box("Fregio_Sotto_Galleria", S, 0.0, -1.46, Z_GALLERIA - 0.34, 29.8, 0.26, 0.30, ROSA_C)
+for m_k in range(38):
+    mx = -14.4 + m_k * (28.8 / 37.0)
+    box(f"Mensola_Galleria_{m_k}", D, mx, -1.62, Z_GALLERIA - 0.18, 0.22, 0.32, 0.24, PIETRA)
+
+# =============================================================================
+# 4. REGISTRO SUPERIORE CENTRALE: CORNICE QUADRATA DELL'OCULO DI CAMAINO
+# =============================================================================
+# Pannello quadrato interno FORATO attorno all'ellisse dell'oculo (pennacchi dei 4 Evangelisti)
+IN_W, IN_H = 3.44, 2.95
+lastra_forata_oculo(
+    "Oculo_Quadro_Pennacchi", R, 0.0, -1.36, Z_OCULO,
+    IN_W, IN_H, RX_OCULO + 0.02, RZ_OCULO + 0.02, 0.44, ROSA_C
+)
+
+# Vetrata profonda incassata dell'oculo + griglia metallica 5x4 ben visibile
+cyl(
+    "Oculo_Vetro", R, 0.0, -0.82, Z_OCULO, 1.0, 0.14, VETRO,
+    vertices=64, rot_x=math.radians(90), scale_x=RX_OCULO + 0.04, scale_y=RZ_OCULO + 0.04, fit_uv=True
+)
+for gx in (-0.60, -0.20, 0.20, 0.60):
+    bar_x = gx * RX_OCULO
+    bar_h = 2.0 * RZ_OCULO * math.sqrt(max(0.0, 1.0 - gx * gx))
+    box(f"Griglia_Oculo_V_{gx:+.2f}", R, bar_x, -0.92, Z_OCULO, 0.065, 0.08, bar_h, FERRO)
+for gz in (-0.52, 0.0, 0.52):
+    bar_z = Z_OCULO + gz * RZ_OCULO
+    bar_w = 2.0 * RX_OCULO * math.sqrt(max(0.0, 1.0 - gz * gz))
+    box(f"Griglia_Oculo_O_{gz:+.2f}", R, 0.0, -0.92, bar_z, bar_w, 0.08, 0.065, FERRO)
+
+# Strombatura profonda dell'oculo a 4 anelli concentrici scolpiti bianco/rosa
+oculo_rings = [
+    (RX_OCULO + 0.02, RZ_OCULO + 0.02, 0.13, -1.04, BIANCO2),
+    (RX_OCULO + 0.15, RZ_OCULO + 0.13, 0.14, -1.20, ROSA),
+    (RX_OCULO + 0.29, RZ_OCULO + 0.25, 0.14, -1.34, PIETRA),
+    (RX_OCULO + 0.43, RZ_OCULO + 0.37, 0.13, -1.48, BIANCO),
+]
+for idx_o, (orx, orz, omin, oy, omat) in enumerate(oculo_rings):
+    torus_ellipse(f"Oculo_Anello_{idx_o}", R, 0.0, oy, Z_OCULO, orx, orz, omin, omat, seg_u=56, seg_v=12)
+
+# I Quattro Evangelisti ad altorilievo nei 4 pennacchi angolari del quadrato
+for sx_e in (-1, 1):
+    for sz_e in (-1, 1):
+        ex = sx_e * 2.82
+        ez = Z_OCULO + sz_e * 2.15
+        statue(f"Evangelista_{sx_e}_{sz_e}", ST, ex, -1.52, ez - 0.52, 1.02, PIETRA)
+
+# LA VERA CORONA QUADRATA DI NICCHIE GOTICHE CUSPIDATE (non un cerchio!)
+# 14 nicchie nella fila orizzontale superiore
+n_top = 14
+w_ntop = (HALF_SQ * 2.0) / n_top
+for i in range(n_top):
+    nx = -HALF_SQ + w_ntop * (i + 0.5)
+    edicola_gotica_busto(f"Nicchia_Sup_{i}", R, nx, -1.44, 22.42, w_ntop * 0.98, 1.32, con_busto=True)
+
+# 12 nicchie nella fila orizzontale inferiore (interrotta al centro dalla Madonna col Bambino)
+n_bot = 14
+w_nbot = (HALF_SQ * 2.0) / n_bot
+for i in range(n_bot):
+    nx = -HALF_SQ + w_nbot * (i + 0.5)
+    if abs(nx) > 0.72:
+        edicola_gotica_busto(f"Nicchia_Inf_{i}", R, nx, -1.44, 15.32, w_nbot * 0.98, 1.22, con_busto=True)
+
+# 5 + 5 nicchie sovrapposte nelle due colonne verticali laterali + fregio cosmatesco esterno
+n_side = 5
+z_v0, z_v1 = 16.58, 22.38
+h_nside = (z_v1 - z_v0) / n_side
 for side in (-1, 1):
-    cx = 11.3 * side
-    # --- primo ordine di loggette (inferiore) ---
-    box(f"Loggia1_Fondo_{side}", R, cx, -0.95, 15.6, 5.6, 0.3, 3.4, SCURO)
-    for i in range(5):
-        cyl(f"Colonnina_Loggia1_{side}_{i}", R, cx - 2.2 + i * 1.1, -1.55, 15.9, 0.11, 2.6, BIANCO, vertices=10)
-    box(f"Loggia1_Trave_{side}", R, cx, -1.5, 17.35, 5.6, 0.35, 0.4, BIANCO2)
-    # --- secondo ordine di loggette (superiore) ---
-    box(f"Loggia2_Fondo_{side}", R, cx, -0.95, 18.95, 5.6, 0.3, 2.9, SCURO)
-    for i in range(7):
-        cyl(f"Colonnina_Loggia2_{side}_{i}", R, cx - 2.4 + i * 0.8, -1.55, 19.0, 0.09, 2.2, BIANCO, vertices=10)
-    box(f"Loggia2_Trave_{side}", R, cx, -1.5, 20.35, 5.6, 0.35, 0.35, BIANCO2)
-    # --- cuspide laterale dorata: Presentazione di Maria al Tempio / Nativita' ---
-    prism(f"Timpano_Laterale_{side}", R, cx, -0.75, Z_CUSP_LAT, 5.4, H_CUSP_LAT, 1.2, BIANCO)
-    prism(f"Mosaico_Laterale_{side}", R, cx, -1.42, Z_CUSP_LAT + 0.45, 4.2, H_CUSP_LAT - 1.4, 0.12, ORO)
-    cyl(f"Figura_Mosaico_{side}", R, cx - 0.7 * side, -1.50, Z_CUSP_LAT + 1.6, 0.40, 0.08, BLU, vertices=20, rot_x=math.radians(90))
-    cyl(f"Figura2_Mosaico_{side}", R, cx + 0.8 * side, -1.50, Z_CUSP_LAT + 1.3, 0.34, 0.08, ROSSO, vertices=20, rot_x=math.radians(90))
-    cyl(f"Figura3_Mosaico_{side}", R, cx, -1.50, Z_CUSP_LAT + 2.1, 0.30, 0.08, ORO_C, vertices=20, rot_x=math.radians(90))
-    foglie_rampanti(f"Cuspide_Lat_{side}", D, cx, -1.44, Z_CUSP_LAT, 5.4, H_CUSP_LAT, PIETRA, n=5, size=0.26)
-    finial(f"Pinnacolino_Cuspide_{side}", G, cx, -1.1, Z_CUSP_LAT + H_CUSP_LAT)
+    box(f"Fregio_Est_Oculo_{side}", D, side * 4.30, -1.40, (z_v0 + z_v1) * 0.5, 0.34, 0.14, z_v1 - z_v0, ROSA_C)
+    for k_r in range(12):
+        sphere(f"Rosetta_Oculo_{side}_{k_r}", D, side * 4.30, -1.48, z_v0 + 0.24 + k_r * 0.47, 0.095, BIANCO)
+    for j in range(n_side):
+        edicola_gotica_busto(
+            f"Nicchia_Lat_{side}_{j}", R, side * 3.84, -1.44,
+            z_v0 + j * h_nside, 0.68, h_nside * 0.97, con_busto=True
+        )
 
-# --- OCULO centrale (al posto del rosone) con la corona di nicchie gotiche ---
-RX, RZ, RR = 0.0, Z_OCULO, R_OCULO
-# vetrata dell'oculo (l'Ultima Cena di Pastorino dei Pastorini)
-cyl("Oculo_Vetro", R, RX, -1.30, RZ, RR, 0.16, VETRO, vertices=48, rot_x=math.radians(90))
-# ghiera marmorea dell'oculo
-torus("Oculo_Cornice", R, RX, -1.46, RZ, RR + 0.22, 0.30, BIANCO2)
-torus("Oculo_Anello_Rosa", R, RX, -1.50, RZ, RR + 0.60, 0.13, ROSA)
-# corona di nicchie gotiche con i 34 mezzi busti degli Antenati di Cristo
-for i in range(N_NICCHIE):
-    a = math.pi / 2.0 + 2.0 * math.pi * i / N_NICCHIE      # i = 0 -> nicchia in alto
-    nx = RX + math.cos(a) * R_CORONA
-    nz = RZ + math.sin(a) * R_CORONA
-    box(f"Nicchia_Ant_{i}_Fondo", R, nx, -1.30, nz, 0.46, 0.22, 0.60, SCURO)
-    prism(f"Nicchia_Ant_{i}_Arco", R, nx, -1.36, nz + 0.30, 0.46, 0.34, 0.24, SCURO)
-    box(f"Nicchia_Ant_{i}_Edicola", R, nx, -1.24, nz + 0.05, 0.62, 0.10, 0.72, BIANCO2)
-    cone(f"Nicchia_Ant_{i}_Busto", R, nx, -1.38, nz + 0.02, 0.15, 0.09, 0.34, PIETRA, vertices=10)
-    sphere(f"Nicchia_Ant_{i}_Testa", R, nx, -1.38, nz + 0.34, 0.12, PIETRA)
-    if i == 0:
-        # nicchia centrale superiore: la Madonna col Bambino
-        sphere("Madonna_Bambino", R, nx + 0.15, -1.44, nz + 0.22, 0.10, ORO_C)
-        torus("Madonna_Aureola", R, nx, -1.32, nz + 0.42, 0.20, 0.045, ORO)
-statue("Statua_Sotto_Oculo", ST, RX, -1.55, RZ - R_CORONA - 1.15, 1.2)
+# Simboli tetramorfi / statue lungo il ballatoio inferiore dell'oculo
+for sx_b in (-3.6, 3.6):
+    statue(f"Simbolo_Ballatoio_{sx_b:+.1f}", ST, sx_b, -1.68, Z_GALLERIA + 0.20, 1.15, PIETRA)
 
+# =============================================================================
+# 5. PILASTRI CONTRAFFORTI CENTRALI CONTINUI + GUGLIE CON STATUE (x = +-5.0 m)
+# =============================================================================
+def pilastro_centrale_completo(side):
+    cx = side * X_PIL_C
+    tag = "Sx" if side < 0 else "Dx"
+    h_shaft = Z_PIL_TOP - Z_GALLERIA
+    box(f"Pilastro_Centrale_{tag}", G, cx, -0.55, Z_GALLERIA + h_shaft * 0.5, W_PIL_C, 1.85, h_shaft, BIANCO)
+    for s2 in (-1, 0, 1):
+        box(
+            f"Costolone_Pil_{tag}_{s2}", G, cx + s2 * 0.36, -1.52, Z_GALLERIA + h_shaft * 0.5,
+            0.16, 0.18, h_shaft, ROSA_C if s2 == 0 else BIANCO2
+        )
+    for s2 in (-1, 1):
+        sx_st = cx + s2 * 0.28
+        statue(f"Statua_PilCent_{tag}_{s2}", ST, sx_st, -1.66, Z_GALLERIA + 0.30, 1.65, PIETRA)
+        spioventi_modanati(f"Ghim_PilBase_{tag}_{s2}", G, sx_st, -1.66, Z_GALLERIA + 2.35, 0.56, 0.72, 0.07, 0.26, BIANCO)
+    for s2 in (-1, 1):
+        spioventi_modanati(f"Ghim_PilMed_{tag}_{s2}", G, cx + s2 * 0.28, -1.58, 22.8, 0.56, 0.85, 0.07, 0.22, BIANCO)
+    for zg in (22.9, 25.4):
+        cone(
+            f"Gargolla_Pil_{tag}_{zg}", D, cx + side * 0.78, -1.25, zg,
+            0.10, 0.04, 0.95, PIETRA, vertices=7, rot_y=side * math.radians(68)
+        )
+    box(f"Dado_Guglia_{tag}", G, cx, -0.60, Z_PIL_TOP + 0.85, 0.92, 0.92, 1.65, BIANCO2)
+    box(f"Luce_Guglia_{tag}", G, cx, -1.08, Z_PIL_TOP + 0.85, 0.34, 0.14, 1.10, SCURO)
+    for sx2 in (-1, 1):
+        finial(f"Pin_Ang_Guglia_{tag}_{sx2}", G, cx + sx2 * 0.44, -0.95, Z_PIL_TOP + 1.35, 0.78)
+    cone(f"Fusto_Guglia_{tag}", G, cx, -0.60, Z_PIL_TOP + 2.40, 0.35, 0.16, 1.55, PIETRA, vertices=8)
+    sphere(f"Capitello_Guglia_{tag}", G, cx, -0.60, Z_PIL_TOP + 3.25, 0.23, PIETRA, sz=0.7)
+    statue(f"Statua_Sommitale_Guglia_{tag}", ST, cx, -0.60, Z_PIL_TOP + 3.36, 1.15, PIETRA)
+
+
+pilastro_centrale_completo(-1)
+pilastro_centrale_completo(1)
+
+# =============================================================================
+# 6. TIMPANO CENTRALE CON VERO MOSAICO DELL'INCORONAZIONE E ANGELO APICALE
+# =============================================================================
+W_TIMP = 10.30
+H_TIMP = 7.95
+box("Trabeazione_Timpano_Centrale", S, 0.0, -0.50, Z_TIMPANO + 0.24, W_TIMP + 0.5, 2.20, 0.50, BIANCO2)
+for k_m in range(21):
+    box(f"Mensola_Timp_{k_m}", D, -4.8 + k_m * 0.48, -1.58, Z_TIMPANO + 0.05, 0.18, 0.24, 0.20, PIETRA)
+
+prism("Timpano_Centrale_Struttura", S, 0.0, 0.0, Z_TIMPANO + 0.42, W_TIMP, H_TIMP, 2.35, BIANCO)
+prism("Mosaico_Centrale_Reale", S, 0.0, -1.24, Z_TIMPANO + 0.88, 8.15, 6.10, 0.10, MOS_C, mosaic_uv=True)
+spioventi_modanati("Cornice_Int_Timpano", D, 0.0, -1.36, Z_TIMPANO + 0.70, 8.95, 6.80, 0.24, 0.22, PIETRA)
+spioventi_modanati("Cornice_Est_Timpano", S, 0.0, -1.48, Z_TIMPANO + 0.42, W_TIMP + 0.30, H_TIMP + 0.15, 0.36, 0.42, BIANCO)
+foglie_rampanti("Foglie_Timpano_Centrale", D, 0.0, -1.56, Z_TIMPANO + 0.48, W_TIMP + 0.45, H_TIMP + 0.20, PIETRA, n=16, size=0.30)
+for k_c in range(9):
+    sphere(f"Cherubino_Base_{k_c}", D, -3.6 + k_c * 0.90, -1.34, Z_TIMPANO + 0.78, 0.15, PIETRA)
+
+Z_APICE_PIETRA = Z_TIMPANO + 0.42 + H_TIMP
+box("Piedistallo_Angelo", G, 0.0, -0.95, Z_APICE_PIETRA + 0.26, 0.90, 0.90, 0.56, PIETRA)
+statua_angelo("Angelo_Apicale", ST, 0.0, -0.95, Z_APICE_PIETRA + 0.52, 2.00, BRONZO_D, con_tromba=True)
+
+# =============================================================================
+# 7. SETTORI LATERALI INTERNI (cx = +-8.05 m): LOGGETTA GOTICA A 5 ARCHETTI
+#    ACUTI SU COLONNINE BINATE + CUSPIDI DORATE CON STATUA
+# =============================================================================
 for side in (-1, 1):
-    for i in range(3):
-        statue(f"Statua_Galleria_{side}_{i}", ST, side * (4.6 + i * 1.7), -1.5, 12.35, 1.45)
+    cx = side * X_LAT
+    tag = "Sx" if side < 0 else "Dx"
+    mos_mat = MOS_SX if side < 0 else MOS_DX
 
-# -----------------------------------------------------------------------------
-# 5. Timpano centrale, mosaico dell'Incoronazione e angelo apicale
-# -----------------------------------------------------------------------------
-prism("Timpano_Centrale", S, 0, 0.0, 22.9, 12.4, 8.4, 2.5, BIANCO)
-prism("Mosaico_Centrale", S, 0, -1.32, 23.7, 9.6, 6.2, 0.14, ORO)
-prism("Mosaico_Centrale_Interno", S, 0, -1.42, 24.3, 7.2, 4.4, 0.10, ORO_C)
-cyl("Figura_Cristo", D, 0.5, -1.50, 27.6, 0.48, 0.08, BLU, vertices=20, rot_x=math.radians(90))
-cyl("Figura_Madonna", D, -0.9, -1.50, 27.2, 0.42, 0.08, ROSSO, vertices=20, rot_x=math.radians(90))
-for i, dx in enumerate((-2.6, -1.8, 1.9, 2.7, -0.2)):
-    cyl(f"Angelo_Mosaico_{i}", D, dx, -1.50, 25.6 + abs(dx) * 0.12, 0.26, 0.08, BIANCO2, vertices=16, rot_x=math.radians(90))
-for i in range(11):
-    box(f"Archetto_Timpano_{i}", D, -6.0 + i * 1.2, -1.3, 22.55, 0.7, 0.2, 0.55, ROSA if i % 2 else BIANCO2)
-statue("Angelo_Apicale", ST, 0, -0.6, 31.35, 2.0, ORO_C)
-for s in (-1, 1):
-    box(f"Ala_Angelo_{s}", ST, s * 0.55, -0.55, 33.05, 0.16, 0.5, 1.15, ORO_C, rot_z=s * 0.6, rot_y=s * 0.35)
+    # Vano ombroso profondo della loggia (z = 15.25..18.40 m) ben scuro come nella foto
+    w_loggia = 4.25
+    box(f"Loggia_Fondo_Scuro_{tag}", R, cx, -0.62, 16.85, w_loggia, 0.24, 3.15, SCURO)
+    box(f"Loggia_Parapetto_{tag}", R, cx, -1.46, 15.52, w_loggia, 0.36, 0.46, BIANCO2)
 
-# -----------------------------------------------------------------------------
-# 6. Guglie e pinnacoli
-# -----------------------------------------------------------------------------
-def pinnacle(cx, z0, z1, w, tag):
-    box(f"{tag}_Fusto", G, cx, -0.4, (z0 + z1) / 2, w, 1.7, z1 - z0, BIANCO)
-    box(f"{tag}_Cornice", G, cx, -0.4, z1, w + 0.45, 2.0, 0.4, ROSA_C)
-    for sx in (-1, 1):
-        for sy in (-1, 1):
-            finial(f"{tag}_ang{sx}_{sy}", G, cx + sx * w / 2, -0.4 + sy * 0.7, z1 + 0.15)
-    cone(f"{tag}_Cuspide", G, cx, -0.4, z1 + 1.5, w * 0.62, 0.02, 3.0, PIETRA, vertices=8)
-    sphere(f"{tag}_Palla", G, cx, -0.4, z1 + 3.15, 0.16, ORO)
-    statue(f"{tag}_Statua", ST, cx, -1.35, z0 + 1.2, 1.5)
-    box(f"{tag}_Lancetta", G, cx, -1.32, (z0 + z1) / 2 + 1.0, 0.55, 0.12, 2.2, SCURO)
+    n_archi = 5
+    step_a = w_loggia / n_archi
+    for i in range(n_archi + 1):
+        col_x = cx - w_loggia * 0.5 + i * step_a
+        for dy_c in (-1.48, -1.18):
+            cyl(f"Colonnina_Loggia_{tag}_{i}_{dy_c:.2f}", R, col_x, dy_c, 16.58, 0.085, 1.68, BIANCO, vertices=12)
+        box(f"Capitello_Loggia_{tag}_{i}", R, col_x, -1.34, 17.45, 0.26, 0.52, 0.18, PIETRA)
+        if 0 < i < n_archi:
+            finial(f"Pinnacolino_Loggia_{tag}_{i}", G, col_x, -1.48, 17.95, 0.52)
 
+    for i in range(n_archi):
+        ax = cx - w_loggia * 0.5 + (i + 0.5) * step_a
+        arch(
+            f"Archetto_Loggia_{tag}_{i}", R, ax, -1.46, 17.44,
+            step_a * 0.48, 0.08, BIANCO, seg_u=20, pointed=0.45
+        )
+        spioventi_modanati(
+            f"Ghim_Loggia_{tag}_{i}", R, ax, -1.50, 17.54,
+            step_a * 0.98, 0.78, 0.07, 0.20, BIANCO
+        )
+        cone(f"Fiorone_Loggia_{tag}_{i}", R, ax, -1.52, 18.40, 0.05, 0.01, 0.18, PIETRA, vertices=6)
 
-def guglia_sottile(cx, z0, z1, w, tag):
-    """Pilastro che incornicia la struttura centrale: termina in pinnacolo e
-    quindi in una SOTTILISSIMA guglia (Camaino di Crescentino)."""
-    box(f"{tag}_Pilastro", G, cx, -0.55, (z0 + z1) / 2, w, 1.7, z1 - z0, BIANCO)
-    box(f"{tag}_Cornice", G, cx, -0.55, z1, w + 0.55, 2.0, 0.45, ROSA_C)
-    for sx in (-1, 1):
-        for sy in (-1, 1):
-            finial(f"{tag}_ang{sx}_{sy}", G, cx + sx * (w / 2 + 0.15), -0.55 + sy * 0.62, z1 + 0.15)
-    box(f"{tag}_Lancetta", G, cx, -1.34, (z0 + z1) / 2 + 1.2, 0.42, 0.12, 2.0, SCURO)
-    prism(f"{tag}_Lancetta_Cima", G, cx, -1.36, (z0 + z1) / 2 + 2.2, 0.42, 0.55, 0.10, SCURO)
-    cone(f"{tag}_Cuspide", G, cx, -0.55, z1 + 1.85, w * 0.5, 0.02, 3.7, PIETRA, vertices=8)
-    sphere(f"{tag}_Palla", G, cx, -0.55, z1 + 3.78, 0.15, ORO)
-    cone(f"{tag}_Punta", G, cx, -0.55, z1 + 4.10, 0.07, 0.0, 0.6, ORO, vertices=8)
+    for dx_s in (-1.45, 0.95):
+        statue(f"Statua_Loggia_{tag}_{dx_s:+.2f}", ST, cx + side * dx_s, -1.68, Z_GALLERIA + 0.18, 1.34, PIETRA)
 
+    # Trabeazione e Cuspide Laterale Dorata (quota esatta della foto: apice pietra ~22.5 m)
+    box(f"Trabeazione_Cuspide_{tag}", R, cx, -0.95, Z_CUSP_LAT, w_loggia + 0.15, 1.35, 0.38, BIANCO2)
+    prism(f"Cuspide_Lat_Struttura_{tag}", R, cx, -0.45, Z_CUSP_LAT + 0.16, w_loggia, H_CUSP_LAT, 1.75, BIANCO)
+    prism(
+        f"Mosaico_Laterale_Reale_{tag}", R, cx, -1.36, Z_CUSP_LAT + 0.44,
+        w_loggia * 0.78, H_CUSP_LAT * 0.74, 0.10, mos_mat, mosaic_uv=True
+    )
+    spioventi_modanati(
+        f"Cornice_Cuspide_Lat_{tag}", R, cx, -1.46, Z_CUSP_LAT + 0.16,
+        w_loggia + 0.18, H_CUSP_LAT + 0.10, 0.25, 0.34, BIANCO
+    )
+    foglie_rampanti(
+        f"Foglie_Cuspide_Lat_{tag}", D, cx, -1.52, Z_CUSP_LAT + 0.20,
+        w_loggia + 0.30, H_CUSP_LAT + 0.12, PIETRA, n=8, size=0.24
+    )
+    z_top_cusp = Z_CUSP_LAT + 0.16 + H_CUSP_LAT
+    box(f"Base_Statua_Cusp_{tag}", G, cx, -1.15, z_top_cusp + 0.16, 0.52, 0.52, 0.32, PIETRA)
+    statue(f"Statua_Cuspide_{tag}", ST, cx, -1.15, z_top_cusp + 0.32, 1.25, PIETRA)
 
-def coronamento_torre(cx, z1, w, tag):
-    """Torrione laterale TOZZO e robusto: coronamento gotico con edicole
-    cuspidate e statue, pinnacolo basso (niente grandi guglie esterne)."""
-    box(f"{tag}_Cornicione", G, cx, -0.4, z1, w + 1.1, 2.7, 0.5, ROSA_C)
-    for s in (-1, 1):
-        x = cx + s * (w / 2 + 0.55)
-        box(f"{tag}_Edicola_{s}", G, x, -1.25, z1 + 0.85, 0.85, 0.35, 1.1, BIANCO2)
-        prism(f"{tag}_Edicola_Cuspide_{s}", G, x, -1.42, z1 + 1.40, 0.95, 0.95, 0.35, PIETRA)
-        statue(f"{tag}_Statua_{s}", ST, x, -1.50, z1 + 0.52, 1.05)
-    box(f"{tag}_Pinnacolo_Fusto", G, cx, -0.4, z1 + 0.65, 0.24, 0.24, 0.8, BIANCO)
-    cone(f"{tag}_Pinnacolo_Cuspide", G, cx, -0.4, z1 + 1.55, 0.20, 0.0, 1.0, PIETRA, vertices=8)
-    sphere(f"{tag}_Pinnacolo_Palla", G, cx, -0.4, z1 + 2.12, 0.13, ORO)
-
-
-# le due guglie sottili a ridosso del timpano centrale (x = +-5.2 m)
-guglia_sottile(-X_GUGLIE, Z0_GUGLIA, Z1_GUGLIA, W_GUGLIA, "Guglia_Centrale_Sx")
-guglia_sottile(X_GUGLIE, Z0_GUGLIA, Z1_GUGLIA, W_GUGLIA, "Guglia_Centrale_Dx")
-# i due torrioni laterali: coronamento basso con edicole cuspidate
-coronamento_torre(-13.6, 22.3, 2.3, "Torre_Esterna_Sx")
-coronamento_torre(13.6, 22.3, 2.3, "Torre_Esterna_Dx")
-
-# Gargolle
+# =============================================================================
+# 8. TORRIONI GOTICI ANGOLARI ESTERNI A DUE CAMPATE (x = +-12.7 m):
+#    BIFORE ACUTE BICROME, STATUE IN TABERNACOLO, DOCCIONI E LANTERNA OTTAGONALE
+# =============================================================================
 for side in (-1, 1):
-    for z, tag in [(9.2, "basso"), (14.8, "alto")]:
-        cone(f"Gargolla_{side}_{tag}", D, side * 15.6, -1.6, z, 0.16, 0.34, 1.5,
-             PIETRA, vertices=8, rot_x=math.radians(100))
-        sphere(f"Testa_Gargolla_{side}_{tag}", D, side * 15.6, -2.25, z - 0.35, 0.2, PIETRA)
+    tag = "Sx" if side < 0 else "Dx"
+    xi = side * 11.15
+    xe = side * 13.55
+    z_top_tower = 21.65 if side < 0 else 22.35  # leggera asimmetria reale Sx/Dx nella foto!
+    h_tower = z_top_tower - Z_IMPOSTA
 
-# Finestre torri
-for side in (-1, 1):
-    for z in (10.6, 15.3, 19.8):
-        box(f"Lancetta_Torre_{side}_{z}", D, 13.6 * side, -1.5, z, 0.65, 0.12, 2.0, SCURO)
-        prism(f"Lancetta_Cima_{side}_{z}", D, 13.6 * side, -1.52, z + 1.0, 0.65, 0.7, 0.1, SCURO)
-        cyl(f"Lancetta_Col_{side}_{z}", D, 13.6 * side, -1.58, z, 0.07, 2.0, BIANCO, vertices=8)
+    # Corpo murario articolato delle due campate fino a z_top_tower
+    box(f"Torre_Campata_Int_{tag}", S, xi, -0.05, Z_IMPOSTA + h_tower * 0.5, 2.75, 2.65, h_tower, BIANCO)
+    box(f"Torre_Campata_Est_{tag}", S, xe, -0.15, Z_IMPOSTA + (h_tower - 0.5) * 0.5, 2.35, 2.85, h_tower - 0.5, BIANCO2)
 
-# Statue bordi
-for side in (-1, 1):
-    # statue appoggiate alle due travi delle loggette (due ordini)
-    for i, (dx, z) in enumerate([(2.3, 18.3), (1.2, 21.3), (-1.2, 21.3), (-2.3, 18.3)]):
-        statue(f"Statua_Bordo_{side}_{i}", ST, 11.3 * side + dx, -1.35, z - 0.7, 1.15)
+    # Fitte lesene e nervature gotiche verticali (elimina ogni parete piatta!)
+    for lx_off in (-1.08, -0.50, 0.0, 0.50, 1.08):
+        box(
+            f"Lesena_Torre_{tag}_{lx_off:+.2f}", G, side * 12.35 + lx_off * 2.05, -1.56,
+            Z_IMPOSTA + h_tower * 0.5, 0.22, 0.26, h_tower,
+            ROSA_C if abs(lx_off) == 0.50 else BIANCO
+        )
+    # Marcapiani orizzontali scolpiti sul torrione
+    for zm_t in (12.85, 17.65):
+        box(f"Marcapiano_Torre_{tag}_{zm_t}", G, side * 12.35, -0.35, zm_t, 5.10, 3.00, 0.30, ROSA_C)
 
-# -----------------------------------------------------------------------------
-# 7. Luci, camera, mondo — inquadratura frontale come nella foto
-# -----------------------------------------------------------------------------
+    # Tre ordini di finestre gotiche sovrapposte nella campata interna (con ghimberga bicroma!)
+    for idx_w, (zw0, wh) in enumerate([(9.35, 3.30), (13.45, 3.55), (17.95, 3.35)]):
+        box(f"Finestra_Vano_{tag}_{idx_w}", D, xi, -1.32, zw0 + wh * 0.45, 0.96, 0.24, wh * 0.85, SCURO)
+        prism(f"Finestra_ArcoScuro_{tag}_{idx_w}", D, xi, -1.32, zw0 + wh * 0.86, 0.96, 0.68, 0.24, SCURO)
+        colonna_ritorta(f"Mullion_Torre_{tag}_{idx_w}", D, xi, -1.42, zw0 + wh * 0.42, 0.075, wh * 0.82, BIANCO, turns=3.0)
+        arch(f"Arco_Fin_Bianco_{tag}_{idx_w}", D, xi, -1.44, zw0 + wh * 0.84, 0.54, 0.095, BIANCO, seg_u=18, pointed=0.45)
+        arch(f"Arco_Fin_Prato_{tag}_{idx_w}", D, xi, -1.47, zw0 + wh * 0.86, 0.68, 0.085, VERDE, seg_u=18, pointed=0.45)
+        spioventi_modanati(f"Ghim_Fin_{tag}_{idx_w}", D, xi, -1.54, zw0 + wh * 0.84, 1.72, 1.25, 0.13, 0.28, BIANCO)
+
+    # Tre ordini di tabernacoli gotici con grandi statue sul contrafforte d'angolo esterno
+    for idx_st, z_st in enumerate((8.95, 13.05, 17.55)):
+        box(f"Nicchia_Torre_{tag}_{idx_st}", D, xe, -1.52, z_st + 1.05, 0.88, 0.18, 1.95, SCURO)
+        statue(f"Statua_Torrione_{tag}_{idx_st}", ST, xe, -1.66, z_st, 1.65, PIETRA)
+        spioventi_modanati(f"Baldacch_Torre_{tag}_{idx_st}", G, xe, -1.68, z_st + 1.98, 1.42, 0.98, 0.11, 0.34, BIANCO)
+
+    # 4 doccioni / gargolle sporgenti sul profilo esterno (grande gargolla monumentale a z=13.5 m!)
+    gargoyle_specs = [
+        (10.2, 1.10, 0.15),
+        (13.55, 1.95, 0.22),
+        (17.7, 1.20, 0.15),
+        (20.9, 1.15, 0.14),
+    ]
+    for idx_g, (zg, gl, gr) in enumerate(gargoyle_specs):
+        cone(
+            f"Gargolla_Torre_{tag}_{idx_g}", D, xe + side * (0.92 + gl * 0.42), -1.45, zg,
+            gr, gr * 0.48, gl, PIETRA, vertices=8, rot_y=side * math.radians(78)
+        )
+        sphere(
+            f"Testa_Gargolla_Torre_{tag}_{idx_g}", D, xe + side * (0.92 + gl * 0.85), -1.48, zg + 0.14,
+            gr * 0.85, PIETRA
+        )
+
+    # Coronamento del torrione: lanterna ottagonale a gradoni piu' alta delle cuspidi laterali (~25.0-25.8 m)
+    box(f"Cornicione_Torre_{tag}", G, side * 12.70, -0.25, z_top_tower, 4.65, 3.05, 0.44, BIANCO2)
+    cyl(f"Lanterna_Base_{tag}", G, xi, -0.55, z_top_tower + 0.72, 0.90, 1.45, BIANCO2, vertices=8)
+    cyl(f"Lanterna_Grado2_{tag}", G, xi, -0.55, z_top_tower + 1.72, 0.65, 0.88, BIANCO, vertices=8)
+    cone(f"Lanterna_Cuspide_{tag}", G, xi, -0.55, z_top_tower + 2.52, 0.52, 0.10, 0.92, PIETRA, vertices=8)
+    finial(f"Lanterna_Pinnacolo_{tag}", G, xi, -0.55, z_top_tower + 2.90, 0.78)
+
+    for px_off, dz_p, sc_p in [(-0.92, 0.15, 1.18), (0.18, 0.05, 1.32), (0.95, -0.25, 1.08)]:
+        px_p = side * (12.70 + px_off * 1.65)
+        zp_b = z_top_tower + dz_p
+        box(f"Edicola_Sommitale_{tag}_{px_off:+.2f}", G, px_p, -0.95, zp_b + 0.62, 0.60, 0.60, 1.20, BIANCO)
+        spioventi_modanati(f"Cusp_Edic_{tag}_{px_off:+.2f}", G, px_p, -1.26, zp_b + 1.18, 0.70, 0.70, 0.08, 0.20, PIETRA)
+        finial(f"Pinnacolo_Torre_{tag}_{px_off:+.2f}", G, px_p, -0.95, zp_b + 1.25, sc_p)
+
+# =============================================================================
+# 9. LUCI SOLARI POMERIDIANE SENESI, CIELO AZZURRO E CAMERA FRONTALE DAL BASSO
+# =============================================================================
 L_SOLE = CFG.get("luci", {}).get("sole", {})
-sole_loc = tuple(v * SCALA for v in L_SOLE.get("location", (18, -30, 38)))
+sole_loc = tuple(v * SCALA for v in L_SOLE.get("location", (26, -32, 22)))
 bpy.ops.object.light_add(type="SUN", location=sole_loc)
 sun = bpy.context.object
 sun.name = "Sole"
-sun.rotation_euler = tuple(math.radians(a) for a in L_SOLE.get("rotation", (52, 8, -32)))
-sun.data.energy = L_SOLE.get("energy", 3.2)
-sun.data.angle = math.radians(L_SOLE.get("angle", 4))
+# Direzione reale del sole tardo-pomeridiano da destra (+X, -Y, +Z) come nelle ombre della foto
+dir_from = Vector(L_SOLE.get("direction_from", (0.76, -0.58, 0.34))).normalized()
+sun.rotation_euler = (-dir_from).to_track_quat("-Z", "Y").to_euler()
+sun.data.color = tuple(L_SOLE.get("color", (1.0, 0.87, 0.70)))
+sun.data.energy = L_SOLE.get("energy", 3.4)
+sun.data.angle = math.radians(L_SOLE.get("angle", 1.2))
 
 L_FILL = CFG.get("luci", {}).get("fill_frontale", {})
-fill_loc = tuple(v * SCALA for v in L_FILL.get("location", (0, -34, 16)))
+fill_loc = tuple(v * SCALA for v in L_FILL.get("location", (-12, -42, 16)))
 bpy.ops.object.light_add(type="AREA", location=fill_loc)
 fill = bpy.context.object
-fill.name = "Luce_Frontale"
-# con la scena ingrandita di SCALA, l'area cresce di SCALA^2: la potenza va
-# scalata allo stesso modo per mantenere la stessa illuminazione
-fill.data.energy = L_FILL.get("energy", 900) * (SCALA ** 2)
+fill.name = "Luce_Diffusa_Piazza"
+fill.data.color = tuple(L_FILL.get("color", (0.74, 0.83, 1.0)))
+fill.data.energy = L_FILL.get("energy", 110) * (SCALA ** 2)
 fill.data.shape = "DISK"
-fill.data.size = L_FILL.get("size", 22) * SCALA
-fill.rotation_euler = (math.radians(90), 0, 0)
+fill.data.size = L_FILL.get("size", 34) * SCALA
+fill_dir = Vector((0, -1.2 * SCALA, 15.0 * SCALA)) - Vector(fill_loc)
+fill.rotation_euler = fill_dir.to_track_quat("-Z", "Y").to_euler()
 
 CAM = CFG.get("camera", {})
-cam_loc = Vector(tuple(v * SCALA for v in CAM.get("location", (7.5, -52, 15.5))))
+cam_loc = Vector(tuple(v * SCALA for v in CAM.get("location", (0.35, -54.5, 4.5))))
 bpy.ops.object.camera_add(location=tuple(cam_loc))
 cam = bpy.context.object
 cam.name = "Camera_Frontale"
-cam.data.lens = CAM.get("lens", 42)
-direction = Vector(tuple(v * SCALA for v in CAM.get("look_at", (0, 0, 14.5)))) - cam_loc
+cam.data.lens = CAM.get("lens", 46.5)
+direction = Vector(tuple(v * SCALA for v in CAM.get("look_at", (0.0, -1.4, 16.5)))) - cam_loc
 cam.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
 scene.camera = cam
 
+# Cielo senese limpido con leggero gradiente verticale verso l'orizzonte
 WORLD = CFG.get("mondo", {})
 world = bpy.data.worlds["World"]
 world.use_nodes = True
-bg = world.node_tree.nodes["Background"]
-bg.inputs[0].default_value = (*WORLD.get("sky_color", (0.62, 0.72, 0.86)), 1.0)
-bg.inputs[1].default_value = WORLD.get("sky_strength", 0.7)
+wnodes = world.node_tree.nodes
+wlinks = world.node_tree.links
+wnodes.clear()
+w_out = wnodes.new("ShaderNodeOutputWorld")
+w_bg = wnodes.new("ShaderNodeBackground")
+w_mix = wnodes.new("ShaderNodeMixRGB")
+w_sep = wnodes.new("ShaderNodeSeparateXYZ")
+w_tc = wnodes.new("ShaderNodeTexCoord")
+w_ramp = wnodes.new("ShaderNodeValToRGB")
+w_ramp.color_ramp.elements[0].position = 0.02
+w_ramp.color_ramp.elements[1].position = 0.35
+w_mix.inputs["Color1"].default_value = (*WORLD.get("horizon_color", (0.430, 0.515, 0.735)), 1.0)
+w_mix.inputs["Color2"].default_value = (*WORLD.get("sky_color", (0.325, 0.410, 0.630)), 1.0)
+w_bg.inputs["Strength"].default_value = WORLD.get("sky_strength", 1.0)
+wlinks.new(w_tc.outputs["Generated"], w_sep.inputs["Vector"])
+wlinks.new(w_sep.outputs["Z"], w_ramp.inputs["Fac"])
+wlinks.new(w_ramp.outputs["Color"], w_mix.inputs["Fac"])
+wlinks.new(w_mix.outputs["Color"], w_bg.inputs["Color"])
+wlinks.new(w_bg.outputs["Background"], w_out.inputs["Surface"])
 
-# -----------------------------------------------------------------------------
-# 8. Ingrandimento globale del modello ("scala_globale", di default 3x)
-# -----------------------------------------------------------------------------
+# =============================================================================
+# 10. SCALA GLOBALE (3x) E CONGELAMENTO TRASFORMAZIONI
+# =============================================================================
 if abs(SCALA - 1.0) > 1e-9:
-    for o in scene.objects:
-        if o.type == "MESH":
-            o.location = [v * SCALA for v in o.location]
-            o.scale = [v * SCALA for v in o.scale]
-    # congela il fattore di scala nei dati mesh: oggetti di nuovo a scale 1:1
-    bpy.ops.object.select_all(action="DESELECT")
     meshes = [o for o in scene.objects if o.type == "MESH"]
+    for o in meshes:
+        o.location = [v * SCALA for v in o.location]
+        o.scale = [v * SCALA for v in o.scale]
+    bpy.ops.object.select_all(action="DESELECT")
     for o in meshes:
         o.select_set(True)
     if meshes:
         bpy.context.view_layer.objects.active = meshes[0]
         try:
-            bpy.ops.object.transform_apply(location=False, rotation=False,
-                                           scale=True, properties=False)
+            bpy.ops.object.transform_apply(location=False, rotation=False, scale=True, properties=False)
         except Exception as e:
-            print(f"⚠ transform_apply non riuscito ({e}): la scala resta sugli oggetti")
-    print(f"Ingrandimento x{SCALA}: il modello passa a "
-          f"~{W_TOT * SCALA:.0f} m di larghezza x ~{H_ANGELO * SCALA:.0f} m di altezza")
+            print(f"Attenzione: transform_apply non riuscito ({e})")
+    print(f"Ingrandimento x{SCALA}: ~{W_TOT * SCALA:.0f} m x ~{H_ANGELO * SCALA:.0f} m")
 
-# -----------------------------------------------------------------------------
-# 9. Salvataggio .blend + anteprima + export glTF
-# -----------------------------------------------------------------------------
+# =============================================================================
+# 11. SALVATAGGIO .BLEND, RENDER CYCLES CON DENOISE ED EXPORT GLTF/GLB
+# =============================================================================
 for o in scene.objects:
     o.select_set(False)
 
-bpy.ops.wm.save_as_mainfile(filepath=BLEND_PATH)
-print(f"Salvato: {BLEND_PATH} | oggetti: {len(scene.objects)}")
-
-# Anteprima render
 RENDER = CFG.get("render", {})
 scene.render.engine = RENDER.get("engine", "CYCLES")
-scene.cycles.samples = RENDER.get("samples", 48)
+scene.cycles.samples = RENDER.get("samples", 64)
 scene.cycles.device = RENDER.get("device", "CPU")
+scene.cycles.use_denoising = bool(RENDER.get("use_denoising", True))
 scene.render.resolution_x = RENDER.get("resolution_x", 900)
 scene.render.resolution_y = RENDER.get("resolution_y", 1050)
 scene.render.filepath = PNG_PATH
+
+bpy.ops.wm.save_as_mainfile(filepath=BLEND_PATH, compress=True)
+print(f"Salvato: {BLEND_PATH} | oggetti: {len(scene.objects)} | materiali: {len(bpy.data.materials)}")
+
 try:
     bpy.ops.render.render(write_still=True)
-    print(f"Anteprima: {PNG_PATH}")
+    print(f"Anteprima salvata: {PNG_PATH}")
 except Exception as e:
-    print(f"Render anteprima non riuscito (il .blend e' comunque valido): {e}")
+    print(f"Render anteprima non riuscito: {e}")
 
-# Export glTF/GLB
 EXPORT = CFG.get("export", {})
 if "gltf" in EXPORT.get("formats", []):
     gltf_opts = EXPORT.get("gltf_options", {})
@@ -869,4 +1466,9 @@ if "gltf" in EXPORT.get("formats", []):
     except Exception as e:
         print(f"Export GLB non riuscito: {e}")
 
-print("✅ Generazione completata!")
+print("Generazione v1.3 completata!")
+sys.stdout.flush()
+sys.stderr.flush()
+if "bpy" in sys.modules and not bpy.app.binary_path:
+    # Evita crash del distruttore C++ TBB in uscita quando bpy gira come modulo pip
+    os._exit(0)
