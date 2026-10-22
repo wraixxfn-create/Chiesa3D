@@ -1,14 +1,14 @@
 {
   "metadata": {
     "nome": "Duomo di Siena - Facciata Ovest",
-    "versione": "1.5",
+    "versione": "1.6",
     "autore": "Procedurale",
     "unita": "metri"
   },
   "dimensioni": {
     "scala_globale": 3.0,
     "larghezza_totale": 30.0,
-    "altezza_angelo": 34.5,
+    "altezza_angelo": 37.0,
     "spessore_facciata": 2.6,
     "altezza_basamento": 1.9,
     "altezza_portali": 5.55,
@@ -16,12 +16,17 @@
     "larghezza_portali_laterali": 2.35,
     "asse_portali_laterali": 7.15,
     "quota_imposta_portali": 8.35,
-    "quota_cornicione_galleria": 15.10,
+    "quota_cornicione_galleria": 15.1,
     "altezza_centro_oculo": 19.35,
-    "raggio_oculo_x": 2.80,
-    "raggio_oculo_z": 2.80,
+    "raggio_oculo_x": 2.8,
+    "raggio_oculo_z": 2.8,
     "semilato_quadrato_oculo": 4.45,
     "quota_base_timpano_centrale": 23.95,
+    "larghezza_timpano_centrale": 10.3,
+    "altezza_timpano_centrale": 7.72,
+    "larghezza_mosaico_centrale": 6.69,
+    "altezza_mosaico_centrale": 5.01,
+    "larghezza_trabeazione_timpano": 9.6,
     "x_pilastri_centrali": 5.0,
     "larghezza_pilastro_centrale": 1.15,
     "colmo_pilastro_centrale": 25.55,
@@ -39,50 +44,283 @@
     "dettagli": "06_Dettagli"
   },
   "materiali": {
-    "Marmo_Bianco":        { "color": [0.45, 0.39, 0.31], "roughness": 0.56, "metallic": 0.0, "tex": "marmo_bianco" },
-    "Marmo_Bianco_Caldo":  { "color": [0.39, 0.33, 0.25], "roughness": 0.60, "metallic": 0.0, "tex": "marmo_caldo" },
-    "Marmo_Gradinata":     { "color": [0.28, 0.28, 0.30], "roughness": 0.62, "metallic": 0.0, "tex": "gradinata" },
-    "Marmo_Rosa":          { "color": [0.27, 0.16, 0.13], "roughness": 0.55, "metallic": 0.0, "tex": "marmo_rosa" },
-    "Marmo_Rosato_Chiaro": { "color": [0.35, 0.24, 0.19], "roughness": 0.58, "metallic": 0.0, "tex": "marmo_rosa_chiaro" },
-    "Marmo_Verde_Scuro":   { "color": [0.020, 0.026, 0.024], "roughness": 0.40, "metallic": 0.0, "tex": "serpentino" },
-    "Mosaico_Centrale_Mat":{ "color": [0.44, 0.33, 0.14], "roughness": 0.32, "metallic": 0.35, "tex": "mosaico_centrale", "emission_strength": 0.16 },
-    "Mosaico_Sx_Mat":      { "color": [0.44, 0.33, 0.14], "roughness": 0.32, "metallic": 0.35, "tex": "mosaico_sx", "emission_strength": 0.16 },
-    "Mosaico_Dx_Mat":      { "color": [0.44, 0.33, 0.14], "roughness": 0.32, "metallic": 0.35, "tex": "mosaico_dx", "emission_strength": 0.16 },
-    "Mosaico_Oro":         { "color": [0.46, 0.34, 0.10], "roughness": 0.30, "metallic": 0.72 },
-    "Mosaico_Chiaro":      { "color": [0.50, 0.39, 0.17], "roughness": 0.36, "metallic": 0.55 },
-    "Bronzo_Portale":      { "color": [0.032, 0.033, 0.031], "roughness": 0.42, "metallic": 0.55, "tex": "bronzo_porta", "emission_strength": 0.05 },
-    "Bronzo_Dorato":       { "color": [0.28, 0.19, 0.08], "roughness": 0.32, "metallic": 0.82 },
-    "Legno_Portali":       { "color": [0.058, 0.033, 0.018], "roughness": 0.65, "metallic": 0.0, "tex": "legno_porta", "emission_strength": 0.05 },
-    "Legno_Scuro":         { "color": [0.036, 0.020, 0.011], "roughness": 0.74, "metallic": 0.0 },
-    "Vetro_Rosone":        { "color": [0.035, 0.052, 0.082], "roughness": 0.12, "metallic": 0.20, "tex": "oculo_vetro", "emission_strength": 0.10 },
-    "Ferro_Griglia":       { "color": [0.012, 0.013, 0.015], "roughness": 0.48, "metallic": 0.70 },
-    "Pietra_Statue":       { "color": [0.34, 0.29, 0.23], "roughness": 0.64, "metallic": 0.0, "tex": "pietra_statue" },
-    "Vano_Scuro":          { "color": [0.010, 0.010, 0.012], "roughness": 0.94, "metallic": 0.0 },
-    "Vano_Nicchia":        { "color": [0.36, 0.31, 0.25], "roughness": 0.88, "metallic": 0.0 }
+    "Marmo_Bianco": {
+      "color": [
+        0.45,
+        0.39,
+        0.31
+      ],
+      "roughness": 0.56,
+      "metallic": 0.0,
+      "tex": "marmo_bianco"
+    },
+    "Marmo_Bianco_Caldo": {
+      "color": [
+        0.39,
+        0.33,
+        0.25
+      ],
+      "roughness": 0.6,
+      "metallic": 0.0,
+      "tex": "marmo_caldo"
+    },
+    "Marmo_Gradinata": {
+      "color": [
+        0.28,
+        0.28,
+        0.3
+      ],
+      "roughness": 0.62,
+      "metallic": 0.0,
+      "tex": "gradinata"
+    },
+    "Marmo_Rosa": {
+      "color": [
+        0.27,
+        0.16,
+        0.13
+      ],
+      "roughness": 0.55,
+      "metallic": 0.0,
+      "tex": "marmo_rosa"
+    },
+    "Marmo_Rosato_Chiaro": {
+      "color": [
+        0.35,
+        0.24,
+        0.19
+      ],
+      "roughness": 0.58,
+      "metallic": 0.0,
+      "tex": "marmo_rosa_chiaro"
+    },
+    "Marmo_Verde_Scuro": {
+      "color": [
+        0.02,
+        0.026,
+        0.024
+      ],
+      "roughness": 0.4,
+      "metallic": 0.0,
+      "tex": "serpentino"
+    },
+    "Mosaico_Centrale_Mat": {
+      "color": [
+        0.52,
+        0.38,
+        0.14
+      ],
+      "roughness": 0.44,
+      "metallic": 0.18,
+      "tex": "mosaico_centrale",
+      "emission_strength": 0.05
+    },
+    "Mosaico_Sx_Mat": {
+      "color": [
+        0.52,
+        0.38,
+        0.14
+      ],
+      "roughness": 0.44,
+      "metallic": 0.18,
+      "tex": "mosaico_sx",
+      "emission_strength": 0.05
+    },
+    "Mosaico_Dx_Mat": {
+      "color": [
+        0.52,
+        0.38,
+        0.14
+      ],
+      "roughness": 0.44,
+      "metallic": 0.18,
+      "tex": "mosaico_dx",
+      "emission_strength": 0.05
+    },
+    "Mosaico_Oro": {
+      "color": [
+        0.46,
+        0.34,
+        0.1
+      ],
+      "roughness": 0.3,
+      "metallic": 0.72
+    },
+    "Mosaico_Chiaro": {
+      "color": [
+        0.5,
+        0.39,
+        0.17
+      ],
+      "roughness": 0.36,
+      "metallic": 0.55
+    },
+    "Bronzo_Portale": {
+      "color": [
+        0.032,
+        0.033,
+        0.031
+      ],
+      "roughness": 0.42,
+      "metallic": 0.55,
+      "tex": "bronzo_porta",
+      "emission_strength": 0.05
+    },
+    "Bronzo_Dorato": {
+      "color": [
+        0.28,
+        0.19,
+        0.08
+      ],
+      "roughness": 0.32,
+      "metallic": 0.82
+    },
+    "Legno_Portali": {
+      "color": [
+        0.058,
+        0.033,
+        0.018
+      ],
+      "roughness": 0.65,
+      "metallic": 0.0,
+      "tex": "legno_porta",
+      "emission_strength": 0.05
+    },
+    "Legno_Scuro": {
+      "color": [
+        0.036,
+        0.02,
+        0.011
+      ],
+      "roughness": 0.74,
+      "metallic": 0.0
+    },
+    "Vetro_Rosone": {
+      "color": [
+        0.035,
+        0.052,
+        0.082
+      ],
+      "roughness": 0.12,
+      "metallic": 0.2,
+      "tex": "oculo_vetro",
+      "emission_strength": 0.1
+    },
+    "Ferro_Griglia": {
+      "color": [
+        0.012,
+        0.013,
+        0.015
+      ],
+      "roughness": 0.48,
+      "metallic": 0.7
+    },
+    "Pietra_Statue": {
+      "color": [
+        0.34,
+        0.29,
+        0.23
+      ],
+      "roughness": 0.64,
+      "metallic": 0.0,
+      "tex": "pietra_statue"
+    },
+    "Vano_Scuro": {
+      "color": [
+        0.01,
+        0.01,
+        0.012
+      ],
+      "roughness": 0.94,
+      "metallic": 0.0
+    },
+    "Vano_Nicchia": {
+      "color": [
+        0.36,
+        0.31,
+        0.25
+      ],
+      "roughness": 0.88,
+      "metallic": 0.0
+    },
+    "Bronzo_Angelico": {
+      "color": [
+        0.74,
+        0.56,
+        0.22
+      ],
+      "roughness": 0.26,
+      "metallic": 0.85
+    },
+    "Bronzo_Verde": {
+      "color": [
+        0.3,
+        0.46,
+        0.4
+      ],
+      "roughness": 0.52,
+      "metallic": 0.3
+    }
   },
   "luci": {
     "sole": {
-      "location": [28, -28, 20],
-      "direction_from": [0.79, -0.53, 0.31],
-      "color": [1.0, 0.78, 0.50],
+      "location": [
+        28,
+        -28,
+        20
+      ],
+      "direction_from": [
+        0.79,
+        -0.53,
+        0.31
+      ],
+      "color": [
+        1.0,
+        0.78,
+        0.5
+      ],
       "energy": 4.9,
       "angle": 1.1
     },
     "fill_frontale": {
-      "location": [-14, -44, 15],
-      "color": [0.70, 0.80, 1.0],
+      "location": [
+        -14,
+        -44,
+        15
+      ],
+      "color": [
+        0.7,
+        0.8,
+        1.0
+      ],
       "energy": 55,
       "size": 36
     }
   },
   "camera": {
-    "location": [0.25, -52.5, 4.2],
+    "location": [
+      0.25,
+      -52.5,
+      4.2
+    ],
     "lens": 48.2,
-    "look_at": [0.0, -1.4, 17.05]
+    "look_at": [
+      0.0,
+      -1.4,
+      17.05
+    ]
   },
   "mondo": {
-    "sky_color": [0.205, 0.320, 0.680],
-    "horizon_color": [0.320, 0.445, 0.790],
+    "sky_color": [
+      0.205,
+      0.32,
+      0.68
+    ],
+    "horizon_color": [
+      0.32,
+      0.445,
+      0.79
+    ],
     "sky_strength": 0.95
   },
   "render": {
@@ -94,7 +332,10 @@
     "resolution_y": 1050
   },
   "export": {
-    "formats": ["blend", "gltf"],
+    "formats": [
+      "blend",
+      "gltf"
+    ],
     "gltf_options": {
       "export_format": "GLB",
       "export_apply": true,

@@ -17,13 +17,18 @@ Coordinate: X = larghezza (m), Y = profondita' (fronte verso -Y), Z = altezza (m
 Larghezza totale ~30 m, altezza all'angelo ~35 m (proporzioni della facciata reale).
 Tutto il modello viene poi riscalato di "scala_globale" (default 3.0) -> ~90 x ~105 m.
 
-MIGLIORAMENTI v1.5 (esattamente 3):
-  1. Portali: archivolti leggibili davanti alle ghimberghe, fasce a fogliame
-     e campi triangolari decorati a bassorilievo.
-  2. Torrioni: finestre ogivali visibili, cornici meno aggettanti e coronamenti
-     cuspidati a doppia modanatura con foglie rampanti.
-  3. Oculo: cornice concentrica a ovuli e perle, pennacchi chiari con rosette
-     e rilievi degli Evangelisti non nascosti dalla lastra.
+MIGLIORAMENTO v1.6 — apice centrale rifatto sulla fotografia ravvicinata:
+  1. Cuspide centrale riproporzionata (10,30 x 7,72 m) con cornici degli
+     spioventi complete: crockets a foglie d'acanto, filo, perlinato, gola,
+     fogliame a cubetti, quadretti, toro e fregio di cherubini alati.
+  2. Mosaico dell'Incoronazione ritagliato a 1024 px dalla foto ravvicinata,
+     con fregio di base a cherubini e tralci; apice traforato con quatrifogli,
+     grappe in ferro, cherubino di chiave e ciuffo di foglie.
+  3. Angelo apicale modellato (veste a pieghe, asta, basamento a foglie) con
+     ali a ventaglio di penne lanceolate in rame ossidato.
+
+Le versioni precedenti avevano già rifatto portali, torrioni e cornice
+dell'oculo (v1.5): qui non sono stati toccati.
 
 """
 
@@ -43,6 +48,7 @@ from mathutils import Vector, Matrix
 OUT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(OUT_DIR, "config_facciata.json")
 REF_PATH = os.path.join(OUT_DIR, "riferimento_facciata.jpg")
+APICE_PATH = os.path.join(OUT_DIR, "riferimento_apice.jpg")
 BLEND_PATH = os.path.join(OUT_DIR, "Facciata_Duomo_Siena.blend")
 PNG_PATH = os.path.join(OUT_DIR, "anteprima_facciata.png")
 GLB_PATH = os.path.join(OUT_DIR, "Facciata_Duomo_Siena.glb")
@@ -82,7 +88,7 @@ scene = bpy.context.scene
 scene.unit_settings.system = "METRIC"
 scene.unit_settings.scale_length = 1.0
 scene["titolo"] = "Duomo di Siena — solo facciata ovest"
-scene["nota"] = "Modello procedurale v1.5 fedele alla fotografia di riferimento: solo facciata, retro piatto."
+scene["nota"] = "Modello procedurale v1.6: solo facciata, retro piatto; apice centrale ricostruito sulla foto ravvicinata."
 
 
 # -----------------------------------------------------------------------------
@@ -213,7 +219,8 @@ def _bilinear_sample(topdown_rgb, x_coords, y_coords):
     return (1 - wy) * ((1 - wx) * c00 + wx * c10) + wy * ((1 - wx) * c01 + wx * c11)
 
 
-def _extract_triangle_tex(name, topdown_rgb, p_bl, p_br, p_top, size=512, boost=1.10):
+def _extract_triangle_tex(name, topdown_rgb, p_bl, p_br, p_top, size=512, boost=1.10,
+                          saturazione=1.0):
     """Rettifica baricentrica di un mosaico triangolare verso UV (0,0)-(1,0)-(0.5,1)."""
     # Riga 0 in Blender = v=0 (base del triangolo), riga size-1 = v=1 (vertice alto)
     v_lin = np.linspace(0.0, 1.0, size, dtype=np.float32)
@@ -226,6 +233,11 @@ def _extract_triangle_tex(name, topdown_rgb, p_bl, p_br, p_top, size=512, boost=
     sampled = _bilinear_sample(topdown_rgb, px, py)
     # Leggera compensazione per evitare doppia attenuazione d'illuminazione in Cycles
     sampled = np.clip(sampled * boost, 0.0, 1.0)
+    if abs(saturazione - 1.0) > 1e-4:
+        # Il mosaico dorato, sotto il sole forte del render, tende a sbiancarsi:
+        # si riporta saturazione per conservare il tono oro dell'originale.
+        lum = sampled.mean(axis=2, keepdims=True)
+        sampled = np.clip(lum + (sampled - lum) * saturazione, 0.0, 1.0)
     return _save_packed_image(name, sampled)
 
 
@@ -310,7 +322,29 @@ def build_all_textures():
         tex["oculo_vetro"] = _extract_rect_tex(
             "Tex_Oculo_Vetro", topdown, 1126 * sx, 952 * sy, 1560 * sx, 1314 * sy, 256, 256, boost=1.12
         )
-    else:
+    # Il mosaico dell'Incoronazione viene ritagliato dalla fotografia ravvicinata
+    # dell'apice (più definita): il dipinto resta quello originale, mentre
+    # cornici, crockets e cappuccio sono modellati in geometria.
+    if os.path.exists(APICE_PATH):
+        apice_img = bpy.data.images.load(APICE_PATH)
+        aw, ah = apice_img.size
+        abuf = np.empty(aw * ah * 4, dtype=np.float32)
+        apice_img.pixels.foreach_get(abuf)
+        bpy.data.images.remove(apice_img)
+        apice = abuf.reshape((ah, aw, 4))[::-1, :, :3].copy()
+        ax_s, ay_s = aw / 2067.0, ah / 2092.0
+        tex["mosaico_centrale"] = _extract_triangle_tex(
+            "Tex_Mosaico_Incoronazione",
+            apice,
+            (556 * ax_s, 1901 * ay_s),
+            (1548 * ax_s, 1901 * ay_s),
+            (1052 * ax_s, 1158 * ay_s),
+            size=1024,
+            boost=0.96,
+            saturazione=1.35,
+        )
+
+    if not os.path.exists(REF_PATH):
         # Fallback procedurale autonomo
         oro = _make_marble_tex("Tex_Mosaico_Fallback", (0.72, 0.58, 0.28), (0.45, 0.28, 0.16), courses=16, seed=7)
         for k in ("mosaico_centrale", "mosaico_sx", "mosaico_dx"):
@@ -379,6 +413,7 @@ ORO = MATS.get("Mosaico_Oro")
 ORO_C = MATS.get("Mosaico_Chiaro")
 BRONZO = MATS.get("Bronzo_Portale")
 BRONZO_D = MATS.get("Bronzo_Dorato", ORO)
+BRONZO_A = MATS.get("Bronzo_Angelico", BRONZO_D)
 LEGNO = MATS.get("Legno_Portali")
 LEGNO_S = MATS.get("Legno_Scuro")
 VETRO = MATS.get("Vetro_Rosone")
@@ -386,6 +421,7 @@ FERRO = MATS.get("Ferro_Griglia")
 PIETRA = MATS.get("Pietra_Statue")
 SCURO = MATS.get("Vano_Scuro")
 NICCHIA = MATS.get("Vano_Nicchia", PIETRA)
+VERDE_RAME = MATS.get("Bronzo_Verde", PIETRA)
 
 
 # -----------------------------------------------------------------------------
@@ -1274,26 +1310,571 @@ def pilastro_centrale_completo(side):
 pilastro_centrale_completo(-1)
 pilastro_centrale_completo(1)
 
-# =============================================================================
-# 6. TIMPANO CENTRALE CON VERO MOSAICO DELL'INCORONAZIONE E ANGELO APICALE
-# =============================================================================
-W_TIMP = 10.30
-H_TIMP = 7.95
-box("Trabeazione_Timpano_Centrale", S, 0.0, -0.50, Z_TIMPANO + 0.24, W_TIMP + 0.5, 2.20, 0.50, BIANCO2)
-for k_m in range(21):
-    box(f"Mensola_Timp_{k_m}", D, -4.8 + k_m * 0.48, -1.58, Z_TIMPANO + 0.05, 0.18, 0.24, 0.20, PIETRA)
+# -----------------------------------------------------------------------------
+# Ornamenti della cuspide: crockets a tre lobi, fregi, ali e statua apicale
+# -----------------------------------------------------------------------------
+def _normale_spiovente(s, W, H):
+    L = math.hypot(W * 0.5, H)
+    return (-s * H / L, -(W * 0.5) / L), L
 
-prism("Timpano_Centrale_Struttura", S, 0.0, 0.0, Z_TIMPANO + 0.42, W_TIMP, H_TIMP, 2.35, BIANCO)
-prism("Mosaico_Centrale_Reale", S, 0.0, -1.24, Z_TIMPANO + 0.88, 8.15, 6.10, 0.10, MOS_C, mosaic_uv=True)
-spioventi_modanati("Cornice_Int_Timpano", D, 0.0, -1.36, Z_TIMPANO + 0.70, 8.95, 6.80, 0.24, 0.22, PIETRA)
-spioventi_modanati("Cornice_Est_Timpano", S, 0.0, -1.48, Z_TIMPANO + 0.42, W_TIMP + 0.30, H_TIMP + 0.15, 0.36, 0.42, BIANCO)
-foglie_rampanti("Foglie_Timpano_Centrale", D, 0.0, -1.56, Z_TIMPANO + 0.48, W_TIMP + 0.45, H_TIMP + 0.20, PIETRA, n=16, size=0.30)
-for k_c in range(9):
-    sphere(f"Cherubino_Base_{k_c}", D, -3.6 + k_c * 0.90, -1.34, Z_TIMPANO + 0.78, 0.15, PIETRA)
 
-Z_APICE_PIETRA = Z_TIMPANO + 0.42 + H_TIMP
-box("Piedistallo_Angelo", G, 0.0, -0.95, Z_APICE_PIETRA + 0.26, 0.90, 0.90, 0.56, PIETRA)
-statua_angelo("Angelo_Apicale", ST, 0.0, -0.95, Z_APICE_PIETRA + 0.52, 2.00, BRONZO_D, con_tromba=True)
+def punto_spiovente(s, W, H, t, offset, z_base):
+    """Punto sullo spiovente (t=0 base, t=1 apice) arretrato di `offset` verso l'interno."""
+    n, _ = _normale_spiovente(s, W, H)
+    return (s * W * 0.5 * (1.0 - t) + n[0] * offset,
+            z_base + H * t + n[1] * offset)
+
+
+def banda_spiovente(name, col, s, W, H, z_base, offset, thickness, depth, material, y,
+                    trim_apice=0.0, trim_base=0.0):
+    """Modanatura continua parallela allo spiovente, arretrata di `offset` dal bordo.
+
+    `trim_apice` accorcia la modanatura verso la punta così le due falde non si
+    incrociano sotto il cappuccio apicale.
+    """
+    n, L = _normale_spiovente(s, W, H)
+    ax, az = n[0] * offset, H + n[1] * offset
+    bx, bz = s * W * 0.5 + n[0] * offset, n[1] * offset
+    ang = -math.atan2(az - bz, ax - bx)
+    # accorcia spostando l'estremità apicale lungo lo spiovente
+    ux, uz = (ax - bx) / L, (az - bz) / L
+    ax -= ux * trim_apice
+    az -= uz * trim_apice
+    bx += ux * trim_base
+    bz += uz * trim_base
+    Ln = math.hypot(ax - bx, az - bz)
+    return box(name, col, (ax + bx) * 0.5, y, z_base + (az + bz) * 0.5,
+               Ln + thickness * 0.5, depth, thickness, material, rot_y=ang)
+
+
+def filo_spiovente(name, col, s, W, H, z_base, offset, radius, material, y,
+                   trim_apice=0.0):
+    """Filo arrotondato (toro) parallelo allo spiovente."""
+    n, L = _normale_spiovente(s, W, H)
+    ax, az = n[0] * offset, H + n[1] * offset
+    bx, bz = s * W * 0.5 + n[0] * offset, n[1] * offset
+    ang = math.atan2(-s * W * 0.5, H)   # cilindro con asse Z lungo lo spiovente
+    ux, uz = (ax - bx) / L, (az - bz) / L
+    ax -= ux * trim_apice
+    az -= uz * trim_apice
+    Ln = math.hypot(ax - bx, az - bz)
+    obj = cyl(name, col, (ax + bx) * 0.5, y, z_base + (az + bz) * 0.5, radius,
+              Ln, material, vertices=10, rot_y=ang)
+    return obj
+
+
+def perle_spiovente(name, col, s, W, H, z_base, offset, y, step=0.17, radius=0.052,
+                    material=None, fondo=True, fondo_y=None, fondo_depth=0.10,
+                    fondo_w=0.26, fondo_material=None):
+    """Filo di perle su fondo in ombra: rende il motivo a puntinato della foto."""
+    material = material or BIANCO
+    fondo_material = fondo_material or PIETRA
+    L = math.hypot(W * 0.5, H)
+    if fondo:
+        banda_spiovente(name + "_fondo", col, s, W, H, z_base, offset,
+                        fondo_w, fondo_depth, fondo_material, fondo_y or (y + 0.06))
+    n = max(2, int(L / step))
+    for i in range(n):
+        px, pz = punto_spiovente(s, W, H, (i + 0.5) / n, offset, z_base)
+        sphere(f"{name}_{i}", col, px, y, pz, radius, material, sy=0.85)
+
+
+def foglia_acanto(name, col, x, y, z, lung, larg, spess, ang, material,
+                  denti=3, profilo=None):
+    """Foglia d'acanto a bassorilievo: punta lanceolata, lobi laterali, spessore in Y.
+
+    Il profilo di semi-larghezza (0..1 della lunghezza) è campionato su una
+    serie di ascisse e replicato in modo simmetrico; due pelli parallele
+    (fronte e dorso) danno lo spessore che crea l'ombra del rilievo.
+    """
+    profilo = profilo or (
+        (0.00, 0.26), (0.12, 0.46), (0.24, 0.40), (0.36, 0.54),
+        (0.50, 0.42), (0.64, 0.42), (0.76, 0.28), (0.90, 0.14), (1.00, 0.01),
+    )
+    bm = bmesh.new()
+    left_f, right_f, left_b, right_b = [], [], [], []
+    for t, hw in profilo:
+        w = hw * larg
+        zz = t * lung
+        # il dorso resta piatto contro la muratura, il fronte si solleva
+        bulge = spess * (0.35 + 0.65 * math.sin(math.pi * min(1.0, t * 1.08)))
+        for lst, yy, scale in ((left_f, -bulge, 1.0), (right_f, -bulge, 1.0),
+                               (left_b, 0.0, 0.92), (right_b, 0.0, 0.92)):
+            lst.append(( -w * scale if lst in (left_f, left_b) else w * scale, yy, zz))
+    lf = [bm.verts.new(p) for p in left_f]
+    rf = [bm.verts.new(p) for p in right_f]
+    lb = [bm.verts.new(p) for p in left_b]
+    rb = [bm.verts.new(p) for p in right_b]
+    for i in range(len(profilo) - 1):
+        bm.faces.new((lf[i], rf[i], rf[i + 1], lf[i + 1]))
+        bm.faces.new((lb[i + 1], rb[i + 1], rb[i], lb[i]))
+        bm.faces.new((lf[i + 1], lf[i], lb[i], lb[i + 1]))
+        bm.faces.new((rf[i], rf[i + 1], rb[i + 1], rb[i]))
+    bm.faces.new((lf[0], lb[0], rb[0], rf[0]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    uv_layer = bm.loops.layers.uv.verify()
+    for f in bm.faces:
+        for loop in f.loops:
+            loop[uv_layer].uv = (0.5 + loop.vert.co.x / max(larg, 1e-3),
+                                 0.5 + loop.vert.co.z / max(lung, 1e-3))
+    mesh = bpy.data.meshes.new(name + "Mesh")
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()
+    return _create_mesh_object(name, mesh, col, (x, y, z), (0.0, ang, 0.0),
+                               (1, 1, 1), material)
+
+
+def crocchi_spiovente(name, col, s, W, H, z_base, y, n=16, size=0.34, offset=0.0,
+                      material=None, y_fondo=None, tilt=None, taper=1.0):
+    """Grandi foglie rampanti a tre lobi, agganciate al bordo esterno dello spiovente."""
+    material = material or BIANCO
+    nvec, L = _normale_spiovente(s, W, H)
+    # direzione "in fuori" = opposta alla normale interna
+    ox, oz = -nvec[0], -nvec[1]
+    ang0 = math.atan2(ox, oz)
+    tilt = -s * 0.42 if tilt is None else tilt
+    for i in range(n):
+        t = 0.035 + 0.915 * i / max(1, n - 1)
+        px, pz = punto_spiovente(s, W, H, t, offset, z_base)
+        ax, az = px + ox * size * 0.16, pz + oz * size * 0.16
+        ang = ang0 + tilt
+        sz_i = size * (1.0 - (1.0 - taper) * t)
+        # lobo principale che si allunga verso l'alto, come nella foto
+        foglia_acanto(f"{name}_lobo_{i}", col, ax, y - 0.02, az,
+                      sz_i * 1.15, sz_i * 0.62, sz_i * 0.18, ang, material,
+                      profilo=((0.00, 0.30), (0.18, 0.50), (0.34, 0.40),
+                               (0.52, 0.46), (0.70, 0.30), (0.86, 0.17), (1.00, 0.01)))
+        # due lobi minori laterali, divaricati
+        for k, sgn in enumerate((-1, 1)):
+            foglia_acanto(f"{name}_loboB_{i}_{k}", col,
+                          ax + sgn * sz_i * 0.13 * ox, y - 0.01,
+                          az + sgn * sz_i * 0.08, sz_i * 0.60, sz_i * 0.34,
+                          sz_i * 0.14, ang + sgn * 0.78, material, denti=2,
+                          profilo=((0.00, 0.34), (0.26, 0.46), (0.50, 0.34),
+                                   (0.72, 0.22), (1.00, 0.01)))
+        # collarino d'attacco
+        sphere(f"{name}_base_{i}", col, ax - ox * sz_i * 0.05, y + sz_i * 0.06,
+               az - oz * sz_i * 0.05, sz_i * 0.17, material, sy=0.55)
+
+
+def quadrante_spiovente(name, col, s, W, H, z_base, offset, y, step=0.15, size=0.055,
+                        material=None, fondo_material=None, fondo_w=0.15):
+    """Filo a fusarole/quadretti (motivo a scaletta chiaro-scuro della foto)."""
+    material = material or BIANCO
+    banda_spiovente(name + "_fondo", col, s, W, H, z_base, offset, fondo_w, 0.12,
+                    fondo_material or PIETRA, y + 0.05)
+    L = math.hypot(W * 0.5, H)
+    rot = -math.atan2(H, -s * W * 0.5)
+    n = max(2, int(L / step))
+    for i in range(n):
+        px, pz = punto_spiovente(s, W, H, (i + 0.5) / n, offset, z_base)
+        box(f"{name}_{i}", col, px, y, pz, step * 0.80, 0.10, size,
+            material, rot_y=rot)
+
+
+def foglie_grumolose(name, col, s, W, H, z_base, offset, y, step=0.21, size=0.085,
+                     material=None, fondo_material=None, fondo_w=0.20):
+    """Fascia di fogliame a cubetti d'acanto con ombre nette fra l'uno e l'altro."""
+    material = material or BIANCO2
+    banda_spiovente(name + "_fondo", col, s, W, H, z_base, offset, fondo_w, 0.12,
+                    fondo_material or PIETRA, y + 0.06)
+    L = math.hypot(W * 0.5, H)
+    ang = -math.atan2(H, -s * W * 0.5)
+    n = max(2, int(L / step))
+    for i in range(n):
+        px, pz = punto_spiovente(s, W, H, (i + 0.5) / n, offset, z_base)
+        foglia_acanto(f"{name}_{i}", col, px, y, pz, step * 1.55, size * 2.3,
+                      size * 0.85, ang, material, denti=2)
+
+
+def fregio_cherubini_spiovente(name, col, s, W, H, z_base, offset, y, n=9,
+                               contorno=True, material=None, contorno_y=None):
+    """Fregio continuo di cherubini alati e angioletti (il bordo interno del mosaico)."""
+    material = material or PIETRA
+    if contorno:
+        banda_spiovente(name + "_cornice", col, s, W, H, z_base, offset,
+                        0.13, 0.30, BIANCO, contorno_y or (y - 0.06))
+    for i in range(n):
+        t = 0.04 + 0.92 * i / max(1, n - 1)
+        px, pz = punto_spiovente(s, W, H, t, offset - 0.22, z_base)
+        if i % 2 == 0:
+            testa_cherubino(f"{name}_ch_{i}", col, px, y, pz, 0.115, material, ali=0.95)
+        else:
+            angioletto_rilievo(f"{name}_an_{i}", col, px, y, pz - 0.06, s,
+                               s * 0.16, 0.30, material)
+
+
+def testa_cherubino(name, col, x, y, z, r, material=None, ali=1.0, tilt=0.0):
+    """Testina di cherubino alata: rilievo ricorrente sulle cornici senesi.
+
+    Testa ovale con ciuffi di capelli, guance e ali spiegate di penne
+    lanceolate (non sfere appiattite), così il rilievo legge anche a distanza.
+    """
+    material = material or PIETRA
+    sphere(f"{name}_testa", col, x, y - r * 0.22, z, r * 0.94, material,
+           sx=0.90, sy=0.72, sz=1.06)
+    # fronte e guance
+    sphere(f"{name}_fronte", col, x, y - r * 0.46, z + r * 0.30, r * 0.52,
+           material, sx=0.78, sy=0.5, sz=0.7)
+    for s in (-1, 1):
+        sphere(f"{name}_guancia{s}", col, x + s * r * 0.34, y - r * 0.40,
+               z - r * 0.16, r * 0.30, material, sx=0.9, sy=0.55, sz=0.8)
+        # ciuffi di capelli che ricadono sulle orecchie
+        sphere(f"{name}_ciuffo{s}", col, x + s * r * 0.66, y - r * 0.06,
+               z + r * 0.02, r * 0.36, material, sx=0.7, sy=0.52, sz=0.95)
+        # ali: tre penne lanceolate per lato, in piano
+        for k, (dl, sc) in enumerate(((0.10, 1.00), (0.62, 0.80), (1.12, 0.58))):
+            ang = s * (0.80 + dl) + tilt
+            ln = r * 2.35 * ali * sc
+            piuma(f"{name}_ala{s}_{k}", col,
+                  x + s * r * 0.62, y + r * 0.10 + k * 0.004,
+                  z + r * 0.30 + r * 0.12 * k, ln, r * 0.52 * ali * sc,
+                  r * 0.11, s * (math.pi * 0.5 - ang), material, s=s)
+
+
+def angioletto_rilievo(name, col, x, y, z, s, tilt, size=0.5, material=None):
+    """Figuretta alata a bassorilievo nella fascia bianca attorno al mosaico."""
+    material = material or PIETRA
+    cone(f"{name}_corpo", col, x, y - size * 0.06, z + size * 0.34,
+         size * 0.26, size * 0.12, size * 0.70, material, vertices=8, rot_y=tilt)
+    sphere(f"{name}_testa", col, x, y - size * 0.14, z + size * 0.78, size * 0.17,
+           material, sy=0.85)
+    sphere(f"{name}_alone", col, x, y + size * 0.02, z + size * 0.76, size * 0.21,
+           material, sx=1.0, sy=0.3, sz=1.0)
+    for a in (-1, 1):
+        o = cone(f"{name}_ala{a}", col, x + a * size * 0.24, y - size * 0.02,
+                 z + size * 0.86, size * 0.17, size * 0.02, size * 0.66, material,
+                 vertices=6, rot_y=s * tilt + a * 0.95)
+        o.scale = (1.0, 0.38, 1.0)
+    for a in (-1, 1):
+        cone(f"{name}_braccio{a}", col, x + a * size * 0.22, y - size * 0.08,
+             z + size * 0.52, size * 0.065, size * 0.03, size * 0.34, material,
+             vertices=6, rot_y=a * 0.55)
+
+
+def nicchia_quatrifoglio(name, col, x, y, z, r, material=None):
+    """Piccola apertura oscura a quatrifoglio (le feritoie dell'apice)."""
+    material = material or SCURO
+    for k in range(4):
+        a = math.pi * 0.5 * k + math.pi * 0.25
+        sphere(f"{name}_lobo{k}", col, x + r * 0.50 * math.cos(a), y,
+               z + r * 0.50 * math.sin(a), r * 0.50, material, sy=0.3)
+    sphere(f"{name}_centro", col, x, y, z, r * 0.52, material, sy=0.3)
+
+
+def _lathe(name, col, x, y, z0, profile, material, seg=20, sx=1.0, sy=0.74,
+           rib=0.0, rib_n=9, cap_top=True, cap_bottom=True):
+    """Solido di rotazione con profilo a più anelli (vesti, colonne, capitelli)."""
+    bm = bmesh.new()
+    grid = []
+    for k, (zz, rr) in enumerate(profile):
+        row = []
+        for j in range(seg):
+            a = 2.0 * math.pi * j / seg
+            f = 1.0 + rib * math.cos(rib_n * a + k * 0.55)
+            row.append(bm.verts.new((rr * f * math.cos(a) * sx,
+                                     rr * f * math.sin(a) * sy, zz)))
+        grid.append(row)
+    uv_layer = bm.loops.layers.uv.verify()
+    for k in range(len(profile) - 1):
+        for j in range(seg):
+            j2 = (j + 1) % seg
+            f = bm.faces.new((grid[k][j], grid[k][j2], grid[k + 1][j2], grid[k + 1][j]))
+            for loop in f.loops:
+                loop[uv_layer].uv = (j / seg * 2.0, (k + 0.5) / len(profile))
+    if cap_bottom:
+        bm.faces.new(list(reversed(grid[0])))
+    if cap_top:
+        bm.faces.new(grid[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    mesh = bpy.data.meshes.new(name + "Mesh")
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()
+    return _create_mesh_object(name, mesh, col, (x, y, z0), (0, 0, 0), (1, 1, 1), material)
+
+
+def piuma(name, col, x, y, z, lung, larg, spess, ang, material, s=1.0, piega=0.0):
+    """Penna lanceolata in rilievo: punta acuminata, due barbe, leggera piega."""
+    prof = ((0.00, 0.18), (0.14, 0.44), (0.30, 0.50), (0.46, 0.48),
+            (0.62, 0.42), (0.78, 0.31), (0.90, 0.18), (1.00, 0.01))
+    bm = bmesh.new()
+    left_f, right_f, left_b, right_b = [], [], [], []
+    for t, hw in prof:
+        w = hw * larg
+        zz = t * lung
+        bulge = spess * (0.30 + 0.70 * math.sin(math.pi * min(1.0, t * 1.05)))
+        curl = piega * (t ** 2) * lung
+        for lst, ww, yy in ((left_f, -w, -bulge), (right_f, w, -bulge),
+                            (left_b, -w * 0.92, 0.0), (right_b, w * 0.92, 0.0)):
+            lst.append((ww + s * curl * 0.25, yy, zz))
+    lf = [bm.verts.new(p) for p in left_f]
+    rf = [bm.verts.new(p) for p in right_f]
+    lb = [bm.verts.new(p) for p in left_b]
+    rb = [bm.verts.new(p) for p in right_b]
+    for i in range(len(prof) - 1):
+        bm.faces.new((lf[i], rf[i], rf[i + 1], lf[i + 1]))
+        bm.faces.new((lb[i + 1], rb[i + 1], rb[i], lb[i]))
+        bm.faces.new((lf[i + 1], lf[i], lb[i], lb[i + 1]))
+        bm.faces.new((rf[i], rf[i + 1], rb[i + 1], rb[i]))
+    bm.faces.new((lf[0], lb[0], rb[0], rf[0]))
+    # barbe incise sul fronte: due solchi laterali
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    uv_layer = bm.loops.layers.uv.verify()
+    for f in bm.faces:
+        for loop in f.loops:
+            loop[uv_layer].uv = (0.5 + loop.vert.co.x / max(larg, 1e-3),
+                                 0.5 + loop.vert.co.z / max(lung, 1e-3))
+    mesh = bpy.data.meshes.new(name + "Mesh")
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()
+    return _create_mesh_object(name, mesh, col, (x, y, z), (0.0, ang, 0.0),
+                               (1, 1, 1), material)
+
+
+def ala_angelo(name, col, x, y, z, s, lung, material, n_penne=13,
+               a0=0.30, a1=1.36, apertura=0.0):
+    """Ala a ventaglio di penne sovrapposte, come nell'originale.
+
+    `a0` è l'angolo della penna più bassa (quasi orizzontale), `a1` quello
+    della penna più alta (quasi verticale); le penne nascono da un arco
+    ristretto attorno alla spalla e si allungano verso l'esterno.
+    """
+    # massa della spalla / omero
+    _lathe(name + "_omero", col, x, y + 0.02, z - 0.06,
+           ((0.0, lung * 0.14), (0.35, lung * 0.19), (0.7, lung * 0.15),
+            (1.0, lung * 0.09), (1.25, lung * 0.04)),
+           material, seg=12, sx=1.25, sy=0.55, rib=0.0)
+    for i in range(n_penne):
+        t = i / max(1, n_penne - 1)
+        a = a0 + (a1 - a0) * t
+        # penne lunghe al centro e via via più corte verso la punta dell'ala
+        ln = lung * (0.44 + 0.56 * math.sin(math.pi * (0.06 + 0.86 * t)))
+        # arco d'attacco: si sposta leggermente verso l'esterno salendo
+        rx = x + s * math.cos(a) * lung * (0.10 + 0.10 * t)
+        rz = z + math.sin(a) * lung * (0.10 + 0.10 * t)
+        ang = s * (math.pi * 0.5 - a)
+        piuma(f"{name}_p{i}", col, rx, y + 0.006 * i, rz, ln,
+              ln * (0.150 - 0.02 * t), ln * 0.050, ang, material, s=s,
+              piega=0.08 * s)
+    # copritrici più corte davanti alle penne, per dare profondità
+    for i in range(n_penne - 4):
+        t = i / max(1, n_penne - 5)
+        a = a0 + (a1 - a0) * (0.08 + 0.80 * t)
+        ln = lung * (0.34 + 0.26 * math.sin(math.pi * (0.2 + 0.6 * t)))
+        rx = x + s * math.cos(a) * lung * 0.10
+        rz = z + math.sin(a) * lung * 0.10
+        ang = s * (math.pi * 0.5 - a)
+        piuma(f"{name}_c{i}", col, rx, y - 0.055 - 0.004 * i, rz, ln,
+              ln * 0.20, ln * 0.045, ang, material, s=s, piega=0.06 * s)
+
+
+def statua_angelo_apicale(name, col, x, y, z, h=2.35, corpo=None, ali=None,
+                          con_asta=True):
+    """Angelo apicale: veste panneggiata, braccio alzato con asta, ali in rame ossidato."""
+    corpo = corpo or BRONZO_A
+    ali = ali or VERDE_RAME
+    s_it = h / 2.35
+    # basamento a foglie (collare d'acanto)
+    for k in range(9):
+        a = math.tau * k / 9
+        foglia_acanto(f"{name}_foglia_base{k}", col,
+                      x + 0.20 * s_it * math.cos(a), y + 0.15 * s_it * math.sin(a),
+                      z + 0.13 * s_it, 0.30 * s_it, 0.14 * s_it, 0.05 * s_it,
+                      -0.55 * math.cos(a), corpo)
+    cyl(f"{name}_plinto", col, x, y, z + 0.045 * s_it, 0.215 * s_it, 0.10 * s_it,
+        corpo, vertices=14)
+    # veste: profilo rastremato con pieghe radiali
+    prof = [
+        (0.00 * s_it, 0.200 * s_it), (0.18 * s_it, 0.208 * s_it),
+        (0.36 * s_it, 0.190 * s_it), (0.54 * s_it, 0.168 * s_it),
+        (0.72 * s_it, 0.152 * s_it), (0.90 * s_it, 0.166 * s_it),
+        (1.04 * s_it, 0.182 * s_it), (1.16 * s_it, 0.152 * s_it),
+    ]
+    _lathe(f"{name}_veste", col, x, y, z + 0.08 * s_it, prof, corpo,
+           seg=34, sx=1.0, sy=0.74, rib=0.045, rib_n=11)
+    # pieghe longitudinali della veste, in rilievo
+    for k in range(9):
+        a = math.tau * k / 9
+        rx = 0.128 * s_it * math.cos(a)
+        ry = 0.096 * s_it * math.sin(a)
+        cone(f"{name}_piega{k}", col, x + rx, y + ry, z + 0.74 * s_it,
+             0.024 * s_it, 0.016 * s_it, 1.00 * s_it, corpo, vertices=6,
+             rot_x=-0.10 * math.sin(a), rot_y=0.10 * math.cos(a))
+    # mantello sulle spalle
+    _lathe(f"{name}_manto", col, x, y + 0.01 * s_it, z + 0.86 * s_it,
+           ((0.00, 0.185), (0.12, 0.200), (0.26, 0.175), (0.40, 0.130),
+            (0.50, 0.115)), corpo, seg=30, sx=1.0, sy=0.80, rib=0.05, rib_n=7)
+    # colletto e testa
+    cyl(f"{name}_collo", col, x, y - 0.01 * s_it, z + 1.275 * s_it, 0.050 * s_it,
+        0.10 * s_it, corpo, vertices=10)
+    sphere(f"{name}_testa", col, x, y - 0.02 * s_it, z + 1.400 * s_it,
+           0.094 * s_it, corpo, sy=1.05)
+    sphere(f"{name}_capelli", col, x, y + 0.045 * s_it, z + 1.432 * s_it,
+           0.090 * s_it, corpo, sx=1.02, sy=0.66, sz=0.98)
+    sphere(f"{name}_croccchia", col, x, y + 0.075 * s_it, z + 1.470 * s_it,
+           0.042 * s_it, corpo, sx=1.4, sy=0.9, sz=0.8)
+    # braccio destro alzato (impugna l'asta), braccio sinistro abbassato
+    cone(f"{name}_braccio_dx", col, x - 0.135 * s_it, y - 0.05 * s_it,
+         z + 1.320 * s_it, 0.052 * s_it, 0.040 * s_it, 0.50 * s_it, corpo,
+         vertices=8, rot_y=-0.40)
+    cone(f"{name}_avambraccio_dx", col, x - 0.240 * s_it, y - 0.08 * s_it,
+         z + 1.650 * s_it, 0.046 * s_it, 0.036 * s_it, 0.42 * s_it, corpo,
+         vertices=8, rot_y=-0.14)
+    cone(f"{name}_braccio_sx", col, x + 0.140 * s_it, y - 0.03 * s_it,
+         z + 1.050 * s_it, 0.052 * s_it, 0.038 * s_it, 0.50 * s_it, corpo,
+         vertices=8, rot_y=0.18)
+    cone(f"{name}_mano_sx", col, x + 0.180 * s_it, y - 0.09 * s_it,
+         z + 0.820 * s_it, 0.042 * s_it, 0.028 * s_it, 0.12 * s_it, corpo, vertices=7)
+    if con_asta:
+        cyl(f"{name}_asta", col, x - 0.268 * s_it, y - 0.09 * s_it,
+            z + 2.16 * s_it, 0.015 * s_it, 1.50 * s_it, corpo, vertices=7, rot_y=-0.07)
+        cone(f"{name}_asta_punta", col, x - 0.322 * s_it, y - 0.09 * s_it,
+             z + 2.97 * s_it, 0.032 * s_it, 0.004, 0.15 * s_it, corpo, vertices=6)
+    # grandi ali in rame ossidato, raccolte verso l'alto
+    for s in (-1, 1):
+        ala_angelo(f"{name}_ala_{s}", col, x + s * 0.085 * s_it, y + 0.07 * s_it,
+                   z + 1.10 * s_it, s, 0.80 * s_it, ali, n_penne=12,
+                   a0=0.45, a1=1.12)
+
+
+# =============================================================================
+# 6. CUSPIDE CENTRALE: TIMPANO SCOLPITO, MOSAICO DELL'INCORONAZIONE E ANGELO
+#    Proporzioni misurate sulla fotografia ravvicinata dell'originale:
+#    cuspide 10,30 x 7,72 m, mosaico 6,69 x 5,01 m con apice 2,11 m sotto
+#    quello della cuspide e base 0,59 m sopra la trabeazione.
+#    La fascia ornamentale fra bordo esterno e mosaico riproduce, dall'esterno
+#    verso l'interno: foglie rampanti, filo liscio, perlinato, gola in ombra,
+#    fogliame a cubetti d'acanto, toro e fregio di cherubini.
+# =============================================================================
+W_TIMP = DIM.get("larghezza_timpano_centrale", 10.30)
+H_TIMP = DIM.get("altezza_timpano_centrale", 7.72)
+W_MOS = DIM.get("larghezza_mosaico_centrale", 6.69)
+H_MOS = DIM.get("altezza_mosaico_centrale", 5.01)
+Z_TIMP_FRONTE = Z_TIMPANO + 0.42
+Z_APICE = Z_TIMP_FRONTE + H_TIMP
+Z_MOS_BASE = Z_TIMP_FRONTE + 0.59
+Z_MOS_TOP = Z_MOS_BASE + H_MOS
+Y_TIMP = -1.18          # piano frontale del corpo triangolare
+Y_MOS = -1.30           # superficie del mosaico
+Y_F = -1.40             # filo esterno della fascia ornamentale
+Y_C = -1.46             # modanature in aggetto
+Y_D = -1.20             # fondi in ombra
+Y_K = -1.56             # crockets
+
+# --- 6.1 Trabeazione di base: mensole, cornice e dentelli ---
+# La trabeazione resta entro il corpo centrale (9,60 m) per non accavallarsi ai
+# pilastri e ai pinnacoli laterali, che restano visibili come nella foto.
+W_TRAB = DIM.get("larghezza_trabeazione_timpano", 9.60)
+box("Trabeazione_Timpano_Centrale", S, 0.0, -0.50, Z_TIMPANO + 0.20, W_TRAB, 2.24, 0.42, BIANCO2)
+n_mens = 19
+for k_m in range(n_mens):
+    box(f"Mensola_Timp_{k_m}", D, -(W_TRAB * 0.5 - 0.42) + k_m * ((W_TRAB - 0.84) / (n_mens - 1)),
+        -1.60, Z_TIMPANO - 0.02, 0.17, 0.34, 0.24, PIETRA)
+box("Cornice_Timpano_Aggetto", D, 0.0, -1.50, Z_TIMPANO + 0.35, W_TRAB + 0.24, 0.66, 0.14, BIANCO)
+n_dent = 33
+for k_d in range(n_dent):
+    box(f"Dentello_Timp_{k_d}", D, -(W_TRAB * 0.5 - 0.14) + k_d * ((W_TRAB - 0.28) / (n_dent - 1)),
+        -1.54, Z_TIMPANO + 0.46, 0.13, 0.26, 0.12, BIANCO2)
+
+# --- 6.2 Corpo triangolare della cuspide e mosaico dell'Incoronazione ---
+prism("Timpano_Centrale_Struttura", S, 0.0, 0.10, Z_TIMP_FRONTE, W_TIMP, H_TIMP, 2.30, BIANCO)
+prism("Mosaico_Centrale_Reale", S, 0.0, Y_MOS, Z_MOS_BASE, W_MOS, H_MOS, 0.10, MOS_C, mosaic_uv=True)
+
+# --- fregio di base sotto il mosaico: cherubini alternati a fogliame ---
+# Sequenza reale, dal basso: astragalo, fascia dei cherubini (0,34 m), gola,
+# filo di base del mosaico. I cherubini hanno ali di 0,50 m di apertura.
+box("Astragalo_Base", D, 0.0, Y_MOS - 0.02, Z_MOS_BASE - 0.52, W_MOS + 0.42, 0.20, 0.11, PIETRA)
+box("Fascia_Cherubini_Base", D, 0.0, Y_MOS + 0.02, Z_MOS_BASE - 0.32, W_MOS + 0.30, 0.16, 0.36, BIANCO2)
+box("Fondo_Ombra_Cherubini", D, 0.0, Y_MOS + 0.07, Z_MOS_BASE - 0.32, W_MOS + 0.34, 0.12, 0.30, PIETRA)
+for k_c in range(11):
+    x_c = -3.35 + k_c * 0.67
+    testa_cherubino(f"Cherubino_Base_{k_c}", D, x_c, Y_MOS - 0.12,
+                    Z_MOS_BASE - 0.33, 0.115, PIETRA, ali=1.55)
+for k_f in range(10):
+    x_f = -3.35 + 0.335 + k_f * 0.67
+    for d in (-1, 1):
+        foglia_acanto(f"Tralcio_Base_{k_f}_{d}", D, x_f, Y_MOS - 0.09,
+                      Z_MOS_BASE - 0.46, 0.24, 0.13, 0.06, d * 0.55, PIETRA)
+box("Gola_Base_Mosaico", D, 0.0, Y_MOS - 0.04, Z_MOS_BASE - 0.09, W_MOS + 0.34, 0.18, 0.15, PIETRA)
+box("Filo_Base_Mosaico", D, 0.0, Y_MOS - 0.10, Z_MOS_BASE + 0.01, W_MOS + 0.30, 0.22, 0.08, BIANCO)
+for k_p in range(30):
+    sphere(f"Perla_Base_{k_p}", D, -3.30 + k_p * 0.228, Y_MOS - 0.16,
+           Z_MOS_BASE - 0.44, 0.034, BIANCO, sy=0.8)
+
+# --- 6.3 Fascia ornamentale degli spioventi (dall'esterno verso l'interno) ---
+for s in (-1, 1):
+    # foglie rampanti sul filo esterno
+    crocchi_spiovente(f"Crochet_Timp_{s}", D, s, W_TIMP, H_TIMP, Z_TIMP_FRONTE,
+                      Y_K - 0.02, n=15, size=0.40, offset=-0.01, taper=0.55)
+    # grosso filo arrotondato di bordo
+    filo_spiovente(f"Filo_Est_Timp_{s}", D, s, W_TIMP, H_TIMP, Z_TIMP_FRONTE, 0.10,
+                   0.085, BIANCO, Y_F - 0.04, trim_apice=0.10)
+    banda_spiovente(f"Nastrino_Est_Timp_{s}", D, s, W_TIMP, H_TIMP, Z_TIMP_FRONTE, 0.22,
+                    0.09, 0.30, BIANCO, Y_F, trim_apice=0.34)
+    # filo di perle su fondo in ombra
+    perle_spiovente(f"Perlinato_Timp_{s}", D, s, W_TIMP, H_TIMP, Z_TIMP_FRONTE, 0.38,
+                    Y_C, step=0.165, radius=0.050, material=BIANCO,
+                    fondo_y=Y_D, fondo_w=0.20, fondo_material=PIETRA)
+    # gola liscia in ombra
+    banda_spiovente(f"Gola_Timp_{s}", D, s, W_TIMP, H_TIMP, Z_TIMP_FRONTE, 0.60,
+                    0.20, 0.24, PIETRA, Y_D - 0.02, trim_apice=0.34)
+    # fascia di fogliame a cubetti d'acanto
+    foglie_grumolose(f"Fogliame_Timp_{s}", D, s, W_TIMP, H_TIMP, Z_TIMP_FRONTE, 0.86,
+                     Y_C, step=0.20, size=0.082, material=BIANCO2,
+                     fondo_material=PIETRA, fondo_w=0.20)
+    # quadretti chiari sulla gola superiore della fascia
+    quadrante_spiovente(f"Quadretti_Timp_{s}", D, s, W_TIMP, H_TIMP, Z_TIMP_FRONTE,
+                        0.72, Y_C, step=0.145, size=0.050, material=BIANCO,
+                        fondo_w=0.14)
+    # toro di raccordo
+    filo_spiovente(f"Toro_Timp_{s}", D, s, W_TIMP, H_TIMP, Z_TIMP_FRONTE, 1.08,
+                   0.060, BIANCO, Y_C - 0.02, trim_apice=0.26)
+    # fregio di cherubini e angioletti che orla il mosaico
+    fregio_cherubini_spiovente(f"Fregio_Timp_{s}", D, s, W_TIMP, H_TIMP,
+                               Z_TIMP_FRONTE, 1.30, Y_C, n=11, material=PIETRA,
+                               contorno_y=Y_F)
+
+# cherubino di chiave all'apice del mosaico, su cui si chiudono le cornici
+testa_cherubino("Cherubino_Chiave", D, 0.0, Y_C + 0.02, Z_MOS_TOP + 0.04, 0.20,
+                PIETRA, ali=1.25)
+
+# --- 6.4 Raccordo apicale: traforo, feritoie, cherubino e ciuffo di foglie ---
+# Fra l'apice del mosaico e la punta della cuspide restano piccole aperture
+# traforate (quadrifogli) e un cherubino: le cornici dei due spioventi si
+# incrociano e chiudono il triangolo, come nella fotografia.
+for k, (dz, r_k) in enumerate(((0.30, 0.085), (0.72, 0.075), (1.10, 0.062))):
+    nicchia_quatrifoglio(f"Feritoia_Apice_{k}", D, 0.0, Y_TIMP - 0.10,
+                         Z_MOS_TOP + dz, r_k, NICCHIA)
+for s in (-1, 1):
+    box(f"Braga_Ferro_Apice_{s}", D, s * 0.44, -1.46, Z_MOS_TOP + 0.50,
+        0.030, 0.26, 0.24, FERRO)
+# ciuffo di foglie d'acanto che si apre a ventaglio sulla punta
+for k, (dx, ang) in enumerate(((0.0, 0.0), (-0.22, -0.55), (0.22, 0.55),
+                               (-0.36, -0.95), (0.36, 0.95))):
+    foglia_acanto(f"Ciuffo_Apice_{k}", D, dx, -1.52, Z_APICE - 0.36,
+                  0.40 - 0.07 * abs(ang), 0.20, 0.14, ang, PIETRA)
+testa_cherubino("Cherubino_Apice", D, 0.0, -1.56, Z_MOS_TOP + 0.03, 0.19,
+                PIETRA, ali=1.15)
+for s in (-1, 1):
+    foglia_acanto(f"Foglia_Chiave_{s}", D, s * 0.17, -1.52, Z_MOS_TOP - 0.02,
+                  0.34, 0.16, 0.12, s * 0.9, PIETRA)
+
+# --- 6.5 Edicola apicale a foglie d'acanto, cornice e basamento dell'angelo ---
+# Collare di foglie che avvolge la punta della cuspide (0,40 m di altezza reale)
+for k in range(7):
+    a = math.pi * (0.10 + 0.133 * k)
+    foglia_acanto(f"Foglia_Apice_{k}", G, 0.30 * math.cos(a), -1.52 + 0.26 * math.sin(a),
+                  Z_APICE + 0.02, 0.26, 0.15, 0.09, -0.75 * math.cos(a), PIETRA)
+sphere("Cuore_Foglie_Apice", G, 0.0, -1.52, Z_APICE + 0.04, 0.15, PIETRA,
+       sx=1.0, sy=0.8, sz=0.9)
+# basamento snello dell'angelo (cornice, dado e plinto: 0,42 m)
+box("Cornice_Apice", G, 0.0, -0.92, Z_APICE + 0.26, 0.86, 0.80, 0.14, BIANCO2)
+box("Dado_Apice", G, 0.0, -0.92, Z_APICE + 0.38, 0.64, 0.62, 0.12, PIETRA)
+box("Plinto_Angelo", G, 0.0, -0.92, Z_APICE + 0.46, 0.52, 0.50, 0.06, BIANCO)
+statua_angelo_apicale("Angelo_Apicale", ST, 0.0, -0.92, Z_APICE + 0.49, 2.55)
 
 # =============================================================================
 # 7. SETTORI LATERALI INTERNI (cx = +-8.05 m): LOGGETTA GOTICA A 5 ARCHETTI
@@ -1522,25 +2103,30 @@ for o in scene.objects:
     o.select_set(False)
 
 RENDER = CFG.get("render", {})
+# Override opzionali da ambiente, utili per prove rapide senza toccare il JSON:
+#   CHIESA_SAMPLES=16 CHIESA_RES_X=450 CHIESA_RES_Y=525 CHIESA_NO_GLB=1 python genera_facciata.py
 scene.render.engine = RENDER.get("engine", "CYCLES")
-scene.cycles.samples = RENDER.get("samples", 64)
+scene.cycles.samples = int(os.environ.get("CHIESA_SAMPLES", RENDER.get("samples", 64)))
 scene.cycles.device = RENDER.get("device", "CPU")
 scene.cycles.use_denoising = bool(RENDER.get("use_denoising", True))
-scene.render.resolution_x = RENDER.get("resolution_x", 900)
-scene.render.resolution_y = RENDER.get("resolution_y", 1050)
+scene.render.resolution_x = int(os.environ.get("CHIESA_RES_X", RENDER.get("resolution_x", 900)))
+scene.render.resolution_y = int(os.environ.get("CHIESA_RES_Y", RENDER.get("resolution_y", 1050)))
 scene.render.filepath = PNG_PATH
 
 bpy.ops.wm.save_as_mainfile(filepath=BLEND_PATH, compress=True)
 print(f"Salvato: {BLEND_PATH} | oggetti: {len(scene.objects)} | materiali: {len(bpy.data.materials)}")
 
-try:
-    bpy.ops.render.render(write_still=True)
-    print(f"Anteprima salvata: {PNG_PATH}")
-except Exception as e:
-    print(f"Render anteprima non riuscito: {e}")
+if os.environ.get("CHIESA_NO_RENDER"):
+    print("Render anteprima saltato (CHIESA_NO_RENDER).")
+else:
+    try:
+        bpy.ops.render.render(write_still=True)
+        print(f"Anteprima salvata: {PNG_PATH}")
+    except Exception as e:
+        print(f"Render anteprima non riuscito: {e}")
 
 EXPORT = CFG.get("export", {})
-if "gltf" in EXPORT.get("formats", []):
+if "gltf" in EXPORT.get("formats", []) and not os.environ.get("CHIESA_NO_GLB"):
     gltf_opts = EXPORT.get("gltf_options", {})
     try:
         bpy.ops.export_scene.gltf(
@@ -1556,7 +2142,7 @@ if "gltf" in EXPORT.get("formats", []):
     except Exception as e:
         print(f"Export GLB non riuscito: {e}")
 
-print("Generazione v1.5 completata!")
+print("Generazione v1.6 completata!")
 sys.stdout.flush()
 sys.stderr.flush()
 if "bpy" in sys.modules and not bpy.app.binary_path:
