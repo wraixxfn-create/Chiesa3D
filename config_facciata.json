@@ -1,0 +1,85 @@
+{
+  "metadata": {
+    "nome": "Duomo di Siena - Facciata Ovest",
+    "versione": "1.1",
+    "autore": "Procedurale",
+    "unita": "metri"
+  },
+  "dimensioni": {
+    "larghezza_totale": 30.0,
+    "altezza_angelo": 34.0,
+    "spessore_facciata": 2.6,
+    "altezza_basamento": 1.5,
+    "altezza_portali": 5.6,
+    "larghezza_portale_centrale": 3.7,
+    "larghezza_portali_laterali": 3.1,
+    "raggio_rosone": 3.55,
+    "altezza_centro_rosone": 17.3
+  },
+  "collezioni": {
+    "struttura": "01_Struttura",
+    "portali": "02_Portali",
+    "rosone_e_logge": "03_Rosone_e_logge",
+    "guglie_e_pinnacoli": "04_Guglie_e_pinnacoli",
+    "statue": "05_Statue",
+    "dettagli": "06_Dettagli"
+  },
+  "materiali": {
+    "Marmo_Bianco":        { "color": [0.87, 0.83, 0.75], "roughness": 0.55, "metallic": 0.0 },
+    "Marmo_Bianco_Caldo":  { "color": [0.80, 0.74, 0.63], "roughness": 0.6,  "metallic": 0.0 },
+    "Marmo_Rosa":          { "color": [0.72, 0.52, 0.45], "roughness": 0.6,  "metallic": 0.0 },
+    "Marmo_Rosato_Chiaro": { "color": [0.82, 0.66, 0.58], "roughness": 0.6,  "metallic": 0.0 },
+    "Marmo_Verde_Scuro":   { "color": [0.10, 0.14, 0.12], "roughness": 0.5,  "metallic": 0.0 },
+    "Mosaico_Oro":         { "color": [0.83, 0.62, 0.16], "roughness": 0.35, "metallic": 0.65, "emission": [0.45, 0.30, 0.05], "emission_strength": 0.35 },
+    "Mosaico_Chiaro":      { "color": [0.90, 0.75, 0.38], "roughness": 0.4,  "metallic": 0.4,  "emission": [0.90, 0.75, 0.38], "emission_strength": 0.4 },
+    "Bronzo_Portale":      { "color": [0.09, 0.07, 0.05], "roughness": 0.45, "metallic": 0.75 },
+    "Legno_Portali":       { "color": [0.30, 0.17, 0.08], "roughness": 0.75, "metallic": 0.0 },
+    "Legno_Scuro":         { "color": [0.20, 0.11, 0.05], "roughness": 0.8,  "metallic": 0.0 },
+    "Vetro_Rosone":        { "color": [0.04, 0.07, 0.11], "roughness": 0.12, "metallic": 0.1, "emission": [0.02, 0.04, 0.08], "emission_strength": 0.4, "alpha": 0.3, "transmission": 0.9 },
+    "Vetro_Chiaro":        { "color": [0.25, 0.38, 0.48], "roughness": 0.15, "metallic": 0.0, "emission": [0.05, 0.08, 0.12], "emission_strength": 0.4, "alpha": 0.5, "transmission": 0.8 },
+    "Pietra_Statue":       { "color": [0.78, 0.75, 0.68], "roughness": 0.7,  "metallic": 0.0 },
+    "Vano_Scuro":          { "color": [0.05, 0.05, 0.05], "roughness": 0.9,  "metallic": 0.0 },
+    "Mosaico_Blu":         { "color": [0.15, 0.25, 0.55], "roughness": 0.4,  "metallic": 0.2 },
+    "Mosaico_Rosso":       { "color": [0.55, 0.16, 0.12], "roughness": 0.4,  "metallic": 0.2 }
+  },
+  "luci": {
+    "sole": {
+      "location": [18, -30, 38],
+      "rotation": [52, 8, -32],
+      "energy": 3.2,
+      "angle": 4
+    },
+    "fill_frontale": {
+      "location": [0, -34, 16],
+      "energy": 900,
+      "size": 22
+    }
+  },
+  "camera": {
+    "location": [7.5, -52, 15.5],
+    "lens": 42,
+    "look_at": [0, 0, 14.5]
+  },
+  "mondo": {
+    "sky_color": [0.62, 0.72, 0.86],
+    "sky_strength": 0.7
+  },
+  "render": {
+    "engine": "CYCLES",
+    "samples": 48,
+    "device": "CPU",
+    "resolution_x": 900,
+    "resolution_y": 1050
+  },
+  "export": {
+    "formats": ["blend", "gltf"],
+    "gltf_options": {
+      "export_format": "GLB",
+      "export_apply": true,
+      "export_yup": true,
+      "export_draco_mesh_compression_enable": false,
+      "export_tangents": true,
+      "export_materials": "EXPORT"
+    }
+  }
+}
