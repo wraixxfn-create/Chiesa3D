@@ -1,9 +1,10 @@
 {
   "metadata": {
     "nome": "Duomo di Siena - Facciata Ovest",
-    "versione": "1.6",
+    "versione": "1.7",
     "autore": "Procedurale",
-    "unita": "metri"
+    "unita": "metri",
+    "note": "v1.7: apice centrale (cornici a mitra, crockets, fregio cherubini, mosaico, cappuccio, angelo) rifatto sulle foto dell'originale."
   },
   "dimensioni": {
     "scala_globale": 3.0,
@@ -110,10 +111,10 @@
         0.38,
         0.14
       ],
-      "roughness": 0.44,
-      "metallic": 0.18,
+      "roughness": 0.52,
+      "metallic": 0.05,
       "tex": "mosaico_centrale",
-      "emission_strength": 0.05
+      "emission_strength": 0.06
     },
     "Mosaico_Sx_Mat": {
       "color": [
@@ -121,10 +122,10 @@
         0.38,
         0.14
       ],
-      "roughness": 0.44,
-      "metallic": 0.18,
+      "roughness": 0.52,
+      "metallic": 0.05,
       "tex": "mosaico_sx",
-      "emission_strength": 0.05
+      "emission_strength": 0.06
     },
     "Mosaico_Dx_Mat": {
       "color": [
@@ -132,10 +133,10 @@
         0.38,
         0.14
       ],
-      "roughness": 0.44,
-      "metallic": 0.18,
+      "roughness": 0.52,
+      "metallic": 0.05,
       "tex": "mosaico_dx",
-      "emission_strength": 0.05
+      "emission_strength": 0.06
     },
     "Mosaico_Oro": {
       "color": [
@@ -245,21 +246,21 @@
     },
     "Bronzo_Angelico": {
       "color": [
-        0.74,
-        0.56,
-        0.22
+        0.42,
+        0.3,
+        0.13
       ],
-      "roughness": 0.26,
-      "metallic": 0.85
+      "roughness": 0.34,
+      "metallic": 0.6
     },
     "Bronzo_Verde": {
       "color": [
-        0.3,
-        0.46,
-        0.4
+        0.16,
+        0.29,
+        0.24
       ],
-      "roughness": 0.52,
-      "metallic": 0.3
+      "roughness": 0.62,
+      "metallic": 0.15
     }
   },
   "luci": {

@@ -9,6 +9,7 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 | `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire (~4.000 oggetti, 23 materiali PBR con texture incorporate) |
 | `Facciata_Duomo_Siena.glb` | Esportazione glTF 2.0 per visualizzatori web / game engine |
 | `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 900×1050) |
+| `anteprima_apice.png` | Render ravvicinato dell'apice centrale (denoising, 900×1000) |
 | `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprima e GLB da zero |
 | `config_facciata.json` | Tutti i parametri (dimensioni, materiali PBR, luci, camera, render, export) |
 | `riferimento_facciata.jpg` | Fotografia d'insieme di riferimento |
@@ -18,6 +19,28 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
+
+## Versione 1.7 — apice centrale rifatto sulle fotografie dell'originale
+
+Intervento concentrato sulla **punta centrale della facciata** (cuspide, mosaico
+dell'Incoronazione, cornici degli spioventi, cappuccio e angelo apicale).
+Il resto del prospetto è invariato.
+
+| Elemento | Come è stato rifatto |
+|---|---|
+| Cornici degli spioventi | Modanature continue **tagliate a mitra** sull'asse: ogni fascia (lastra dei crockets, filo, perlinato, gola, fogliame, astragalo, toro, fregio) termina esattamente su x = 0 |
+| Crockets | Foglie d'acanto piene (lobo centrale + due lobi laterali), orientate lungo la normale esterna e digradanti verso la punta |
+| Fregio di cherubini | Testine a bassorilievo con fronte, naso, bocca, ciocche e ali di penne embricate, alternate a palmetti: sia lungo gli spioventi sia sulla base del mosaico (passo 1,62 m, testa 0,42 m come nell'originale) |
+| Mosaico | Riestratto a 1024 px con stiramento dei livelli, contrasto locale e saturazione: l'oro torna pieno, le vesti rosse e blu leggibili |
+| Fastigio apicale | Prisma traforato con feritoia a quatrifoglio, crockets, cherubino di chiave e grappe in ferro |
+| Cappuccio | Calice pieno + tre ordini di foglie d'acanto sfalsate che coprono il taglio delle cornici |
+| Angelo | Marmo bianco con ali in rame ossidato: figura snella panneggiata, braccio alzato con l'asta, ali a membrana con penne embricate e punte modellate |
+| Ombreggiatura | Facce smooth con spigoli vivi oltre 32° (modanature tonde, cornici a spigolo) |
+| Colore | View transform **Filmic** invece di AgX: i mosaici dorati non si desaturano |
+
+Prima di questa versione le cornici erano scatole ruotate che si incrociavano
+sotto l'apice lasciando vuoti neri, i crockets erano foglie sparse, i cherubini
+sfere appoggiate e le ali dell'angelo 12 lame a raggiera.
 
 ## Versione 1.6 — apice centrale ricostruito sulla fotografia ravvicinata
 
