@@ -17,34 +17,20 @@ Coordinate: X = larghezza (m), Y = profondita' (fronte verso -Y), Z = altezza (m
 Larghezza totale ~30 m, altezza all'angelo ~35 m (proporzioni della facciata reale).
 Tutto il modello viene poi riscalato di "scala_globale" (default 3.0) -> ~90 x ~105 m.
 
-MIGLIORAMENTI v1.3 (3 miglioramenti di fedelta' all'originale):
-  1. Partizione gotica reale del registro superiore e dei torrioni angolari:
-     - Oculo di Camaino incassato in una CORNICE QUADRATA GOTICA (non piu' un anello
-       circolare isolato sul muro vuoto), con vetrata munita di griglia metallica 5x4,
-       pennacchi angolari dei Quattro Evangelisti, 36 edicole gotiche cuspidate coi busti
-       di Patriarchi e Profeti disposte sui quattro lati del quadrato e statua della
-       Madonna col Bambino al centro inferiore;
-     - Pilastri contrafforti centrali continui fino alle guglie sottili coronate da statue;
-     - Posizione corretta invertita fra i settori laterali (loggette gotiche a 5 archetti
-       acuti su colonnine binate + cuspidi dorate, riportate all'interno in asse coi portali
-       laterali a x = +-8.05 m) e i torrioni gotici angolari a due campate (riportati
-       all'esterno a x = +-12.7 m, con bifore bicrome, doccioni sporgenti e lanterna
-       ottagonale a gradoni piu' alta delle cuspidi laterali).
-  2. Ordine inferiore di Giovanni Pisano a tre grandi portali contigui e specchiature bicrome:
-     - Rimossa la trabeazione passante a quota 8.1 m che tagliava a meta' le lunette;
-       introdotta la vera trabeazione scolpita d'imposta sotto gli archi (z = 8.45 m);
-     - Tre grandi portali strombati contigui (x = -7.15 / 0.0 / +7.15 m) con 5 ordini
-       concentrici di archivolti bianchi e rosa su fasci di colonne ritorte e scanalate,
-       lunetta centrale a raggiera bicroma col Sole di San Bernardino, ghimberghe ripide
-       svettanti oltre il cornicione della galleria e specchiature in marmo verde-nero di
-       Prato con rosoni scolpiti nei timpani triangolari.
-  3. Mosaici dorati figurati reali, policromia marmorea PBR e inquadratura/luce da Piazza del Duomo:
-     - Sostituiti i dischi piatti blu/rossi con texture ad alta risoluzione dei veri mosaici
-       dorati (Incoronazione, Presentazione al Tempio, Nativita'), dei portoni e della vetrata,
-       incorporate (.pack()) nel .blend e nel .glb, insieme a texture PBR venate per marmi
-       senesi bianco/rosa e serpentino verde-nero di Prato;
-     - Camera frontale centrata ad altezza sagrato e luce solare pomeridiana radente da destra
-       su cielo azzurro limpido con denoising Cycles.
+MIGLIORAMENTI v1.4 (altri 3, e solo 3, miglioramenti di fedelta' all'originale):
+  1. Oculo finalmente CIRCOLARE (raggi X e Z uguali: 2.80 m) come nella foto, con
+     griglia della vetrata 3x3 a barre sottili, e nicchie della cornice quadrata non
+     piu' "buchi neri": vani in ombra calda poco profondi, con busti piu' grandi che
+     riempiono l'edicola come gli altorilievi reali di Patriarchi e Profeti.
+  2. Policromia marmorea attenuata come nell'originale: contrafforti angolari con
+     5 FASCE SOTTILI di serpentino (non piu' zebratura a bande nere spesse), fondo e
+     specchiature fra le ghimberghe in marmo chiaro/rosato con piccolo intarsio verde
+     centrale (non piu' lastre nere a "domino"), campo rosa delle ghimberghe ridotto
+     a una cornice sottile in marmo rosato chiaro.
+  3. Apparato scultoreo Giovanni Pisano: statue non piu' "pedine" (cono + sfera) ma figure
+     panneggiate con pieghe verticali, spalle, maniche e testa proporzionata, in pietra
+     calda consumata piu' scura del marmo di fondo; doccioni come draghi orizzontali
+     con testa, muso e ala (non piu' pioli conici) e angelo apicale con 2 ali per lato.
 """
 
 import bpy
@@ -102,7 +88,7 @@ scene = bpy.context.scene
 scene.unit_settings.system = "METRIC"
 scene.unit_settings.scale_length = 1.0
 scene["titolo"] = "Duomo di Siena — solo facciata ovest"
-scene["nota"] = "Modello procedurale v1.3 fedele alla fotografia di riferimento: solo facciata, retro piatto."
+scene["nota"] = "Modello procedurale v1.4 fedele alla fotografia di riferimento: solo facciata, retro piatto."
 
 
 # -----------------------------------------------------------------------------
@@ -269,7 +255,7 @@ def build_all_textures():
         "Tex_Marmo_Caldo", (0.70, 0.63, 0.53), (0.54, 0.47, 0.39), courses=8, seed=11, contrast=0.14
     )
     tex["pietra_statue"] = _make_marble_tex(
-        "Tex_Pietra_Statue", (0.73, 0.67, 0.58), (0.57, 0.51, 0.43), courses=4, seed=21, contrast=0.08
+        "Tex_Pietra_Statue", (0.63, 0.56, 0.47), (0.46, 0.40, 0.33), courses=4, seed=21, contrast=0.08
     )
     tex["gradinata"] = _make_marble_tex(
         "Tex_Gradinata", (0.58, 0.59, 0.63), (0.44, 0.46, 0.50), courses=12, seed=31, contrast=0.16
@@ -405,6 +391,7 @@ VETRO = MATS.get("Vetro_Rosone")
 FERRO = MATS.get("Ferro_Griglia")
 PIETRA = MATS.get("Pietra_Statue")
 SCURO = MATS.get("Vano_Scuro")
+NICCHIA = MATS.get("Vano_Nicchia", PIETRA)
 
 
 # -----------------------------------------------------------------------------
@@ -713,28 +700,46 @@ def foglie_rampanti(name, col, cx, y, z_base, width, height, material=PIETRA, n=
 
 
 def statue(name, col, x, y, z, h=1.5, material=PIETRA):
-    """Statua gotica panneggiata con piedistallo, manto e testa."""
-    box(name + "_base", col, x, y, z + 0.11, 0.40, 0.34, 0.22, BIANCO2)
-    cone(name + "_toga", col, x, y, z + 0.22 + h * 0.34, 0.20 * (h / 1.5), 0.13 * (h / 1.5),
-         h * 0.68, material, vertices=10)
-    cone(name + "_busto", col, x, y - 0.02, z + 0.22 + h * 0.60, 0.16 * (h / 1.5), 0.10 * (h / 1.5),
-         h * 0.30, material, vertices=10)
-    sphere(name + "_testa", col, x, y - 0.02, z + 0.22 + h * 0.82, 0.115 * (h / 1.5), material)
-    box(name + "_braccia", col, x, y - 0.05, z + 0.22 + h * 0.54, 0.34 * (h / 1.5), 0.15, 0.12, material)
+    """Statua gotica panneggiata: plinto, manto con pieghe, spalle, maniche e testa.
+
+    Silhouette stretta e verticale come le figure di Giovanni Pisano, non piu'
+    il cono largo con sfera che nel render v1.3 leggeva come una "pedina".
+    """
+    s = h / 1.5
+    box(name + "_base", col, x, y, z + 0.09, 0.36 * s, 0.32, 0.18, BIANCO2)
+    # Manto rastremato (base molto meno larga della vecchia toga conica)
+    cone(name + "_toga", col, x, y, z + 0.18 + h * 0.30, 0.165 * s, 0.105 * s,
+         h * 0.60, material, vertices=10)
+    # Tre pieghe verticali del panneggio sul fronte del manto
+    for fx in (-0.085, 0.0, 0.085):
+        box(f"{name}_piega_{fx:+.3f}", col, x + fx * s, y - 0.125 * s,
+            z + 0.18 + h * 0.29, 0.034 * s, 0.045, h * 0.50, material)
+    # Spalle arrotondate e maniche cadenti lungo i fianchi (niente barra orizzontale)
+    sphere(name + "_spalle", col, x, y - 0.01, z + 0.18 + h * 0.615, 0.125 * s,
+           material, sx=1.35, sy=0.85, sz=0.78)
+    for sa in (-1, 1):
+        cone(f"{name}_manica_{sa}", col, x + sa * 0.155 * s, y - 0.02,
+             z + 0.18 + h * 0.47, 0.058 * s, 0.042 * s, h * 0.32, material,
+             vertices=8, rot_z=sa * math.radians(14))
+    # Collo e testa proporzionata (piu' piccola della vecchia sfera)
+    cyl(name + "_collo", col, x, y - 0.01, z + 0.18 + h * 0.70, 0.045 * s, 0.10 * s,
+        material, vertices=8)
+    sphere(name + "_testa", col, x, y - 0.01, z + 0.18 + h * 0.775, 0.092 * s, material)
 
 
 def statua_angelo(name, col, x, y, z, h=1.35, material=PIETRA, con_tromba=False):
     statue(name, col, x, y, z, h, material)
     for s in (-1, 1):
-        # Ali raccolte e slanciate verso l'alto a V come sull'apice del Duomo di Siena
-        for f_k in range(4):
-            ang_w = s * math.radians(16 + f_k * 8)
-            len_w = h * (0.78 - f_k * 0.09)
+        # Solo 2 ali per lato, raccolte e slanciate a V come sull'apice del Duomo
+        # (le 4 penne per lato della v1.3 formavano una "stella" dorata innaturale)
+        for f_k in range(2):
+            ang_w = s * math.radians(13 + f_k * 9)
+            len_w = h * (0.70 - f_k * 0.10)
             cone(
                 f"{name}_Penna_{s}_{f_k}", col,
-                x + s * (0.20 + f_k * 0.08) * (h / 1.35), y + 0.05,
-                z + 0.34 + h * (0.92 - f_k * 0.08),
-                0.105 * (h / 1.35), 0.02, len_w, material, vertices=8,
+                x + s * (0.17 + f_k * 0.07) * (h / 1.35), y + 0.05,
+                z + 0.34 + h * (0.88 - f_k * 0.07),
+                0.088 * (h / 1.35), 0.015, len_w, material, vertices=8,
                 rot_x=math.radians(-10), rot_y=ang_w
             )
     if con_tromba:
@@ -788,6 +793,28 @@ def statua_vergine(name, col, x, y, z, h=1.55, material=PIETRA):
     cone(f"{name}_Bambino_Veste", col, x + 0.13, y - 0.10, z + 0.22 + h * 0.44, 0.10, 0.06, 0.22, material, vertices=8)
 
 
+def gargolla(name, col, x, y, z, side, length, radius, material=PIETRA):
+    """Doccione a drago sporgente in orizzontale: corpo, testa col muso e ala.
+
+    Sostituisce il cono con sfera della v1.3, che nel render leggeva come un
+    "piolo" piantato nel torrione invece della gargolla monumentale della foto.
+    """
+    # Corpo orizzontale proteso verso l'esterno (asse inclinato sui lati)
+    cone(f"{name}_Corpo", col, x, y, z, radius, radius * 0.52, length, material,
+         vertices=8, rot_y=side * math.radians(80))
+    # Testa allungata all'estremita' esterna, col muso rivolto in fuori
+    hx = x + side * length * 0.52
+    sphere(f"{name}_Testa", col, hx, y, z + radius * 0.35, radius * 0.82, material,
+           sx=1.45, sy=0.9, sz=0.9)
+    cone(f"{name}_Muso", col, hx + side * radius * 1.15, y, z + radius * 0.22,
+         radius * 0.42, radius * 0.14, radius * 1.7, material, vertices=7,
+         rot_y=side * math.radians(84))
+    # Ala ripiegata verso l'alto alla radice del corpo
+    cone(f"{name}_Ala", col, x - side * length * 0.16, y, z + radius * 1.55,
+         radius * 0.55, 0.015, radius * 3.4, material, vertices=7,
+         rot_z=-side * math.radians(24))
+
+
 def finial(name, col, x, y, z, s=1.0):
     cyl(name + "_fusto", col, x, y, z + 0.22 * s, 0.065 * s, 0.44 * s, BIANCO, vertices=8)
     sphere(name + "_nodo", col, x, y, z + 0.50 * s, 0.10 * s, PIETRA)
@@ -798,9 +825,10 @@ def edicola_gotica_busto(name, col, cx, y, z0, w, h, con_busto=True):
     """Singola nicchia gotica cuspidata con archetto trilobo, ghimberga e mezzo busto."""
     arch_h = h * 0.34
     body_h = h - arch_h
-    # Fondo in ombra profonda
-    box(f"{name}_Vano", col, cx, y + 0.10, z0 + body_h * 0.5, w * 0.74, 0.22, body_h, SCURO)
-    prism(f"{name}_VanoCima", col, cx, y + 0.10, z0 + body_h, w * 0.74, arch_h * 0.9, 0.22, SCURO)
+    # Fondo in ombra calda e poco profondo (non il "buco nero" piatto della v1.3):
+    # nella foto le nicchie sono altorilievi chiari in edicole appena incassate
+    box(f"{name}_Vano", col, cx, y + 0.06, z0 + body_h * 0.5, w * 0.74, 0.14, body_h, NICCHIA)
+    prism(f"{name}_VanoCima", col, cx, y + 0.06, z0 + body_h, w * 0.74, arch_h * 0.9, 0.14, NICCHIA)
     # Colonnine divisorie e ghimberga acuta
     for s in (-1, 1):
         box(f"{name}_Stip_{s}", col, cx + s * w * 0.46, y - 0.02, z0 + body_h * 0.5,
@@ -809,9 +837,10 @@ def edicola_gotica_busto(name, col, cx, y, z0, w, h, con_busto=True):
                        w * 0.96, arch_h * 1.12, 0.075, 0.16, BIANCO)
     cone(f"{name}_Fiorone", col, cx, y - 0.05, z0 + h + 0.09, 0.055, 0.01, 0.18, PIETRA, vertices=6)
     if con_busto:
-        cone(f"{name}_Busto", col, cx, y - 0.01, z0 + body_h * 0.34,
-             w * 0.26, w * 0.16, body_h * 0.50, PIETRA, vertices=9)
-        sphere(f"{name}_Testa", col, cx, y - 0.02, z0 + body_h * 0.70, w * 0.17, PIETRA)
+        # Busto piu' grande, che riempie l'edicola come gli altorilievi reali
+        cone(f"{name}_Busto", col, cx, y - 0.07, z0 + body_h * 0.34,
+             w * 0.31, w * 0.19, body_h * 0.52, PIETRA, vertices=9)
+        sphere(f"{name}_Testa", col, cx, y - 0.08, z0 + body_h * 0.72, w * 0.19, PIETRA)
 
 
 # -----------------------------------------------------------------------------
@@ -858,8 +887,9 @@ box("Zoccolo_Modanato", S, 0.0, -0.55, 1.92, 30.6, 3.3, 0.24, BIANCO)
 # =============================================================================
 # Ordine inferiore in marmo bianco senese (retro compatto, spessore 2.6 m)
 box("Corpo_Inferiore", S, 0.0, 0.12, 8.55, 29.6, THICK - 0.24, 13.30, BIANCO)
-# Specchiatura di fondo in marmo verde-nero di Prato nella fascia dei timpani
-box("Specchiatura_Fondo_Prato", S, 0.0, -1.25, 12.80, 21.4, 0.14, 4.55, VERDE)
+# Fondo chiaro rosato nella fascia dei timpani (nella foto non c'e' alcuna
+# lastra nera continua dietro le ghimberghe: il fondo e' marmo chiaro senese)
+box("Specchiatura_Fondo_Prato", S, 0.0, -1.25, 12.80, 21.4, 0.14, 4.55, ROSA_C)
 # Corpo superiore centrale arretrato (faccia anteriore a Y = -0.55, dietro la vetrata dell'oculo!)
 box("Corpo_Superiore_Centrale", S, 0.0, 0.38, 19.60, 10.8, 1.85, 8.95, BIANCO)
 # Muri di spalla dietro le loggette laterali
@@ -875,22 +905,21 @@ for side in (-1, 1):
     # Campata esterna sporgente (fasce bicrome nette bianco / verde-nero di Prato)
     xe = side * 13.85
     box(f"Contrafforte_Base_Est_{side}", S, xe, -0.15, 5.15, 2.25, 2.95, 6.45, BIANCO)
-    for k in range(11):
-        mat_f = VERDE if k % 2 == 1 else BIANCO
-        h_f = 0.34 if k % 2 == 1 else 0.72
-        zk = 2.20 + k * 0.56
-        if zk < 8.15:
-            box(f"Fascia_Est_{side}_{k}", D, xe, -0.22, zk, 2.30, 2.92, h_f, mat_f)
+    # Solo 5 fasce SOTTILI di serpentino molto distanziate, come nella foto
+    # (la v1.3 alternava bande nere spesse e marmo: effetto "zebratura" assente
+    # nell'originale, dove i corsi scuri sono listelli di ~15 cm)
+    for k in range(5):
+        zk = 2.95 + k * 1.02
+        box(f"Fascia_Est_{side}_{k}", D, xe, -0.22, zk, 2.30, 2.92, 0.15, VERDE)
     # Feritoia stretta sul contrafforte destro/sinistro
     box(f"Feritoia_Base_{side}", D, xe, -1.70, 5.05, 0.18, 0.10, 0.72, SCURO)
 
     # Campata interna arretrata con fasce bicrome + fascia a losanghe rosa/bianche
     xi = side * 11.82
     box(f"Contrafforte_Base_Int_{side}", S, xi, -0.05, 5.15, 1.90, 2.75, 6.45, BIANCO)
-    for k in range(9):
-        zk = 2.30 + k * 0.66
-        if not (4.15 <= zk <= 5.55):
-            box(f"Fascia_Int_{side}_{k}", D, xi, -1.45, zk, 1.92, 0.12, 0.30, VERDE)
+    # Stesso ritmo sottile della campata esterna, evitando la fascia a losanghe
+    for zk in (2.60, 3.62, 6.05, 7.07):
+        box(f"Fascia_Int_{side}_{zk:.2f}", D, xi, -1.45, zk, 1.92, 0.12, 0.13, VERDE)
     # Fascia a 3 riquadri con losanghe intarsiate (come nella foto a quota ~4.8 m)
     box(f"Cornice_Losanghe_{side}", D, xi, -1.44, 4.85, 1.88, 0.12, 1.05, BIANCO2)
     for c in range(3):
@@ -1027,10 +1056,12 @@ def portale_pisano(cx, door_w, door_h, r_ext, gh_base, gh_apex, door_mat, centra
     # 4. Grande ghimberga triangolare ripida svettante oltre Z_GALLERIA
     gh_w = r_ext * 2.0 + 0.15
     gh_h = gh_apex - gh_base
-    # Corpo triangolare in marmo bianco + campo interno in marmo rosa/oro
+    # Corpo triangolare in marmo bianco; il rosa resta solo una cornice sottile
+    # chiara attorno al campo interno (nella foto le ghimberghe sono quasi
+    # interamente in marmo bianco scolpito, non campi rosa saturi)
     prism(f"Ghimberga_Corpo_{tag}", P, cx, -1.42, gh_base, gh_w, gh_h, 0.46, BIANCO)
-    prism(f"Ghimberga_CampoRosa_{tag}", P, cx, -1.66, gh_base + 0.42, gh_w * 0.74, gh_h * 0.76, 0.10, ROSA)
-    prism(f"Ghimberga_CampoInterno_{tag}", P, cx, -1.72, gh_base + 0.62, gh_w * 0.60, gh_h * 0.62, 0.08, BIANCO2)
+    prism(f"Ghimberga_CampoRosa_{tag}", P, cx, -1.66, gh_base + 0.42, gh_w * 0.66, gh_h * 0.66, 0.10, ROSA_C)
+    prism(f"Ghimberga_CampoInterno_{tag}", P, cx, -1.72, gh_base + 0.62, gh_w * 0.56, gh_h * 0.54, 0.08, BIANCO2)
     spioventi_modanati(f"Ghimberga_Cornice_{tag}", P, cx, -1.72, gh_base, gh_w, gh_h, 0.26, 0.36, BIANCO)
     foglie_rampanti(f"Ghimberga_Foglie_{tag}", P, cx, -1.76, gh_base, gh_w, gh_h, PIETRA, n=11, size=0.30)
 
@@ -1062,12 +1093,14 @@ spandrel_positions = [
     (9.35, 13.75, 1.75, 2.05),
 ]
 for idx_s, (sx_pos, sz_pos, sw, sh) in enumerate(spandrel_positions):
-    # Cornice rettangolare bianca/rosa che racchiude la lastra scura in verde di Prato
+    # Specchiatura chiara incorniciata come nella foto (marmo bianco/rosato con
+    # rosone fogliato); il verde di Prato resta solo nel piccolo intarsio centrale
     box(f"Specch_CorniceEst_{idx_s}", D, sx_pos, -1.30, sz_pos, sw, 0.10, sh, BIANCO)
-    box(f"Specch_CorniceRosa_{idx_s}", D, sx_pos, -1.33, sz_pos, sw - 0.24, 0.10, sh - 0.24, ROSA)
-    box(f"Specch_LastraPrato_{idx_s}", D, sx_pos, -1.36, sz_pos, sw - 0.44, 0.10, sh - 0.44, VERDE)
-    # Rosone fogliato in marmo bianco scolpito al centro della specchiatura
-    torus(f"Specch_Rosone_{idx_s}", D, sx_pos, -1.41, sz_pos + 0.12, 0.34, 0.08, BIANCO)
+    box(f"Specch_CorniceRosa_{idx_s}", D, sx_pos, -1.33, sz_pos, sw - 0.24, 0.10, sh - 0.24, ROSA_C)
+    box(f"Specch_LastraPrato_{idx_s}", D, sx_pos, -1.36, sz_pos, sw - 0.44, 0.10, sh - 0.44, BIANCO)
+    # Rosone fogliato scolpito al centro, con piccolo intarsio verde romboidale
+    torus(f"Specch_Rosone_{idx_s}", D, sx_pos, -1.41, sz_pos + 0.12, 0.34, 0.08, ROSA_C)
+    box(f"Specch_Intarsio_{idx_s}", D, sx_pos, -1.43, sz_pos + 0.12, 0.20, 0.08, 0.20, VERDE, rot_y=math.radians(45))
     for leaf_i in range(6):
         la = leaf_i * math.pi / 3.0
         cone(
@@ -1086,33 +1119,34 @@ for m_k in range(38):
 # =============================================================================
 # 4. REGISTRO SUPERIORE CENTRALE: CORNICE QUADRATA DELL'OCULO DI CAMAINO
 # =============================================================================
-# Pannello quadrato interno FORATO attorno all'ellisse dell'oculo (pennacchi dei 4 Evangelisti)
+# Pannello quadrato interno FORATO attorno all'oculo CIRCOLARE (pennacchi dei 4 Evangelisti)
 IN_W, IN_H = 3.44, 2.95
 lastra_forata_oculo(
     "Oculo_Quadro_Pennacchi", R, 0.0, -1.36, Z_OCULO,
     IN_W, IN_H, RX_OCULO + 0.02, RZ_OCULO + 0.02, 0.44, ROSA_C
 )
 
-# Vetrata profonda incassata dell'oculo + griglia metallica 5x4 ben visibile
+# Vetrata profonda incassata dell'oculo circolare + griglia metallica sottile
 cyl(
     "Oculo_Vetro", R, 0.0, -0.82, Z_OCULO, 1.0, 0.14, VETRO,
     vertices=64, rot_x=math.radians(90), scale_x=RX_OCULO + 0.04, scale_y=RZ_OCULO + 0.04, fit_uv=True
 )
-for gx in (-0.60, -0.20, 0.20, 0.60):
+# Griglia 3x3 a barre sottili come nella vetrata reale (non il reticolo spesso 5x4)
+for gx in (-0.50, 0.0, 0.50):
     bar_x = gx * RX_OCULO
     bar_h = 2.0 * RZ_OCULO * math.sqrt(max(0.0, 1.0 - gx * gx))
-    box(f"Griglia_Oculo_V_{gx:+.2f}", R, bar_x, -0.92, Z_OCULO, 0.065, 0.08, bar_h, FERRO)
-for gz in (-0.52, 0.0, 0.52):
+    box(f"Griglia_Oculo_V_{gx:+.2f}", R, bar_x, -0.92, Z_OCULO, 0.045, 0.06, bar_h, FERRO)
+for gz in (-0.50, 0.0, 0.50):
     bar_z = Z_OCULO + gz * RZ_OCULO
     bar_w = 2.0 * RX_OCULO * math.sqrt(max(0.0, 1.0 - gz * gz))
-    box(f"Griglia_Oculo_O_{gz:+.2f}", R, 0.0, -0.92, bar_z, bar_w, 0.08, 0.065, FERRO)
+    box(f"Griglia_Oculo_O_{gz:+.2f}", R, 0.0, -0.92, bar_z, bar_w, 0.06, 0.045, FERRO)
 
 # Strombatura profonda dell'oculo a 4 anelli concentrici scolpiti bianco/rosa
 oculo_rings = [
     (RX_OCULO + 0.02, RZ_OCULO + 0.02, 0.13, -1.04, BIANCO2),
-    (RX_OCULO + 0.15, RZ_OCULO + 0.13, 0.14, -1.20, ROSA),
-    (RX_OCULO + 0.29, RZ_OCULO + 0.25, 0.14, -1.34, PIETRA),
-    (RX_OCULO + 0.43, RZ_OCULO + 0.37, 0.13, -1.48, BIANCO),
+    (RX_OCULO + 0.12, RZ_OCULO + 0.12, 0.13, -1.20, ROSA),
+    (RX_OCULO + 0.22, RZ_OCULO + 0.22, 0.13, -1.34, PIETRA),
+    (RX_OCULO + 0.32, RZ_OCULO + 0.32, 0.12, -1.48, BIANCO),
 ]
 for idx_o, (orx, orz, omin, oy, omat) in enumerate(oculo_rings):
     torus_ellipse(f"Oculo_Anello_{idx_o}", R, 0.0, oy, Z_OCULO, orx, orz, omin, omat, seg_u=56, seg_v=12)
@@ -1178,9 +1212,9 @@ def pilastro_centrale_completo(side):
     for s2 in (-1, 1):
         spioventi_modanati(f"Ghim_PilMed_{tag}_{s2}", G, cx + s2 * 0.28, -1.58, 22.8, 0.56, 0.85, 0.07, 0.22, BIANCO)
     for zg in (22.9, 25.4):
-        cone(
+        gargolla(
             f"Gargolla_Pil_{tag}_{zg}", D, cx + side * 0.78, -1.25, zg,
-            0.10, 0.04, 0.95, PIETRA, vertices=7, rot_y=side * math.radians(68)
+            side, 0.95, 0.10, PIETRA
         )
     box(f"Dado_Guglia_{tag}", G, cx, -0.60, Z_PIL_TOP + 0.85, 0.92, 0.92, 1.65, BIANCO2)
     box(f"Luce_Guglia_{tag}", G, cx, -1.08, Z_PIL_TOP + 0.85, 0.34, 0.14, 1.10, SCURO)
@@ -1310,7 +1344,7 @@ for side in (-1, 1):
 
     # Tre ordini di tabernacoli gotici con grandi statue sul contrafforte d'angolo esterno
     for idx_st, z_st in enumerate((8.95, 13.05, 17.55)):
-        box(f"Nicchia_Torre_{tag}_{idx_st}", D, xe, -1.52, z_st + 1.05, 0.88, 0.18, 1.95, SCURO)
+        box(f"Nicchia_Torre_{tag}_{idx_st}", D, xe, -1.52, z_st + 1.05, 0.88, 0.18, 1.95, NICCHIA)
         statue(f"Statua_Torrione_{tag}_{idx_st}", ST, xe, -1.66, z_st, 1.65, PIETRA)
         spioventi_modanati(f"Baldacch_Torre_{tag}_{idx_st}", G, xe, -1.68, z_st + 1.98, 1.42, 0.98, 0.11, 0.34, BIANCO)
 
@@ -1322,13 +1356,9 @@ for side in (-1, 1):
         (20.9, 1.15, 0.14),
     ]
     for idx_g, (zg, gl, gr) in enumerate(gargoyle_specs):
-        cone(
+        gargolla(
             f"Gargolla_Torre_{tag}_{idx_g}", D, xe + side * (0.92 + gl * 0.42), -1.45, zg,
-            gr, gr * 0.48, gl, PIETRA, vertices=8, rot_y=side * math.radians(78)
-        )
-        sphere(
-            f"Testa_Gargolla_Torre_{tag}_{idx_g}", D, xe + side * (0.92 + gl * 0.85), -1.48, zg + 0.14,
-            gr * 0.85, PIETRA
+            side, gl, gr, PIETRA
         )
 
     # Coronamento del torrione: lanterna ottagonale a gradoni piu' alta delle cuspidi laterali (~25.0-25.8 m)
@@ -1466,7 +1496,7 @@ if "gltf" in EXPORT.get("formats", []):
     except Exception as e:
         print(f"Export GLB non riuscito: {e}")
 
-print("Generazione v1.3 completata!")
+print("Generazione v1.4 completata!")
 sys.stdout.flush()
 sys.stderr.flush()
 if "bpy" in sys.modules and not bpy.app.binary_path:

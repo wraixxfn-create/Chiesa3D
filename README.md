@@ -6,7 +6,7 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 | File | Descrizione |
 |---|---|
-| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire (1.561 oggetti, 18 materiali PBR con texture incorporate) |
+| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire (1.732 oggetti, 19 materiali PBR con texture incorporate) |
 | `Facciata_Duomo_Siena.glb` | Esportazione glTF 2.0 per visualizzatori web / game engine |
 | `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 900×1050) |
 | `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprima e GLB da zero |
@@ -18,19 +18,11 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 **~90 m di larghezza × ~104 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~34,5 m).
 
-## Versione 1.3 — 3 miglioramenti di fedeltà all'originale
+## Versione 1.4 — altri 3 miglioramenti di fedeltà all'originale (e solo 3)
 
-1. **Partizione gotica reale del registro superiore e dei torrioni angolari**
-   - **Cornice quadrata gotica dell'oculo di Camaino**: sostituita la corona circolare sospesa sul muro vuoto con il vero grande tabernacolo quadrato fra i pilastri centrali, dotato di apertura strombata passante, **vetrata con griglia metallica 5×4**, pennacchi angolari con i **Quattro Evangelisti**, **36 edicole gotiche cuspidate** coi busti di Patriarchi e Profeti disposte sui quattro lati del quadrato e statua della **Madonna col Bambino** al centro inferiore.
-   - **Inversione corretta fra settori laterali e torrioni angolari + pilastri centrali continui**: i pilastri centrali salgono ora continui fino alle guglie coronate da statue; le **loggette gotiche a 5 archetti acuti su colonnine binate** con le **cuspidi dorate** tornano all'interno in asse coi portali laterali, mentre i **torrioni gotici angolari a due campate** tornano all'esterno con finestre bicrome, tabernacoli statuari, doccioni sporgenti e **lanterna ottagonale a gradoni** più alta delle cuspidi laterali (errore RMS del profilo sommitale ridotto da **3,64 m** a **2,04 m**, −44%).
-
-2. **Ordine inferiore di Giovanni Pisano a tre grandi portali contigui e specchiature bicrome**
-   - Eliminato il cornicione passante a quota 8,1 m che tagliava a metà le lunette e sostituito con la vera **trabeazione scolpita d'imposta** sotto gli archi (`z = 8,35 m`).
-   - **Tre grandi portali strombati contigui** con **5 ordini concentrici di archivolti bianchi e rosa** su fasci di colonne ritorte e scanalate che si toccano sui piloni comuni, **lunetta centrale a raggiera bicroma** col Sole raggiante di San Bernardino, **ghimberghe ripide** svettanti oltre il cornicione della galleria e **specchiature in marmo verde-nero di Prato con rosoni scolpiti** nei timpani triangolari.
-
-3. **Mosaici figurati reali, policromia marmorea PBR e inquadratura/luce da Piazza del Duomo**
-   - Sostituiti i dischi piatti blu/rossi con **texture ad alta risoluzione dei veri mosaici dorati** (*Incoronazione della Vergine*, *Presentazione al Tempio*, *Natività*), dei portoni in bronzo/noce e della vetrata, incorporate direttamente (`pack()`) nel `.blend` e nel `.glb`, abbinate a texture PBR venate per marmo avorio/rosa senese e serpentino verde-nero di Prato.
-   - **Camera frontale simmetrica dal basso** su Piazza del Duomo (gradinata orizzontale) e **luce solare tardo-pomeridiana radente da destra** su cielo azzurro senese con denoising Cycles (errore quadratico medio RGB sull'intera immagine ridotto del **30%** e correlazione diretta con la foto aumentata da `0,04` a `0,42`).
+1. **Oculo circolare e cornice senza “buchi neri”** — l'oculo era un'ellisse (3,02 × 2,55 m): ora è un cerchio vero (Ø 5,60 m) con griglia della vetrata 3×3 a barre sottili. Le 36 edicole della cornice quadrata non sono più vani neri piatti (`Vano_Scuro`) ma incassi poco profondi in ombra calda (nuovo materiale `Vano_Nicchia`), con busti più grandi che riempiono la nicchia come gli altorilievi reali.
+2. **Policromia marmorea attenuata** — ai contrafforti angolari la zebratura a bande nere spesse è sostituita da 5 fasce sottili di serpentino molto distanziate; fondo e specchiature fra le ghimberghe passano da lastre nere a “domino” a marmo chiaro/rosato con rosone fogliato e piccolo intarsio verde centrale; il campo rosa delle ghimberghe è ridotto a una cornice sottile in marmo rosato chiaro.
+3. **Apparato scultoreo Giovanni Pisano** — le statue non sono più “pedine” (cono + sfera in pietra chiara), ma figure panneggiate con pieghe verticali, spalle, maniche cadenti e testa proporzionata, in pietra calda consumata più scura del marmo di fondo; i doccioni sono draghi orizzontali con testa, muso e ala (non più pioli conici) e l'angelo apicale ha 2 ali per lato (non la “stella” a 4 penne per lato).
 
 ## Rigenerare il modello
 
