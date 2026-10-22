@@ -20,6 +20,14 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
 
+## Versione 1.9 — angelo apicale e ali più fedeli alla fotografia
+
+Intervento concentrato sulla statua al vertice: rispetto all'anteprima precedente,
+la figura è più leggibile a distanza, con ali più ampie e slanciate verso l'alto,
+una silhouette piumata più vicina all'angelo dell'originale. Le modifiche sono
+nel generatore procedurale; per aggiornare il `.blend` e le anteprime occorre
+rigenerare il progetto con Blender.
+
 ## Versione 1.8 — cuspide centrale rifinita sulla foto ravvicinata
 
 L'intervento è concentrato sulla **parte alta al centro della facciata**. Il

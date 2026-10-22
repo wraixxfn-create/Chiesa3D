@@ -102,7 +102,7 @@ scene = bpy.context.scene
 scene.unit_settings.system = "METRIC"
 scene.unit_settings.scale_length = 1.0
 scene["titolo"] = "Duomo di Siena — solo facciata ovest"
-scene["nota"] = "Modello procedurale v1.8: solo facciata, retro piatto; cuspide centrale migliorata con mosaico calibrato, scultura e render ravvicinato."
+scene["nota"] = "Modello procedurale v1.9: cuspide centrale rifinita, angelo apicale ingrandito e ali più ampie e slanciate; retro piatto."
 
 
 # -----------------------------------------------------------------------------
@@ -2048,8 +2048,8 @@ def statua_angelo_apicale(name, col, x, y, z, h=2.70, corpo=None, ali=None,
     # ali in rame ossidato, attacco sulle spalle e punte oltre la testa
     for s in (-1, 1):
         ala_angelo(f"{name}_ala_{s}", col, x + s * 0.036 * k, y + 0.030 * k,
-                   z + 0.800 * k, s, 0.54 * k, ali, n_penne=10,
-                   a0=0.22, a1=1.15, inclinazione=0.06)
+                   z + 0.800 * k, s, 0.66 * k, ali, n_penne=13,
+                   a0=0.12, a1=1.32, inclinazione=0.035)
     return obj
 
 
@@ -2240,7 +2240,7 @@ box("Cornice_Apice", G, 0.0, -0.97, Z_APICE + 0.60, 1.06, 0.94, 0.11, BIANCO)
 box("Gola_Apice", G, 0.0, -0.97, Z_APICE + 0.665, 0.92, 0.86, 0.06, PIETRA)
 box("Dado_Apice", G, 0.0, -0.97, Z_APICE + 0.77, 0.64, 0.64, 0.16, BIANCO2)
 box("Plinto_Angelo", G, 0.0, -0.97, Z_APICE + 0.875, 0.76, 0.74, 0.06, BIANCO)
-statua_angelo_apicale("Angelo_Apicale", ST, 0.0, -0.97, Z_APICE + 0.91, 2.70)
+statua_angelo_apicale("Angelo_Apicale", ST, 0.0, -0.97, Z_APICE + 0.91, 3.65)
 
 # =============================================================================
 # 7. SETTORI LATERALI INTERNI (cx = +-8.05 m): LOGGETTA GOTICA A 5 ARCHETTI
