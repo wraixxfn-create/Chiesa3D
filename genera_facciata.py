@@ -17,20 +17,14 @@ Coordinate: X = larghezza (m), Y = profondita' (fronte verso -Y), Z = altezza (m
 Larghezza totale ~30 m, altezza all'angelo ~35 m (proporzioni della facciata reale).
 Tutto il modello viene poi riscalato di "scala_globale" (default 3.0) -> ~90 x ~105 m.
 
-MIGLIORAMENTI v1.4 (altri 3, e solo 3, miglioramenti di fedelta' all'originale):
-  1. Oculo finalmente CIRCOLARE (raggi X e Z uguali: 2.80 m) come nella foto, con
-     griglia della vetrata 3x3 a barre sottili, e nicchie della cornice quadrata non
-     piu' "buchi neri": vani in ombra calda poco profondi, con busti piu' grandi che
-     riempiono l'edicola come gli altorilievi reali di Patriarchi e Profeti.
-  2. Policromia marmorea attenuata come nell'originale: contrafforti angolari con
-     5 FASCE SOTTILI di serpentino (non piu' zebratura a bande nere spesse), fondo e
-     specchiature fra le ghimberghe in marmo chiaro/rosato con piccolo intarsio verde
-     centrale (non piu' lastre nere a "domino"), campo rosa delle ghimberghe ridotto
-     a una cornice sottile in marmo rosato chiaro.
-  3. Apparato scultoreo Giovanni Pisano: statue non piu' "pedine" (cono + sfera) ma figure
-     panneggiate con pieghe verticali, spalle, maniche e testa proporzionata, in pietra
-     calda consumata piu' scura del marmo di fondo; doccioni come draghi orizzontali
-     con testa, muso e ala (non piu' pioli conici) e angelo apicale con 2 ali per lato.
+MIGLIORAMENTI v1.5 (esattamente 3):
+  1. Portali: archivolti leggibili davanti alle ghimberghe, fasce a fogliame
+     e campi triangolari decorati a bassorilievo.
+  2. Torrioni: finestre ogivali visibili, cornici meno aggettanti e coronamenti
+     cuspidati a doppia modanatura con foglie rampanti.
+  3. Oculo: cornice concentrica a ovuli e perle, pennacchi chiari con rosette
+     e rilievi degli Evangelisti non nascosti dalla lastra.
+
 """
 
 import bpy
@@ -88,7 +82,7 @@ scene = bpy.context.scene
 scene.unit_settings.system = "METRIC"
 scene.unit_settings.scale_length = 1.0
 scene["titolo"] = "Duomo di Siena — solo facciata ovest"
-scene["nota"] = "Modello procedurale v1.4 fedele alla fotografia di riferimento: solo facciata, retro piatto."
+scene["nota"] = "Modello procedurale v1.5 fedele alla fotografia di riferimento: solo facciata, retro piatto."
 
 
 # -----------------------------------------------------------------------------
@@ -699,6 +693,19 @@ def foglie_rampanti(name, col, cx, y, z_base, width, height, material=PIETRA, n=
             )
 
 
+def rosetta_rilievo(name, col, x, y, z, radius, petals=6):
+    """Rosetta lapidea a petali lanceolati, poco sporgente nel piano XZ."""
+    sphere(name + "_Cuore", col, x, y - 0.025, z, radius * 0.22,
+           PIETRA, sy=0.45)
+    for k in range(petals):
+        a = math.tau * k / petals
+        leaf = sphere(f"{name}_Petalo_{k}", col,
+                      x + math.sin(a) * radius * 0.52, y,
+                      z + math.cos(a) * radius * 0.52,
+                      radius, BIANCO2, sx=0.22, sy=0.10, sz=0.52)
+        leaf.rotation_euler.y = a
+
+
 def statue(name, col, x, y, z, h=1.5, material=PIETRA):
     """Statua gotica panneggiata: plinto, manto con pieghe, spalle, maniche e testa.
 
@@ -1047,11 +1054,18 @@ def portale_pisano(cx, door_w, door_h, r_ext, gh_base, gh_apex, door_mat, centra
     ]
     for idx, (rr, min_r, dy, mat_a, twisted) in enumerate(rings_spec):
         if twisted:
-            arco_ritorto(f"Archivolto_{tag}_{idx}", P, cx, front + dy, cz_arch, rr, min_r, mat_a)
+            arco_ritorto(f"Archivolto_{tag}_{idx}", P, cx, front + dy - 0.42, cz_arch, rr, min_r, mat_a)
         else:
-            arch(f"Archivolto_{tag}_{idx}", P, cx, front + dy, cz_arch, rr, min_r, mat_a, seg_u=38)
+            arch(f"Archivolto_{tag}_{idx}", P, cx, front + dy - 0.42, cz_arch, rr, min_r, mat_a, seg_u=38)
+    # Fasce scolpite: rosette separate, non una superficie liscia continua.
+    for band, rr in enumerate((r_in + 0.42, r_in + 1.12)):
+        for k in range(29):
+            a = math.pi * (k + 0.5) / 29
+            rosetta_rilievo(f"Fogliame_Archivolto_{tag}_{band}_{k}", P,
+                           cx + rr * math.cos(a), front - 0.94,
+                           cz_arch + rr * math.sin(a), 0.115, petals=5)
     # Chiave di volta scolpita
-    sphere(f"Chiave_Volta_{tag}", P, cx, front - 0.46, cz_arch + r_ext - 0.05, 0.22, PIETRA)
+    sphere(f"Chiave_Volta_{tag}", P, cx, front - 0.94, cz_arch + r_ext - 0.05, 0.22, PIETRA)
 
     # 4. Grande ghimberga triangolare ripida svettante oltre Z_GALLERIA
     gh_w = r_ext * 2.0 + 0.15
@@ -1064,6 +1078,19 @@ def portale_pisano(cx, door_w, door_h, r_ext, gh_base, gh_apex, door_mat, centra
     prism(f"Ghimberga_CampoInterno_{tag}", P, cx, -1.72, gh_base + 0.62, gh_w * 0.56, gh_h * 0.54, 0.08, BIANCO2)
     spioventi_modanati(f"Ghimberga_Cornice_{tag}", P, cx, -1.72, gh_base, gh_w, gh_h, 0.26, 0.36, BIANCO)
     foglie_rampanti(f"Ghimberga_Foglie_{tag}", P, cx, -1.76, gh_base, gh_w, gh_h, PIETRA, n=11, size=0.30)
+
+    # Tralci nei due pennacchi, sopra l'estradosso e dentro gli spioventi.
+    for side in (-1, 1):
+        for row in range(4):
+            t = 0.38 + row * 0.12
+            xx = cx + side * gh_w * 0.32 * (1.0 - t)
+            zz = gh_base + gh_h * t
+            if math.hypot(xx - cx, zz - cz_arch) > r_ext + 0.16:
+                rosetta_rilievo(f"Tralcio_Ghimberga_{tag}_{side}_{row}",
+                               P, xx, -1.91, zz, 0.25)
+    spioventi_modanati(f"Ghimberga_ListelloInterno_{tag}", P, cx, -1.94,
+                       gh_base + 0.30, gh_w * 0.85, gh_h * 0.85,
+                       0.065, 0.10, PIETRA)
 
     # Medaglione circolare scolpito col busto a mezz'altezza della ghimberga
     z_med = gh_base + gh_h * 0.56
@@ -1123,7 +1150,7 @@ for m_k in range(38):
 IN_W, IN_H = 3.44, 2.95
 lastra_forata_oculo(
     "Oculo_Quadro_Pennacchi", R, 0.0, -1.36, Z_OCULO,
-    IN_W, IN_H, RX_OCULO + 0.02, RZ_OCULO + 0.02, 0.44, ROSA_C
+    IN_W, IN_H, RX_OCULO + 0.02, RZ_OCULO + 0.02, 0.44, BIANCO2
 )
 
 # Vetrata profonda incassata dell'oculo circolare + griglia metallica sottile
@@ -1143,20 +1170,39 @@ for gz in (-0.50, 0.0, 0.50):
 
 # Strombatura profonda dell'oculo a 4 anelli concentrici scolpiti bianco/rosa
 oculo_rings = [
-    (RX_OCULO + 0.02, RZ_OCULO + 0.02, 0.13, -1.04, BIANCO2),
-    (RX_OCULO + 0.12, RZ_OCULO + 0.12, 0.13, -1.20, ROSA),
-    (RX_OCULO + 0.22, RZ_OCULO + 0.22, 0.13, -1.34, PIETRA),
-    (RX_OCULO + 0.32, RZ_OCULO + 0.32, 0.12, -1.48, BIANCO),
+    (RX_OCULO + 0.02, RZ_OCULO + 0.02, 0.085, -1.57, BIANCO2),
+    (RX_OCULO + 0.12, RZ_OCULO + 0.12, 0.065, -1.63, ROSA),
+    (RX_OCULO + 0.22, RZ_OCULO + 0.22, 0.085, -1.68, PIETRA),
+    (RX_OCULO + 0.32, RZ_OCULO + 0.32, 0.075, -1.71, BIANCO),
 ]
 for idx_o, (orx, orz, omin, oy, omat) in enumerate(oculo_rings):
     torus_ellipse(f"Oculo_Anello_{idx_o}", R, 0.0, oy, Z_OCULO, orx, orz, omin, omat, seg_u=56, seg_v=12)
+
+# Perlinatura interna e ovuli esterni seguono il cerchio, senza toccare il vetro.
+for k in range(80):
+    a = math.tau * k / 80
+    sphere(f"Oculo_Perla_{k}", R,
+           (RX_OCULO + 0.06) * math.cos(a), -1.69,
+           Z_OCULO + (RZ_OCULO + 0.06) * math.sin(a),
+           0.047, BIANCO, sy=0.65)
+for k in range(64):
+    a = math.tau * k / 64
+    ov = sphere(f"Oculo_Ovulo_{k}", R,
+                (RX_OCULO + 0.32) * math.cos(a), -1.79,
+                Z_OCULO + (RZ_OCULO + 0.32) * math.sin(a),
+                0.085, PIETRA, sx=0.65, sy=0.65, sz=1.1)
+    ov.rotation_euler.y = math.pi / 2 - a
+for sx in (-1, 1):
+    for sz in (-1, 1):
+        rosetta_rilievo(f"Oculo_Rosetta_Pennacchio_{sx}_{sz}", R,
+                       sx * 3.10, -1.67, Z_OCULO + sz * 2.65, 0.23)
 
 # I Quattro Evangelisti ad altorilievo nei 4 pennacchi angolari del quadrato
 for sx_e in (-1, 1):
     for sz_e in (-1, 1):
         ex = sx_e * 2.82
         ez = Z_OCULO + sz_e * 2.15
-        statue(f"Evangelista_{sx_e}_{sz_e}", ST, ex, -1.52, ez - 0.52, 1.02, PIETRA)
+        statue(f"Evangelista_{sx_e}_{sz_e}", ST, ex, -1.78, ez - 0.52, 1.02, PIETRA)
 
 # LA VERA CORONA QUADRATA DI NICCHIE GOTICHE CUSPIDATE (non un cerchio!)
 # 14 nicchie nella fila orizzontale superiore
@@ -1331,16 +1377,16 @@ for side in (-1, 1):
         )
     # Marcapiani orizzontali scolpiti sul torrione
     for zm_t in (12.85, 17.65):
-        box(f"Marcapiano_Torre_{tag}_{zm_t}", G, side * 12.35, -0.35, zm_t, 5.10, 3.00, 0.30, ROSA_C)
+        box(f"Marcapiano_Torre_{tag}_{zm_t}", G, side * 12.35, -0.35, zm_t, 4.65, 2.65, 0.16, BIANCO2)
 
     # Tre ordini di finestre gotiche sovrapposte nella campata interna (con ghimberga bicroma!)
     for idx_w, (zw0, wh) in enumerate([(9.35, 3.30), (13.45, 3.55), (17.95, 3.35)]):
-        box(f"Finestra_Vano_{tag}_{idx_w}", D, xi, -1.32, zw0 + wh * 0.45, 0.96, 0.24, wh * 0.85, SCURO)
-        prism(f"Finestra_ArcoScuro_{tag}_{idx_w}", D, xi, -1.32, zw0 + wh * 0.86, 0.96, 0.68, 0.24, SCURO)
-        colonna_ritorta(f"Mullion_Torre_{tag}_{idx_w}", D, xi, -1.42, zw0 + wh * 0.42, 0.075, wh * 0.82, BIANCO, turns=3.0)
-        arch(f"Arco_Fin_Bianco_{tag}_{idx_w}", D, xi, -1.44, zw0 + wh * 0.84, 0.54, 0.095, BIANCO, seg_u=18, pointed=0.45)
-        arch(f"Arco_Fin_Prato_{tag}_{idx_w}", D, xi, -1.47, zw0 + wh * 0.86, 0.68, 0.085, VERDE, seg_u=18, pointed=0.45)
-        spioventi_modanati(f"Ghim_Fin_{tag}_{idx_w}", D, xi, -1.54, zw0 + wh * 0.84, 1.72, 1.25, 0.13, 0.28, BIANCO)
+        box(f"Finestra_Vano_{tag}_{idx_w}", D, xi, -1.72, zw0 + wh * 0.45, 0.96, 0.24, wh * 0.85, SCURO)
+        prism(f"Finestra_ArcoScuro_{tag}_{idx_w}", D, xi, -1.72, zw0 + wh * 0.86, 0.96, 0.68, 0.24, SCURO)
+        colonna_ritorta(f"Mullion_Torre_{tag}_{idx_w}", D, xi, -1.92, zw0 + wh * 0.42, 0.075, wh * 0.82, BIANCO, turns=3.0)
+        arch(f"Arco_Fin_Bianco_{tag}_{idx_w}", D, xi, -1.96, zw0 + wh * 0.84, 0.54, 0.095, BIANCO, seg_u=18, pointed=0.45)
+        arch(f"Arco_Fin_Prato_{tag}_{idx_w}", D, xi, -1.98, zw0 + wh * 0.86, 0.68, 0.085, VERDE, seg_u=18, pointed=0.45)
+        spioventi_modanati(f"Ghim_Fin_{tag}_{idx_w}", D, xi, -2.00, zw0 + wh * 0.84, 1.72, 1.25, 0.13, 0.28, BIANCO)
 
     # Tre ordini di tabernacoli gotici con grandi statue sul contrafforte d'angolo esterno
     for idx_st, z_st in enumerate((8.95, 13.05, 17.55)):
@@ -1362,7 +1408,21 @@ for side in (-1, 1):
         )
 
     # Coronamento del torrione: lanterna ottagonale a gradoni piu' alta delle cuspidi laterali (~25.0-25.8 m)
-    box(f"Cornicione_Torre_{tag}", G, side * 12.70, -0.25, z_top_tower, 4.65, 3.05, 0.44, BIANCO2)
+    box(f"Cornicione_Torre_{tag}", G, side * 12.70, -0.25, z_top_tower, 4.35, 2.65, 0.20, BIANCO2)
+    # Coronamento a ghimberga: la finestra termina con un profilo acuto,
+    # non con la grande mensola orizzontale della versione precedente.
+    for band, inset in enumerate((0.0, 0.24)):
+        spioventi_modanati(f"Coronamento_Ogivale_{tag}_{band}", G,
+                           xi, -1.99 - band * 0.04, z_top_tower - 0.85 + inset,
+                           2.85 - inset * 2, 2.15 - inset * 1.4,
+                           0.13 if band == 0 else 0.075, 0.22, BIANCO)
+    foglie_rampanti(f"Coronamento_Foglie_{tag}", G, xi, -2.06,
+                    z_top_tower - 0.85, 2.85, 2.15, n=6, size=0.18)
+    for dx in (-1.37, 1.37):
+        cyl(f"Coronamento_Colonnina_{tag}_{dx}", G,
+            xi + dx, -1.90, z_top_tower - 1.20, 0.095, 1.45, BIANCO)
+        finial(f"Coronamento_Guglia_{tag}_{dx}", G,
+               xi + dx, -1.90, z_top_tower - 0.45, 0.65)
     cyl(f"Lanterna_Base_{tag}", G, xi, -0.55, z_top_tower + 0.72, 0.90, 1.45, BIANCO2, vertices=8)
     cyl(f"Lanterna_Grado2_{tag}", G, xi, -0.55, z_top_tower + 1.72, 0.65, 0.88, BIANCO, vertices=8)
     cone(f"Lanterna_Cuspide_{tag}", G, xi, -0.55, z_top_tower + 2.52, 0.52, 0.10, 0.92, PIETRA, vertices=8)
@@ -1496,7 +1556,7 @@ if "gltf" in EXPORT.get("formats", []):
     except Exception as e:
         print(f"Export GLB non riuscito: {e}")
 
-print("Generazione v1.4 completata!")
+print("Generazione v1.5 completata!")
 sys.stdout.flush()
 sys.stderr.flush()
 if "bpy" in sys.modules and not bpy.app.binary_path:
