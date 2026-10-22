@@ -6,6 +6,7 @@
     "unita": "metri"
   },
   "dimensioni": {
+    "scala_globale": 3.0,
     "larghezza_totale": 30.0,
     "altezza_angelo": 34.0,
     "spessore_facciata": 2.6,
@@ -13,8 +14,16 @@
     "altezza_portali": 5.6,
     "larghezza_portale_centrale": 3.7,
     "larghezza_portali_laterali": 3.1,
-    "raggio_rosone": 3.55,
-    "altezza_centro_rosone": 17.3
+    "altezza_centro_oculo": 19.2,
+    "raggio_oculo": 2.0,
+    "raggio_corona_nicchie": 2.95,
+    "numero_nicchie_oculo": 34,
+    "x_guglie_centrali": 5.2,
+    "larghezza_guglia_centrale": 1.25,
+    "base_guglia_centrale": 20.6,
+    "colmo_guglia_centrale": 26.2,
+    "base_cuspidi_laterali": 20.5,
+    "altezza_cuspidi_laterali": 4.6
   },
   "collezioni": {
     "struttura": "01_Struttura",
