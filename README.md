@@ -20,7 +20,26 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
 
-## Versione 1.7 — apice centrale rifatto sulle fotografie dell'originale
+## Versione 1.8 — cuspide centrale rifinita sulla foto ravvicinata
+
+L'intervento è concentrato sulla **parte alta al centro della facciata**. Il
+resto del prospetto non cambia.
+
+- Il mosaico dell'Incoronazione ora usa l'intero riquadro reale: sono stati
+  corretti vertice e base del ritaglio, così la scena comprende anche gli angeli
+  e il fregio inferiore invece di ingrandire soltanto le figure centrali.
+- Il fregio alla base del mosaico è più fitto e segue meglio la sequenza di
+  cherubini e palmette della fotografia.
+- Due rilievi angelici completano la lunetta sopra il mosaico, attorno al
+  cherubino di chiave.
+- Il cappuccio acantiforme è stato alleggerito, con due ordini di foglie più
+  leggibili; le penne delle ali dell'angelo sono ora modellate singolarmente,
+  con asta apicale più slanciata.
+- La rigenerazione produce ora anche `anteprima_apice.png`: un'inquadratura
+  ravvicinata dedicata che mostra angelo, cuspide, mosaico e parte dei pinnacoli.
+  `anteprima_facciata.png` resta invece la vista d'insieme.
+
+## Versione 1.7 — ricostruzione iniziale dell'apice
 
 Intervento concentrato sulla **punta centrale della facciata** (cuspide, mosaico
 dell'Incoronazione, cornici degli spioventi, cappuccio e angelo apicale).
@@ -101,4 +120,4 @@ oppure con il modulo Python `bpy` (`pip install bpy==4.2.0`):
 python genera_facciata.py
 ```
 
-Lo script sovrascrive `Facciata_Duomo_Siena.blend`, `anteprima_facciata.png` e `Facciata_Duomo_Siena.glb`.
+Lo script sovrascrive `Facciata_Duomo_Siena.blend`, `anteprima_facciata.png`, `anteprima_apice.png` e `Facciata_Duomo_Siena.glb`.

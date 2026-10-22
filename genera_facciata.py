@@ -17,7 +17,7 @@ Coordinate: X = larghezza (m), Y = profondita' (fronte verso -Y), Z = altezza (m
 Larghezza totale ~30 m, altezza all'angelo ~35 m (proporzioni della facciata reale).
 Tutto il modello viene poi riscalato di "scala_globale" (default 3.0) -> ~90 x ~111 m.
 
-MIGLIORAMENTO v1.7 — apice centrale (cuspide, mosaico, cornici, angelo)
+MIGLIORAMENTO v1.8 — cuspide e mosaico centrale (cuspide, mosaico, cornici, angelo)
 rifatto sulle foto dell'originale:
 
   1. Cornici degli spioventi a MITRA: ogni modanatura (lastra dei crockets,
@@ -102,7 +102,7 @@ scene = bpy.context.scene
 scene.unit_settings.system = "METRIC"
 scene.unit_settings.scale_length = 1.0
 scene["titolo"] = "Duomo di Siena — solo facciata ovest"
-scene["nota"] = "Modello procedurale v1.7: solo facciata, retro piatto; apice centrale ricostruito sulle foto ravvicinate."
+scene["nota"] = "Modello procedurale v1.8: solo facciata, retro piatto; cuspide centrale migliorata con mosaico calibrato, scultura e render ravvicinato."
 
 
 # -----------------------------------------------------------------------------
@@ -388,12 +388,12 @@ def build_all_textures():
         tex["mosaico_centrale"] = _extract_triangle_tex(
             "Tex_Mosaico_Incoronazione",
             apice,
-            (624 * ax_s, 1892 * ay_s),
-            (1498 * ax_s, 1892 * ay_s),
-            (1061 * ax_s, 1225 * ay_s),
-            size=1024,
+            (330 * ax_s, 1940 * ay_s),
+            (1770 * ax_s, 1940 * ay_s),
+            (1040 * ax_s, 1145 * ay_s),
+            size=1536,
             boost=1.0,
-            saturazione=1.30,
+            saturazione=1.10,
         )
 
     if not os.path.exists(REF_PATH):
@@ -1935,38 +1935,50 @@ def _bm_membrana_ala(bm, mat4, a0, a1, r_base, lung, spess, n_scallop=6,
         bm.faces.new((front[nt][ir + 1], front[nt][ir], back[nt][ir], back[nt][ir + 1]))
 
 
-def ala_angelo(name, col, x, y, z, s, lung, material, n_penne=8,
-               a0=0.30, a1=1.34, inclinazione=0.05):
-    """Ala spiegata, in un unico oggetto.
+def ala_angelo(name, col, x, y, z, s, lung, material, n_penne=10,
+               a0=0.22, a1=1.15, inclinazione=0.05):
+    """Ala apicale a penne sovrapposte, con profilo alto e slanciato.
 
-    Membrana di penne embricate (con il bordo a conchiglia) + copritrici
-    bombate davanti + punte delle remiganti modellate una per una, così il
-    bordo esterno è frastagliato come nelle ali in rame dell'originale.
+    Le remiganti sono modellate come foglie singole invece che come una
+    membrana liscia: il bordo resta sfrangiato e ogni penna proietta un'ombra,
+    come le ali di rame della statua originale.
     """
     bm = bmesh.new()
     Mw = Matrix.Translation((x, y, z)) @ Matrix.Rotation(-s * inclinazione, 4, "Z")
-    # membrana delle remiganti
-    _bm_membrana_ala(bm, Mw, s * a0, s * a1, lung * 0.10, lung, lung * 0.032,
-                     n_scallop=n_penne, y_off=0.014, curvatura=0.50,
-                     profilo_piuma=0.22, r_finale=0.50)
-    # copritrici: membrana più corta e bombata, davanti
-    _bm_membrana_ala(bm, Mw, s * (a0 + 0.08), s * (a1 - 0.16), lung * 0.09,
-                     lung * 0.48, lung * 0.024, n_scallop=6, y_off=-0.026,
-                     curvatura=0.55, profilo_piuma=0.16, r_finale=0.62)
-    # punte delle remiganti: una foglia per penna, oltre il bordo della membrana
+    # Membrana sottile di sostegno, sagomata come ala alta e stretta; le
+    # remiganti in rilievo spezzano il profilo liscio e ne leggono le penne.
+    _bm_membrana_ala(bm, Mw, s * a0, s * a1, lung * 0.10, lung * 0.90,
+                     lung * 0.030, n_scallop=n_penne, y_off=0.018,
+                     curvatura=0.48, profilo_piuma=0.12, r_finale=0.72)
+    # Remiganti: ventaglio verticale, con le penne esterne più corte e oblique.
     for k in range(n_penne):
-        t = (k + 0.5) / n_penne
-        a = s * (a0 + (a1 - a0) * t)
-        r_tip = lung * (1.0 - (1.0 - 0.50) * (t ** 1.25))
-        Mb = Mw @ Matrix.Translation((r_tip * 0.86 * math.sin(abs(a)), 0.004,
-                                      r_tip * 0.86 * math.cos(a))) \
-               @ Matrix.Rotation(a, 4, "Y")
-        _bm_foglia(bm, lung * 0.34, lung * 0.085, lung * 0.020, Mb,
-                   profilo=((0.00, 0.30), (0.20, 0.44), (0.45, 0.38),
-                            (0.70, 0.26), (0.88, 0.14), (1.00, 0.01)), piega=0.05 * s)
-    # raccordo alla spalla
-    _bm_sfera(bm, Mw, s * lung * 0.035, 0.004, -lung * 0.020, lung * 0.080,
-              sx=1.25, sy=0.95, sz=1.30, u=10, v=6)
+        t = k / max(1, n_penne - 1)
+        a = a0 + (a1 - a0) * t
+        r_base = lung * (0.075 + 0.045 * t)
+        r_tip = lung * (0.94 - 0.16 * t)
+        Mb = Mw @ Matrix.Translation((s * math.sin(a) * r_base, 0.008,
+                                      math.cos(a) * r_base)) \
+               @ Matrix.Rotation(s * a, 4, "Y")
+        _bm_foglia(bm, r_tip - r_base, lung * (0.115 - 0.018 * t),
+                   lung * 0.032, Mb,
+                   profilo=((0.00, 0.24), (0.12, 0.43), (0.30, 0.49),
+                            (0.50, 0.43), (0.70, 0.32), (0.88, 0.18), (1.00, 0.01)),
+                   piega=0.035 * s, gonfia=1.10)
+    # Copritrici più corte e sovrapposte alla radice dell'ala.
+    for k in range(n_penne - 2):
+        t = k / max(1, n_penne - 3)
+        a = a0 + 0.08 + (a1 - a0 - 0.20) * t
+        r_base = lung * 0.13
+        Mb = Mw @ Matrix.Translation((s * math.sin(a) * r_base, -lung * 0.030,
+                                      math.cos(a) * r_base)) \
+               @ Matrix.Rotation(s * a, 4, "Y")
+        _bm_foglia(bm, lung * 0.47, lung * 0.125, lung * 0.030, Mb,
+                   profilo=((0.00, 0.32), (0.18, 0.50), (0.38, 0.43),
+                            (0.60, 0.33), (0.82, 0.19), (1.00, 0.01)),
+                   piega=0.018 * s, gonfia=1.12)
+    # Radice robusta ma stretta sulla spalla.
+    _bm_sfera(bm, Mw, s * lung * 0.035, -lung * 0.025, -lung * 0.020,
+              lung * 0.075, sx=1.15, sy=0.60, sz=1.10, u=10, v=6)
     return _mesh_da_bmesh(name, col, bm, material)
 
 
@@ -2010,6 +2022,14 @@ def statua_angelo_apicale(name, col, x, y, z, h=2.70, corpo=None, ali=None,
     _bm_sfera(bm, M, 0.0, -0.026, 0.808, 0.024, sx=0.85, sy=0.80, sz=0.75, u=8, v=6)
     _bm_sfera(bm, M, 0.0, 0.006, 0.866, 0.024, sx=1.28, sy=1.05, sz=0.85, u=12, v=8)
     _bm_sfera(bm, M, 0.0, 0.014, 0.888, 0.019, sx=1.20, sy=1.0, sz=0.72, u=10, v=6)
+    # Tratti del volto rivolti verso la piazza (-Y), appena accennati nel marmo.
+    for eye_x in (-0.014, 0.014):
+        _bm_sfera(bm, M, eye_x, -0.047, 0.842, 0.0065,
+                  sx=1.0, sy=0.55, sz=0.72, u=8, v=5)
+    _bm_sfera(bm, M, 0.0, -0.053, 0.830, 0.009,
+              sx=0.72, sy=0.55, sz=1.15, u=8, v=5)
+    _bm_sfera(bm, M, 0.0, -0.048, 0.812, 0.006,
+              sx=1.15, sy=0.50, sz=0.45, u=8, v=5)
     # braccio destro alzato a reggere l'asta
     _bm_segmento(bm, M, (-0.056, -0.006, 0.742), (-0.100, -0.026, 0.820), 0.023, 0.018)
     _bm_segmento(bm, M, (-0.100, -0.026, 0.820), (-0.112, -0.036, 0.892), 0.018, 0.014)
@@ -2020,16 +2040,16 @@ def statua_angelo_apicale(name, col, x, y, z, h=2.70, corpo=None, ali=None,
     _bm_sfera(bm, M, 0.085, -0.040, 0.572, 0.016, sx=1.0, sy=0.85, sz=1.10, u=8, v=6)
     # asta in diagonale, dalla mano oltre la testa
     if con_asta:
-        _bm_segmento(bm, M, (-0.070, -0.050, 0.580), (-0.178, -0.054, 1.240),
+        _bm_segmento(bm, M, (-0.070, -0.050, 0.580), (-0.178, -0.054, 1.520),
                      0.0075, 0.005, seg=8)
-        _bm_segmento(bm, M, (-0.178, -0.054, 1.240), (-0.184, -0.055, 1.300),
+        _bm_segmento(bm, M, (-0.178, -0.054, 1.520), (-0.184, -0.055, 1.590),
                      0.012, 0.002, seg=7)
     obj = _mesh_da_bmesh(name + "_corpo", col, bm, corpo)
     # ali in rame ossidato, attacco sulle spalle e punte oltre la testa
     for s in (-1, 1):
         ala_angelo(f"{name}_ala_{s}", col, x + s * 0.036 * k, y + 0.030 * k,
-                   z + 0.800 * k, s, 0.54 * k, ali, n_penne=8,
-                   a0=0.22, a1=1.30, inclinazione=0.06)
+                   z + 0.800 * k, s, 0.54 * k, ali, n_penne=10,
+                   a0=0.22, a1=1.15, inclinazione=0.06)
     return obj
 
 
@@ -2085,13 +2105,13 @@ Y_FR = -1.56                     # piano frontale dei rilievi
 Y_FONDO_FR = -1.49               # fondo della fascia (arretrato di 7 cm)
 box("Fascia_Cherubini_Base", D, 0.0, Y_FONDO_FR + 0.14, Z_MOS_BASE - 0.31, W_FR, 0.28, 0.46, BIANCO2)
 box("Fondo_Ombra_Cherubini", D, 0.0, Y_FONDO_FR + 0.02, Z_MOS_BASE - 0.31, W_FR * 0.99, 0.16, 0.38, PIETRA)
-PASSO_FR = 1.62                  # un cherubino ogni 1,62 m, palmetti in mezzo
-n_fr = 6
+PASSO_FR = 1.20                  # passo dei cherubini ravvicinato come nel fregio originale
+n_fr = 7
 x0_fr = -(n_fr - 1) * 0.5 * PASSO_FR
 for k_c in range(n_fr):
     x_c = x0_fr + k_c * PASSO_FR
     testa_cherubino(f"Cherubino_Base_{k_c}", D, x_c, Y_FR, Z_MOS_BASE - 0.31,
-                    0.135, PIETRA, ali=1.15)
+                    0.170, PIETRA, ali=1.15)
 for k_f in range(n_fr - 1):
     x_f = x0_fr + PASSO_FR * 0.5 + k_f * PASSO_FR
     palmetta_rilievo(f"Palmetta_Base_{k_f}", D, x_f, Y_FR + 0.01, Z_MOS_BASE - 0.42,
@@ -2158,6 +2178,13 @@ for s in (-1, 1):
 # cherubino di chiave all'apice del mosaico, su cui si chiudono le cornici
 testa_cherubino("Cherubino_Chiave", D, 0.0, -1.47, Z_MOS_TOP + 0.05, 0.175,
                 PIETRA, ali=1.15)
+# Due piccoli angeli in altorilievo completano la lunetta sopra il mosaico:
+# nella foto originale affiancano il cherubino di chiave e riempiono il campo
+# triangolare, evitando l'ampia zona di pietra liscia del modello precedente.
+for side in (-1, 1):
+    testa_cherubino(f"Cherubino_Lunetta_{side}", D, side * 0.43, -1.50,
+                    Z_MOS_TOP + 0.67, 0.155, PIETRA, ali=1.10,
+                    tilt=-side * 0.10)
 
 # --- 6.4 Raccordo apicale: fastigio traforato e ciuffo di foglie ---
 # Sopra l'apice del mosaico le cornici si chiudono su un piccolo fastigio
@@ -2188,9 +2215,8 @@ _lathe("Calice_Collare_Apice", G, 0.0, -1.20, Z_COLL,
        ((0.00, 0.240), (0.10, 0.310), (0.22, 0.340), (0.34, 0.310), (0.46, 0.240),
         (0.54, 0.180)), PIETRA, seg=26, sx=1.0, sy=0.90)
 for tier, (n_pet, r0, fog_l, fog_w, tilt0, piega) in enumerate(
-        ((18, 0.320, 0.40, 0.150, 0.62, 0.26),
-         (15, 0.300, 0.36, 0.140, 0.30, 0.22),
-         (11, 0.245, 0.30, 0.130, 0.02, 0.16))):
+        ((12, 0.300, 0.36, 0.175, 0.50, 0.16),
+         (9, 0.245, 0.29, 0.155, 0.12, 0.11))):
     bm = bmesh.new()
     for k in range(n_pet):
         a = math.tau * k / n_pet + (math.pi / n_pet if tier % 2 else 0.0)
@@ -2469,6 +2495,28 @@ else:
     try:
         bpy.ops.render.render(write_still=True)
         print(f"Anteprima salvata: {PNG_PATH}")
+        # Seconda inquadratura dedicata alla cuspide: il render frontale mostra
+        # tutta la facciata, ma rende il mosaico e l'angelo troppo piccoli.
+        camera_loc_main = cam.location.copy()
+        camera_rot_main = cam.rotation_euler.copy()
+        lens_main = cam.data.lens
+        res_main = (scene.render.resolution_x, scene.render.resolution_y)
+        target_detail = Vector((0.0, -1.40 * SCALA,
+                                (Z_APICE - 3.0) * SCALA))
+        cam.location = (0.0, -22.0 * SCALA, 24.0 * SCALA)
+        cam.rotation_euler = (target_detail - cam.location).to_track_quat("-Z", "Y").to_euler()
+        cam.data.lens = 46.0
+        scene.render.resolution_x = 900
+        scene.render.resolution_y = 1000
+        scene.render.filepath = os.path.join(OUT_DIR, "anteprima_apice.png")
+        bpy.ops.render.render(write_still=True)
+        print("Anteprima ravvicinata dell'apice salvata: anteprima_apice.png")
+        # Il .blend resta impostato sull'inquadratura generale.
+        cam.location = camera_loc_main
+        cam.rotation_euler = camera_rot_main
+        cam.data.lens = lens_main
+        scene.render.resolution_x, scene.render.resolution_y = res_main
+        scene.render.filepath = PNG_PATH
     except Exception as e:
         print(f"Render anteprima non riuscito: {e}")
 
@@ -2489,7 +2537,7 @@ if "gltf" in EXPORT.get("formats", []) and not os.environ.get("CHIESA_NO_GLB"):
     except Exception as e:
         print(f"Export GLB non riuscito: {e}")
 
-print("Generazione v1.7 completata!")
+print("Generazione v1.8 completata!")
 sys.stdout.flush()
 sys.stderr.flush()
 if "bpy" in sys.modules and not bpy.app.binary_path:

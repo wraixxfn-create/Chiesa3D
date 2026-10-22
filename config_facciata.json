@@ -1,10 +1,10 @@
 {
   "metadata": {
     "nome": "Duomo di Siena - Facciata Ovest",
-    "versione": "1.7",
+    "versione": "1.8",
     "autore": "Procedurale",
     "unita": "metri",
-    "note": "v1.7: apice centrale (cornici a mitra, crockets, fregio cherubini, mosaico, cappuccio, angelo) rifatto sulle foto dell'originale."
+    "note": "v1.8: mosaico calibrato sull’intero riquadro originale, fregio di base fitto, angeli in altorilievo nella lunetta e anteprima ravvicinata dedicata."
   },
   "dimensioni": {
     "scala_globale": 3.0,
@@ -294,7 +294,7 @@
         0.8,
         1.0
       ],
-      "energy": 55,
+      "energy": 80,
       "size": 36
     }
   },
