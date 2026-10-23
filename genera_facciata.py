@@ -38,6 +38,31 @@ sotto il triangolo centrale), sviluppata sulla fotografia di dettaglio:
   6. Camera dedicata ricalibrata per comprendere fregio, galleria, sommita'
      del rosone e i due profeti dei pennacchi nello stesso dettaglio.
 
+AGGIORNAMENTO v2.5 — la stessa fascia riletta sul dettaglio fotografico:
+
+  1. Via la banda grigio-azzurra sopra i frontoni: il fondo dietro le
+     punte e' marmo rosa rigato continuo fino al filetto verde (e chiusa
+     la fessura da cui traspariva il cielo sotto la trabeazione).
+  2. Frontoni a chevron piu' bassi e fitti (sei gattoni uncinati per
+     falda), seconda cornice a chevron in rilievo e ogivetta con giglio,
+     rosetta e volute al posto del motivo a "X"; pannellini cosmateschi
+     delle V piu' ampi e leggibili.
+  3. Profeti piu' stretti nella luce (il rosa respira ai lati) e avanzati
+     in altorilievo; lembi dei manti piu' lunghi sul parapetto, fasce
+     cosmatesche di parapetto e piedritti piu' ampie.
+  4. I due profeti dei pennacchi sono ora mezze figure grandi sdraiate in
+     diagonale sui pannelli rosa (testa all'angolo alto esterno, braccio
+     teso verso il rosone): nella v2.4 restava visibile solo la testa.
+  5. Trabeazione completata: scacchiera cosmatesca a due ordini sotto il
+     fregio e fascia a ovoli e dardi fra toro e dentelli; cherubini del
+     fregio ingranditi e abbassati sulla soglia, gigli piu' grandi.
+  6. Corona dell'oculo: 172 dentelli fogliati e 172 perle (prima 112) e
+     nuovo anello interno a losanghe oro/verde sullo sguincio; strisce
+     laterali del quadrato ridisegnate come pannelli bianchi a
+     quatrifogli con cornice verde (niente piu' sfere).
+  7. Camera della galleria ri-inquadrata sul taglio della fotografia di
+     riferimento: dentro fregio, galleria, arco e pennacchi completi.
+
 """
 
 import bpy
@@ -2531,7 +2556,7 @@ def edicola_galleria_profeta(name, col, cx, y, z0, w, h, variant=0):
     rise = hw_o                     # semicerchio
     z_top = z_imp + rise            # chiave interna dell'arco
     z_gb = z0 + 0.515 * h           # base del frontone (dietro l'arco)
-    z_apice = z0 + 0.835 * h        # punta del frontone, meno aguzza
+    z_apice = z0 + 0.822 * h        # punta del frontone (v2.5: chevron piu' ribassato, come in foto)
     hw_g = 0.485 * w
 
     bm_w = bmesh.new()
@@ -2548,12 +2573,12 @@ def edicola_galleria_profeta(name, col, cx, y, z0, w, h, variant=0):
                 z_imp - z0 + 0.030)
         # specchiatura cosmatesca verticale al centro della parasta
         _bm_box(bm_c, Mi, xs, y - 0.060, (z_dav + z_imp) * 0.5,
-                w * 0.072, 0.014, (z_imp - z_dav) * 0.80)
+                w * 0.090, 0.014, (z_imp - z_dav) * 0.82)
         # file di perle ai lati della specchiatura
         n_per = max(6, int((z_imp - z_dav) * 0.80 / 0.048))
         for sl in (-1, 1):
             for k_per in range(n_per):
-                _bm_sfera(bm_f, Mi, xs + sl * w * 0.080, y - 0.064,
+                _bm_sfera(bm_f, Mi, xs + sl * w * 0.091, y - 0.064,
                           z_dav + (z_imp - z_dav) * 0.10
                           + k_per * ((z_imp - z_dav) * 0.80 / max(1, n_per - 1)),
                           w * 0.0145, sx=1.0, sy=0.55, sz=1.0, u=6, v=4)
@@ -2606,8 +2631,10 @@ def edicola_galleria_profeta(name, col, cx, y, z0, w, h, variant=0):
     _bm_box(bm_w, Mi, cx, y - 0.005, (z0 + z_dav) * 0.5 - 0.010,
             w * 0.990, 0.190, (z_dav - z0) + 0.012)
     # specchiatura cosmatesca sotto la campata, come sullo zoccolo senese
+    # (v2.5: piu' ampia — in foto la fascia musiva corre quasi continua
+    # sotto i profeti, interrotta solo dai lembi dei manti)
     _bm_box(bm_c, Mi, cx, y - 0.103, (z0 + z_dav) * 0.5 - 0.010,
-            w * 0.720, 0.014, (z_dav - z0) * 0.76)
+            w * 0.815, 0.014, (z_dav - z0) * 0.80)
 
     # --------------------------------------------------- frontone a chevron
     # pannello triangolare pieno dietro l'arco
@@ -2623,38 +2650,64 @@ def edicola_galleria_profeta(name, col, cx, y, z0, w, h, variant=0):
                          0.020, 0.034, 0.034)
     _bm_fascia_spiovente(bm_w, Mi, cx, hw_g, z_gb, z_apice, y - 0.032,
                          0.034, 0.062, 0.060)
-    # Tracce del repertorio senese dentro il frontone: piccola losanga
-    # cosmatesca e giglio scolpito a tre petali, non un triangolo vuoto.
-    z_los = z_gb + (z_apice - z_gb) * 0.64
-    _bm_box(bm_c, Mi, cx, y - 0.002, z_los + h * 0.082,
-            w * 0.046, 0.018, w * 0.046,
-            rot=Matrix.Rotation(math.pi * 0.25, 4, "Y"))
-    _bm_sweep24(bm_f, Mi,
-                ((cx, y - 0.022, z_los - h * 0.065),
-                 (cx, y - 0.035, z_los),
-                 (cx, y - 0.025, z_los + h * 0.060)),
-                (h * 0.009, h * 0.011, h * 0.005), lati=7, campioni=3)
-    _bm_foglia(bm_f, h * 0.108, h * 0.033, h * 0.015,
-               Mi @ Matrix.Translation((cx, y - 0.025, z_los - h * 0.020)),
-               gonfia=1.18)
+    # Motivo interno del frontone (v2.5): nella fotografia ogni timpano ha
+    # una seconda cornice a chevron in rilievo e, dentro, una piccola ogiva
+    # traforata con giglio e rosetta. La vecchia losanga + foglie incrociate
+    # leggeva nel render come una "X" estranea.
+    H_gh = z_apice - z_gb
+    # seconda cornice a chevron in rilievo, interna alle modanature
+    _bm_fascia_spiovente(bm_w, Mi, cx, hw_g, z_gb, z_apice, y - 0.004,
+                         -0.080, -0.066, 0.028)
+    # ogivetta centrale con colonnine ai piedi (in parte celata dall'arco,
+    # come il traforo reale che nasce dietro la chiave)
+    span_og = w * 0.205
+    z_ogb = z_gb + H_gh * 0.26
+    rise_og = H_gh * 0.40
+    _bm_arco_acuto(bm_f, Mi, cx, y - 0.024, z_ogb, span_og, rise_og, 0.0085,
+                   seg_u=18, seg_v=6)
     for sl in (-1, 1):
-        _bm_foglia(bm_f, h * 0.085, h * 0.030, h * 0.014,
-                   Mi @ Matrix.Translation((cx + sl * h * 0.010, y - 0.024, z_los - h * 0.025))
-                   @ Matrix.Rotation(sl * 0.72, 4, "Y"),
-                   piega=sl * 0.10, gonfia=1.16)
-    _bm_rosetta(bm_f, Mi, cx, y - 0.022,
-                z_gb + (z_apice - z_gb) * 0.25, h * 0.022, petali=6, spess=0.45)
-    # gattoni rampanti digradanti + fiorone in punta
+        _bm_segmento(bm_f, Mi,
+                     (cx + sl * span_og * 0.5, y - 0.024, z_ogb - H_gh * 0.16),
+                     (cx + sl * span_og * 0.5, y - 0.024, z_ogb),
+                     0.0085, 0.0085, seg=8)
+        _bm_sfera(bm_f, Mi, cx + sl * span_og * 0.5, y - 0.026,
+                  z_ogb - H_gh * 0.005, 0.0110, sx=1.15, sy=0.8, sz=0.75, u=8, v=5)
+    # giglio senese a tre petali dentro l'ogiva
+    z_gi = z_ogb + rise_og * 0.10
+    _bm_sweep24(bm_f, Mi,
+                ((cx, y - 0.020, z_gi - h * 0.030),
+                 (cx, y - 0.030, z_gi + h * 0.020)),
+                (h * 0.008, h * 0.006), lati=7, campioni=2)
+    _bm_foglia(bm_f, h * 0.092, h * 0.030, h * 0.014,
+               Mi @ Matrix.Translation((cx, y - 0.024, z_gi)),
+               gonfia=1.20)
+    for sl in (-1, 1):
+        _bm_foglia(bm_f, h * 0.072, h * 0.027, h * 0.013,
+                   Mi @ Matrix.Translation((cx + sl * h * 0.008, y - 0.023,
+                                            z_gi - h * 0.004))
+                   @ Matrix.Rotation(sl * 0.66, 4, "Y"),
+                   piega=sl * 0.10, gonfia=1.18)
+        # volutina fogliata alla base dell'ogiva, sui due lati
+        _bm_foglia(bm_f, h * 0.055, h * 0.022, h * 0.011,
+                   Mi @ Matrix.Translation((cx + sl * span_og * 0.62,
+                                            y - 0.016, z_ogb - H_gh * 0.13))
+                   @ Matrix.Rotation(sl * 0.95, 4, "Y"),
+                   piega=-sl * 0.12, gonfia=1.15)
+    # rosetta nella punta dell'ogiva, sotto il vertice del timpano
+    _bm_rosetta(bm_f, Mi, cx, y - 0.018,
+                z_ogb + rise_og * 0.80, h * 0.018, petali=6, spess=0.45)
+    # gattoni rampanti digradanti + fiorone in punta (v2.5: sei per falda,
+    # piu' grandi e uncinati — in foto la cresta del chevron e' fitta)
     ang_gh = math.atan2(z_apice - z_gb, hw_g)
     for s in (-1, 1):
-        for k in range(4):
-            t = 0.18 + 0.62 * k / 3.0
+        for k in range(6):
+            t = 0.13 + 0.74 * k / 5.0
             gx = cx + s * hw_g * (1.0 - t) + s * math.sin(ang_gh) * 0.072
             gz = z_gb + (z_apice - z_gb) * t + math.cos(ang_gh) * 0.072
             Mg = (Mi @ Matrix.Translation((gx, y - 0.048, gz))
                   @ Matrix.Rotation(-s * ang_gh * 0.95, 4, "Y"))
-            _bm_foglia(bm_f, h * 0.036 * (1.10 - 0.30 * t), h * 0.018,
-                       h * 0.012, Mg, piega=-0.10 * s, gonfia=1.24)
+            _bm_foglia(bm_f, h * 0.045 * (1.08 - 0.30 * t), h * 0.021,
+                       h * 0.013, Mg, piega=-0.16 * s, gonfia=1.28)
     _bm_lathe(bm_f, Mi @ Matrix.Translation((cx, y - 0.048, z_apice + h * 0.018)),
               ((0.0, 0.021), (h * 0.020, 0.027), (h * 0.052, 0.014),
                (h * 0.080, 0.004)), seg=10, sy=0.88)
@@ -2685,8 +2738,12 @@ def edicola_galleria_profeta(name, col, cx, y, z0, w, h, variant=0):
         _bm_lathe(bm_f, Mi @ Matrix.Translation((xs, y - 0.034, z_b + h * 0.150)),
                   ((0.0, w * 0.026), (h * 0.035, w * 0.030), (h * 0.075, w * 0.015),
                    (h * 0.110, 0.003)), seg=9, sy=0.88)
-        # pannellino cosmatesco incassato nella V fra i due frontoni
-        _bm_box(bm_c, Mi, xs, y + 0.048, z_b + h * 0.090, w * 0.200, 0.030, h * 0.170)
+        # pannellino cosmatesco nella V fra i due frontoni (v2.5: piu'
+        # grande e avanzato, cosi' le tessere del mosaico si leggono fra
+        # le punte come le macchie chiare della fotografia)
+        _bm_box(bm_c, Mi, xs, y + 0.030, z_b + h * 0.105, w * 0.285, 0.034, h * 0.215)
+        _bm_box(bm_w, Mi, xs, y + 0.040, z_b + h * 0.219, w * 0.330, 0.026, h * 0.014)
+        _bm_box(bm_w, Mi, xs, y + 0.040, z_b - h * 0.009, w * 0.330, 0.026, h * 0.014)
 
     _pinnacolino(cx + w * 0.5)
     if variant == 0:
@@ -2719,11 +2776,14 @@ def edicola_galleria_profeta(name, col, cx, y, z0, w, h, variant=0):
     bm_b = bmesh.new()
     bm_bp = bmesh.new()
     scala_b = spec.get("scala", 1.0)
-    M_busto = (Matrix.Translation((cx + spec.get("dx", 0.0) * w, y + 0.002, z_dav - 0.004))
+    # v2.5: in fotografia le mezze figure sono piu' strette della luce (il
+    # fondale rosa si vede ai lati) ma emergono di piu' dal fondo: busto
+    # ridotto in larghezza e avanzato verso la ghiera, in altorilievo.
+    M_busto = (Matrix.Translation((cx + spec.get("dx", 0.0) * w, y - 0.028, z_dav - 0.004))
                @ Matrix.Rotation(spec.get("pitch", 0.0), 4, "X")
                @ Matrix.Rotation(spec.get("roll", 0.0), 4, "Y")
                @ Matrix.Diagonal((scala_b, scala_b, scala_b, 1.0)))
-    _bm_busto_profeta24(bm_b, bm_bp, M_busto, op * 1.20, z_top - z_dav, spec)
+    _bm_busto_profeta24(bm_b, bm_bp, M_busto, op * 1.07, z_top - z_dav, spec)
     _mesh_da_bmesh(f"{name}_Busto", col, bm_b, PIETRA, uv_scale=(1.6, 1.6))
     _mesh_da_bmesh(f"{name}_Busto_Incavi", col, bm_bp, PATINA, uv_scale=(1.6, 1.6))
 
@@ -2731,7 +2791,7 @@ def edicola_galleria_profeta(name, col, cx, y, z0, w, h, variant=0):
     drappo = spec.get("drappo", 0.0)
     if drappo > 0.05:
         bm_d = bmesh.new()
-        lun = 0.085 + 0.105 * drappo
+        lun = min(0.100 + 0.140 * drappo, 0.205)  # v2.5: lembi piu' lunghi sul parapetto
         lar_d = w * (0.18 + 0.28 * drappo)
         dx_d = ((variant * 37) % 5 - 2) * w * 0.045
         z_top_d = z_dav + 0.014
@@ -2753,7 +2813,8 @@ def edicola_galleria_profeta(name, col, cx, y, z0, w, h, variant=0):
 
 
 def profeta_pennacchio_oculo(name, col, side, x, y, z0, h=1.55):
-    """Profeta in altorilievo sul pennacchio superiore dell'oculo (v2.4).
+    """Profeta in altorilievo sul pennacchio superiore dell'oculo (v2.5: mezza
+    figura grande sdraiata in diagonale sul pannello).
 
     Nella fotografia ai lati dell'arco del rosone NON ci sono angeli alati:
     i due pennacchi superiori sono pannelli rettangolari di marmo rosa
@@ -2765,8 +2826,10 @@ def profeta_pennacchio_oculo(name, col, side, x, y, z0, h=1.55):
     lato = -side  # il gesto e' rivolto verso il centro (il rosone)
 
     # pannello di marmo rosa rigato con cornice in marmo verde scuro
-    pan_w, pan_h = 1.62 * s, 1.46 * s
-    pan_cz = z0 + 0.66 * s
+    # (v2.5: pannello piu' alto — in fotografia occupa quasi tutto il
+    # rettangolo fra cornice della galleria ed estradosso dell'oculo)
+    pan_w, pan_h = 1.58 * s, 1.58 * s
+    pan_cz = z0 + 0.74 * s
     box(f"{name}_Pannello_Rosa", col, x, y + 0.145, pan_cz,
         pan_w, 0.075, pan_h, RIGATO, fit_uv=True)
     box(f"{name}_Cornice_Top", col, x, y + 0.098, pan_cz + pan_h * 0.5 + 0.021 * s,
@@ -2780,18 +2843,23 @@ def profeta_pennacchio_oculo(name, col, side, x, y, z0, h=1.55):
     bm = bmesh.new()
     bm_pat = bmesh.new()
     spec = dict(
-        yaw=lato * 0.38,
-        nod=0.05 if side < 0 else -0.04,
+        yaw=lato * 0.50,
+        nod=0.14 if side < 0 else -0.02,
         gesto="indica" if side < 0 else "parla",
         barba=0.85 if side < 0 else 1.05,
         copricapo="capelli_lunghi" if side < 0 else "capelli",
         lato=lato,
         seed=3 if side < 0 else 5,
     )
-    M = (Matrix.Translation((x - lato * 0.10 * s, y, z0))
-         @ Matrix.Rotation(lato * 0.06, 4, "Y")
+    # v2.5: mezza figura GRANDE e sdraiata in diagonale sul pannello, come
+    # in fotografia — testa verso l'angolo alto esterno, corpo inclinato e
+    # sporto in avanti sopra la ghiera del rosone. Nella v2.4 la figura era
+    # piccola, verticale e semisepolta dietro l'arco: si vedeva solo la testa.
+    M = (Matrix.Translation((x - lato * 0.06 * s, y - 0.02, z0))
+         @ Matrix.Rotation(0.085, 4, "X")
+         @ Matrix.Rotation(side * 0.27, 4, "Y")
          @ Matrix.Diagonal((s, s, s, 1.0)))
-    _bm_busto_profeta24(bm, bm_pat, M, 0.92, 1.30, spec)
+    _bm_busto_profeta24(bm, bm_pat, M, 0.97, 1.44, spec)
     _mesh_da_bmesh(f"{name}_Marmo", col, bm, PIETRA_RIL, uv_scale=(1.3, 1.3))
     _mesh_da_bmesh(f"{name}_Incavi", col, bm_pat, PATINA, uv_scale=(1.3, 1.3))
 
@@ -3129,26 +3197,44 @@ for idx_o, (orx, orz, omin, oy, omat) in enumerate(oculo_rings):
 
 # Perlinatura fitta e dentelli fogliati piccoli: nell'originale l'arco non
 # presenta i grandi ovuli ravvicinati che sembravano blocchi di pietra.
-for k in range(112):
-    a = math.tau * k / 112
+# v2.5: passo ravvicinato (112 -> 172) e dentelli piu' stretti con foglia
+# su ciascuno: la corona legge come l'intaglio continuo della fotografia,
+# non piu' come una collana di borchie distanziate.
+for k in range(172):
+    a = math.tau * k / 172
     sphere(f"Oculo_Perla_{k}", R,
            (RX_OCULO + 0.06) * math.cos(a), -1.69,
            Z_OCULO + (RZ_OCULO + 0.06) * math.sin(a),
-           0.030, BIANCO, sy=0.65)
+           0.024, BIANCO, sy=0.65)
 _bm_oculo_dentelli = bmesh.new()
 _bm_oculo_foglie = bmesh.new()
-for k in range(112):
-    a = math.tau * k / 112
+for k in range(172):
+    a = math.tau * k / 172
     M_o = (Matrix.Translation(((RX_OCULO + 0.32) * math.cos(a), -1.79,
                                Z_OCULO + (RZ_OCULO + 0.32) * math.sin(a)))
            @ Matrix.Rotation(math.pi / 2 - a, 4, "Y"))
-    _bm_box(_bm_oculo_dentelli, M_o, 0.0, 0.0, 0.0, 0.046, 0.072, 0.072)
-    _bm_foglia(_bm_oculo_foglie, 0.070, 0.035, 0.020,
+    _bm_box(_bm_oculo_dentelli, M_o, 0.0, 0.0, 0.0, 0.038, 0.072, 0.072)
+    _bm_foglia(_bm_oculo_foglie, 0.078, 0.038, 0.020,
                M_o @ Matrix.Translation((0.0, -0.046, -0.035)),
                profilo=((0.0, 0.28), (0.28, 0.50), (0.62, 0.42), (1.0, 0.03)),
-               gonfia=1.15)
+               gonfia=1.18)
 _mesh_da_bmesh("Oculo_Dentelli_Minuti", R, _bm_oculo_dentelli, BIANCO2)
 _mesh_da_bmesh("Oculo_Foglie_Dentelli", R, _bm_oculo_foglie, PIETRA_RIL)
+# Fascia interna a losanghe dorate alternate al verde (v2.5): nella foto
+# lo sguincio interno del rosone ha un anello a scacchiera dai toni aurei,
+# fra il vetro e la prima ghiera bianca.
+_bm_oculo_grec_oro = bmesh.new()
+_bm_oculo_grec_verde = bmesh.new()
+for k in range(128):
+    a = math.tau * k / 128
+    M_g = (Matrix.Translation(((RX_OCULO - 0.02) * math.cos(a), -1.665,
+                               Z_OCULO + (RZ_OCULO - 0.02) * math.sin(a)))
+           @ Matrix.Rotation(math.pi / 2 - a, 4, "Y")
+           @ Matrix.Rotation(math.pi * 0.25, 4, "Y"))
+    _bm_box(_bm_oculo_grec_oro if k % 2 == 0 else _bm_oculo_grec_verde,
+            M_g, 0.0, 0.0, 0.0, 0.054, 0.034, 0.054)
+_mesh_da_bmesh("Oculo_Losanghe_Oro", R, _bm_oculo_grec_oro, ORO)
+_mesh_da_bmesh("Oculo_Losanghe_Verde", R, _bm_oculo_grec_verde, VERDE)
 for sx in (-1, 1):
     for sz in (-1, 1):
         if sz > 0:
@@ -3164,7 +3250,7 @@ for sx_e in (-1, 1):
         if sz_e > 0:
             profeta_pennacchio_oculo(
                 f"Profeta_Pennacchio_{'Sx' if sx_e < 0 else 'Dx'}", ST, sx_e,
-                sx_e * 2.80, -1.70, Z_OCULO + 1.30, h=1.42,
+                sx_e * 2.70, -1.70, Z_OCULO + 1.06, h=1.74,
             )
         else:
             ex = sx_e * 2.82
@@ -3187,12 +3273,16 @@ box(
     z_galleria_profeti + h_galleria_profeti * 0.50,
     HALF_SQ * 2.0, 0.12, h_galleria_profeti * 0.99, ROSA_C,
 )
-# Campo grigio-azzurro soltanto dietro frontoni e pinnacoli: nella foto il
-# cosmatesco scuro sta nel registro alto, non forma una banda nera continua.
+# Fondo dietro frontoni e pinnacoli (v2.5): rileggendo la fotografia, dietro
+# le punte dei frontoni NON c'e' un campo grigio-azzurro (leggeva come una
+# striscia di cielo fra galleria e trabeazione) ma lo stesso marmo rosa
+# rigato dei fondali delle nicchie, che sale senza soluzione di continuita'
+# fino al filetto verde sotto la trabeazione. Il cosmatesco resta confinato
+# ai pannellini nella V fra i frontoni, come in fotografia.
 box(
-    "Campo_Cosmatesco_Fra_I_Frontoni", R, 0.0, -1.408,
+    "Fondo_Rosa_Fra_I_Frontoni", R, 0.0, -1.408,
     z_galleria_profeti + h_galleria_profeti * 0.755,
-    HALF_SQ * 2.0, 0.035, h_galleria_profeti * 0.470, CAMPO,
+    HALF_SQ * 2.0, 0.035, h_galleria_profeti * 0.470, RIGATO,
 )
 # Sottile fascia di marmo verde scuro immediatamente sotto la trabeazione
 # (v2.4: in fotografia e' solo un filetto scuro; la vecchia banda cosmatesca
@@ -3200,8 +3290,8 @@ box(
 # Il cosmatesco resta solo nei pannellini fra i frontoni e sul parapetto).
 _bm_cosmate = bmesh.new()
 _bm_box(_bm_cosmate, Matrix.Identity(4), 0.0, -1.405,
-        z_galleria_profeti + h_galleria_profeti * 0.962,
-        HALF_SQ * 2.0, 0.05, h_galleria_profeti * 0.058)
+        z_galleria_profeti + h_galleria_profeti * 0.985,
+        HALF_SQ * 2.0, 0.05, h_galleria_profeti * 0.075)
 _mesh_da_bmesh("Fascia_Verde_Sotto_Trabeazione", R, _bm_cosmate, VERDE, uv_scale=(0.600, 0.600))
 
 # Cornicione di base della galleria: cavetto, filo di perle e listello rosa.
@@ -3241,9 +3331,16 @@ n_side = 5
 z_v0, z_v1 = 16.58, 22.38
 h_nside = (z_v1 - z_v0) / n_side
 for side in (-1, 1):
-    box(f"Fregio_Est_Oculo_{side}", D, side * 4.22, -1.40, (z_v0 + z_v1) * 0.5, 0.30, 0.14, z_v1 - z_v0, ROSA_C)
-    for k_r in range(12):
-        sphere(f"Rosetta_Oculo_{side}_{k_r}", D, side * 4.22, -1.48, z_v0 + 0.24 + k_r * 0.47, 0.088, BIANCO)
+    # v2.5: pannello bianco con cornice verde e quatrifogli scolpiti, come
+    # la specchiatura che in fotografia fiancheggia i pannelli dei profeti
+    # dei pennacchi (prima: lastra rosa con sfere che leggevano come bolle).
+    box(f"Fregio_Est_Oculo_{side}", D, side * 4.22, -1.40, (z_v0 + z_v1) * 0.5, 0.36, 0.14, z_v1 - z_v0, BIANCO2)
+    for sf_r in (-1, 1):
+        box(f"Fregio_Est_Oculo_Cornice_{side}_{sf_r}", D, side * 4.22 + sf_r * 0.195,
+            -1.435, (z_v0 + z_v1) * 0.5, 0.035, 0.10, z_v1 - z_v0, VERDE)
+    for k_r in range(6):
+        rosetta_rilievo(f"Quatrifoglio_Oculo_{side}_{k_r}", D, side * 4.22, -1.478,
+                        z_v0 + (z_v1 - z_v0) * (k_r + 0.5) / 6.0, 0.115, petals=4)
     for j in range(n_side):
         edicola_gotica_busto(
             f"Nicchia_Lat_{side}_{j}", R, side * 3.80, -1.44,
@@ -4139,6 +4236,17 @@ n_dent = 96
 for k_d in range(n_dent):
     dx_t = -(W_TRAB * 0.5 - 0.04) + k_d * ((W_TRAB - 0.08) / (n_dent - 1))
     _bm_box(bm_trab_w, Mt, dx_t, -1.648, Z_TIMPANO + 0.405, 0.048, 0.14, 0.098)
+# Fascia a ovoli e dardi fra toro e dentelli (v2.5: in fotografia un
+# fregio a ovuli corre per tutta la trabeazione sopra le mensole).
+_bm_box(bm_trab_w, Mt, 0.0, -1.672, Z_TIMPANO + 0.345, W_TRAB, 0.055, 0.078)
+n_ov = 92
+for k_ov in range(n_ov):
+    ox_t = -(W_TRAB * 0.5 - 0.06) + k_ov * ((W_TRAB - 0.12) / (n_ov - 1))
+    _bm_sfera(bm_trab_p, Mt, ox_t, -1.705, Z_TIMPANO + 0.348, 0.033,
+              sx=0.72, sy=0.58, sz=1.06, u=8, v=6)
+    if k_ov < n_ov - 1:
+        _bm_cono(bm_trab_p, Mt, ox_t + (W_TRAB - 0.12) / (n_ov - 1) * 0.5,
+                 -1.698, Z_TIMPANO + 0.345, 0.004, 0.013, 0.062, seg=6)
 # Soglia modanata e perlinata alla base del campo aureo del mosaico
 _bm_box(bm_trab_w, Mt, 0.0, -1.52, Z_MOS_BASE - 0.045, W_MOS + 0.50, 0.26, 0.085)
 for kp_b in range(96):
@@ -4146,6 +4254,22 @@ for kp_b in range(96):
     _bm_sfera(bm_trab_p, Mt, px_b, -1.56, Z_MOS_BASE - 0.095, 0.021, u=7, v=5)
 _mesh_da_bmesh("Trabeazione_Modanature_Bianche", D, bm_trab_w, BIANCO)
 _mesh_da_bmesh("Trabeazione_Mensole_Scolpite", D, bm_trab_p, PIETRA_RIL)
+# Scacchiera cosmatesca a due ordini immediatamente sotto il fregio dei
+# cherubini (v2.5): e' la banda bianco/verde-scuro ben visibile in
+# fotografia fra cherubini e dentelli, prima assente (la trabeazione
+# leggeva come semplice modanatura bianca).
+bm_check_chiaro = bmesh.new()
+bm_check_scuro = bmesh.new()
+z_check0 = Z_TIMPANO + 0.562
+quad, alt_q = 0.060, 0.035
+n_check = int(W_TRAB / quad)
+for riga_q in range(2):
+    for k_q in range(n_check):
+        bm_q = bm_check_scuro if (k_q + riga_q) % 2 == 0 else bm_check_chiaro
+        _bm_box(bm_q, Mt, -W_TRAB * 0.5 + (k_q + 0.5) * quad, -1.662,
+                z_check0 + alt_q * (riga_q + 0.5), quad * 0.94, 0.040, alt_q * 0.92)
+_mesh_da_bmesh("Trabeazione_Scacchiera_Chiara", D, bm_check_chiaro, BIANCO)
+_mesh_da_bmesh("Trabeazione_Scacchiera_Scura", D, bm_check_scuro, VERDE)
 
 # --- 6.2 Corpo murario arretrato della cuspide e Mosaico dell'Incoronazione a pieno campo aureo ---
 prism("Timpano_Centrale_Struttura", S, 0.0, 0.05, Z_TIMP_FRONTE - 0.10, W_TIMP + 0.36, H_TIMP + 0.10, 2.30, BIANCO)
@@ -4238,24 +4362,27 @@ for s in (-1, 1):
         px, pz = punto_fascia(s, W_TIMP, H_TIMP, O_GAR, u, Z_TIMP_FRONTE)
         if i % 2 == 0:
             sc_i = 1.14 if i == n_side_items - 1 else 1.0
-            _add_cherub_with_shadow(px, Y_GAR - 0.015, pz, 0.156 * sc_i, ali=1.12, tilt=tilt_g)
+            _add_cherub_with_shadow(px, Y_GAR - 0.015, pz, 0.168 * sc_i, ali=1.20, tilt=tilt_g)
         else:
-            _add_giglio_rilievo(bm_garland, px, Y_GAR, pz - 0.05, h=0.32, tilt=tilt_g)
+            _add_giglio_rilievo(bm_garland, px, Y_GAR, pz - 0.05, h=0.36, tilt=tilt_g)
 
 # C) Grandi rilievi angolari ai due vertici bassi + 6 Cherubini e 7 Gigli senesi aderenti alla soglia!
+# (v2.5: teste e ali ingrandite — in fotografia il fregio alla base del
+# mosaico e' fitto, le ali dei cherubini quasi si toccano e i gigli
+# riempiono gli intervalli; prima le testine leggevano rade e minute)
 z_base_gar = Z_MOS_BASE + 0.155
 for s in (-1, 1):
-    _add_cherub_with_shadow(s * 3.16, Y_GAR - 0.015, z_base_gar + 0.05, 0.172, ali=1.18, tilt=-s * 0.32, ali_su=True)
+    _add_cherub_with_shadow(s * 3.16, Y_GAR - 0.015, z_base_gar + 0.05, 0.196, ali=1.28, tilt=-s * 0.32, ali_su=True)
 
 n_ch_base = 6
 span_base_ch = 5.50
 step_base_ch = span_base_ch / (n_ch_base - 1)
 for k_c in range(n_ch_base):
     xc = -span_base_ch * 0.5 + k_c * step_base_ch
-    _add_cherub_with_shadow(xc, Y_GAR - 0.02, z_base_gar, 0.180, ali=1.20, tilt=0.0)
+    _add_cherub_with_shadow(xc, Y_GAR - 0.02, z_base_gar, 0.208, ali=1.34, tilt=0.0)
 for k_g in range(n_ch_base - 1):
     xg = -span_base_ch * 0.5 + (k_g + 0.5) * step_base_ch
-    _add_giglio_rilievo(bm_garland, xg, Y_GAR, z_base_gar - 0.075, h=0.34, tilt=0.0)
+    _add_giglio_rilievo(bm_garland, xg, Y_GAR, z_base_gar - 0.075, h=0.40, tilt=0.0)
 
 _mesh_da_bmesh("Ghirlanda_Mosaico_Cherubini_Gigli", D, bm_garland, PIETRA_RIL)
 _mesh_da_bmesh("Ghirlanda_Mosaico_Patina", D, bm_gar_pat, PATINA)
@@ -4597,8 +4724,11 @@ else:
             print("Anteprima ravvicinata dell'apice salvata: anteprima_apice.png")
 
         # Terza inquadratura: fascia esatta richiesta (sotto il timpano, sopra il rosone).
-        target_galleria = Vector((0.0, -1.50 * SCALA, 23.65 * SCALA))
-        cam.location = (0.0, -17.55 * SCALA, 23.91 * SCALA)
+        # v2.5: obiettivo abbassato e camera arretrata per includere anche le
+        # mezze figure dei pennacchi, come nel taglio della fotografia
+        # `riferimento_galleria.jpg` (nella v2.4 restavano fuori campo).
+        target_galleria = Vector((0.0, -1.50 * SCALA, 23.25 * SCALA))
+        cam.location = (0.0, -22.00 * SCALA, 23.55 * SCALA)
         cam.rotation_euler = (target_galleria - cam.location).to_track_quat("-Z", "Y").to_euler()
         cam.data.lens = 46.5
         scene.render.resolution_x = int(os.environ.get("CHIESA_GALLERIA_RES_X", 1600))
@@ -4633,7 +4763,7 @@ if "gltf" in EXPORT.get("formats", []) and not os.environ.get("CHIESA_NO_GLB"):
     except Exception as e:
         print(f"Export GLB non riuscito: {e}")
 
-print("Generazione v2.4 completata!")
+print("Generazione v2.5 completata!")
 sys.stdout.flush()
 sys.stderr.flush()
 if "bpy" in sys.modules and not bpy.app.binary_path:
