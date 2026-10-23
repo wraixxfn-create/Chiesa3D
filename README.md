@@ -6,11 +6,12 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 | File | Descrizione |
 |---|---|
-| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire (2.757 oggetti mesh, 26 materiali PBR con texture incorporate) |
+| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire (2.748 oggetti mesh, 28 materiali PBR con texture incorporate) |
 | `Facciata_Duomo_Siena.glb` | Esportazione glTF 2.0 per visualizzatori web / game engine |
 | `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 64 campioni, 900×1050) |
 | `anteprima_apice.png` | Render ravvicinato della cuspide centrale e dei pinnacoli (Cycles CPU, 64 campioni, 900×1022) |
-| `anteprima_galleria.png` | Dettaglio panoramico della fascia richiesta: fregio, profeti, angeli e sommità del rosone (Cycles CPU, 64 campioni, 1200×400) |
+| `anteprima_galleria.png` | Dettaglio panoramico della fascia richiesta: edicole, frontoni a chevron, profeti e sommità del rosone (Cycles CPU, 1200×400) |
+| `confronto_galleria.png` | Confronto affiancato fotografia di riferimento / versione 2.1 / versione 2.2 della galleria dei Profeti |
 | `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprime e GLB da zero |
 | `config_facciata.json` | Tutti i parametri (dimensioni, materiali PBR, luci, camera, render, export) |
 | `riferimento_facciata.jpg` | Fotografia d'insieme di riferimento |
@@ -20,6 +21,36 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
+
+## Versione 2.2 — galleria dei Profeti ricostruita da zero
+
+Intervento integralmente dedicato alla fascia **sopra lo specchio del rosone e
+sotto il triangolo centrale** (`Nicchia_Sup_00` … `Nicchia_Sup_13`), rifatta
+sulla fotografia di dettaglio fornita. Il resto della facciata resta invariato.
+
+- **Nicchie incassate, non pannelli.** Ogni campata ha ora un vero vano a tutto
+  sesto con catino, spallette strombate e fondale in **marmo rigato rosa**
+  (nuova texture `Tex_Marmo_Rigato`): l'ombra nasce dalla geometria.
+- **Arcata doppia.** Arco bianco esterno, arco in marmo rosa arretrato e
+  perlinatura fitta sull'intradosso, con capitelli fogliati e colonnine binate
+  scanalate; cornice d'imposta continua su tutta la galleria (prima gli archi
+  «galleggiavano» sulla fascia rosa).
+- **Frontone a chevron.** Gli spioventi sono molto meno inclinati e composti da
+  quattro fasce modanate parallele (bianco → gola in ombra → filo bianco →
+  filetto rosa → cornice bianca), tagliate a mitra sull'asse di ogni campata,
+  con gattoni rampanti digradanti e fiorone. È il motivo a zig-zag continuo
+  del coronamento senese, prima assente.
+- **Tabernacoli fra i frontoni.** Sull'asse di ogni piedritto compare un
+  tabernacolo gotico con statuina, ghimberga, gattoni e fiorone; i piedritti
+  hanno parasta, montanti scanalati e pannello con quatrifoglio a rilievo.
+- **Fascia cosmatesca azzurra** dietro frontoni e pinnacoli (nuova texture
+  `Tex_Cosmatesco`), come nel fondo della fotografia.
+- **14 profeti rifatti** come mezzi busti in altorilievo: panneggio scanalato
+  che appoggia sul davanzale, braccia raccolte, libro/rotolo/tavola, volto con
+  naso, sopraccigli, occhi, bocca, barba e nimbo ad anello; gesti, barbe e
+  copricapi (capelli, berretta, cappuccio, mitra, corona) differenziati.
+- Corretto il difetto della versione 2.1 per cui i busti restavano schiacciati
+  in basso e i frontoni tagliavano i copricapi.
 
 ## Versione 2.1 — galleria dei Profeti, fregio e angeli del rosone
 
