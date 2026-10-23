@@ -6,12 +6,12 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 | File | Descrizione |
 |---|---|
-| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire (2.780 oggetti mesh, 28 materiali PBR con texture incorporate) |
+| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire, con sculture v2.4 e materiali PBR a texture incorporate |
 | `Facciata_Duomo_Siena.glb` | Esportazione glTF 2.0 per visualizzatori web / game engine |
 | `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 64 campioni, 900×1050) |
 | `anteprima_apice.png` | Render ravvicinato della cuspide centrale e dei pinnacoli (Cycles CPU, 64 campioni, 900×1022) |
-| `anteprima_galleria.png` | Dettaglio panoramico della fascia richiesta: 15 edicole a tutto sesto, frontoni pieni a chevron, profeti e sommità del rosone (Cycles CPU, 1600×520) |
-| `confronto_galleria.png` | Confronto affiancato fotografia di riferimento / versione 2.2 / versione 2.3 della galleria dei Profeti |
+| `anteprima_galleria.png` | Dettaglio panoramico v2.4: fregio, 15 edicole con profeti scolpiti, frontoni a chevron e sommità del rosone (Cycles CPU, 1600×520) |
+| `confronto_galleria.png` | Confronto fotografia di riferimento / versione 2.3 / versione 2.4 della galleria dei Profeti |
 | `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprime e GLB da zero |
 | `config_facciata.json` | Tutti i parametri (dimensioni, materiali PBR, luci, camera, render, export) |
 | `riferimento_facciata.jpg` | Fotografia d'insieme di riferimento |
@@ -22,6 +22,38 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
+
+## Versione 2.4 — sculture e decori della fascia interamente rifiniti
+
+Secondo intervento profondo sulla fascia **sopra lo specchio del rosone e sotto
+il triangolo centrale**, concentrato questa volta sulla qualità scultorea e sulla
+lettura d'insieme della fotografia. Le 15 campate e la Madonna sull'asse restano
+al loro posto, ma le figure non sono più costruite come manichini.
+
+- **Torso e manti sono superfici continue.** Il corpo ha spalle larghe, vita e
+  ventre modellati, grandi pieghe a U e un manto diagonale che segue il volume.
+  Maniche, polsi, dita e ciocche seguono curve continue invece di cilindri
+  giuntati. Anche i lembi oltre il parapetto sono tessuto scolpito, senza
+  l'effetto frangia della versione precedente.
+- **Volti finalmente leggibili:** mascella, zigomi, mento, naso con narici,
+  orbite, occhi, palpebre, sopracciglia, labbra e orecchie; barbe con massa e
+  ciocche separate, capelli ondulati e copricapi differenti. Le mani hanno palmo,
+  quattro dita e pollice, con gesti aperti, chiusi o in preghiera.
+- **Pose più diverse e figure più presenti.** Il profeta sporgente è più grande
+  e ruotato, il pensatore tocca il viso, il lettore regge un libro sottile con
+  pagine separate, la Madonna sorregge un Bambino proporzionato. Le figure
+  occupano meglio le nicchie grazie anche ai piedritti assottigliati.
+- **Frontoni e fondo corretti:** gigli e rosette dentro i timpani, perlinatura
+  più fitta, gattoni più contenuti e campo grigio-azzurro solo dietro la parte
+  alta dei frontoni, non una fascia nera continua.
+- **Sommità del rosone più fedele:** dentelli minuti con foglie, perline più
+  fitte e pannelli in marmo rosa rigato. I due profeti dei pennacchi usano la
+  stessa nuova scultura della galleria.
+- **Un solo fregio di cherubini**, più grande e alternato a gigli sotto il
+  mosaico; eliminate le sovrapposizioni fra i due fregi precedenti. Le mensole
+  della trabeazione hanno ora una foglia scolpita sul fronte.
+- `anteprima_galleria.png` usa una camera ricalibrata che comprende fregio,
+  galleria, arco e profeti dei pennacchi nello stesso formato panoramico.
 
 ## Versione 2.3 — galleria dei Profeti rifatta sulla nuova fotografia
 

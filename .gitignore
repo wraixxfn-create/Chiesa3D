@@ -1,2 +1,5 @@
 *.blend1
 *.glb
+
+.venv/
+__pycache__/
