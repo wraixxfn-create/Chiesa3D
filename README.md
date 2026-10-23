@@ -6,12 +6,12 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 | File | Descrizione |
 |---|---|
-| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire (2.748 oggetti mesh, 28 materiali PBR con texture incorporate) |
+| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire (2.822 oggetti mesh, 28 materiali PBR con texture incorporate) |
 | `Facciata_Duomo_Siena.glb` | Esportazione glTF 2.0 per visualizzatori web / game engine |
-| `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 64 campioni, 900×1050) |
+| `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 56 campioni, 900×1050) |
 | `anteprima_apice.png` | Render ravvicinato della cuspide centrale e dei pinnacoli (Cycles CPU, 64 campioni, 900×1022) |
-| `anteprima_galleria.png` | Dettaglio panoramico della fascia richiesta: edicole, frontoni a chevron, profeti e sommità del rosone (Cycles CPU, 1200×400) |
-| `confronto_galleria.png` | Confronto affiancato fotografia di riferimento / versione 2.1 / versione 2.2 della galleria dei Profeti |
+| `anteprima_galleria.png` | Dettaglio panoramico della fascia richiesta: nicchie incassate, frontoni a chevron, cresta di frontoni minori, tabernacoli, profeti e sommità del rosone (Cycles CPU, 1200×400) |
+| `confronto_galleria.png` | Confronto verticale fotografia di riferimento / versione 2.1 / versione 2.2 / versione 2.3 della galleria dei Profeti |
 | `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprime e GLB da zero |
 | `config_facciata.json` | Tutti i parametri (dimensioni, materiali PBR, luci, camera, render, export) |
 | `riferimento_facciata.jpg` | Fotografia d'insieme di riferimento |
@@ -21,6 +21,48 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
+
+## Versione 2.3 — galleria dei Profeti rifatta da zero sulla fotografia
+
+Intervento integralmente dedicato alla fascia **sopra lo specchio del rosone e
+sotto il triangolo centrale**. Il resto della facciata resta invariato, ma la
+fascia è stata ricostruita da capo, perché nella 2.2 il disegno non tornava
+con la fotografia e c'erano due difetti strutturali.
+
+**Cosa non funzionava nella 2.2**
+
+- I pannelli del piedritto venivano generati da campate contigue con coordinate
+  sbagliate e **chiudevano le nicchie**: i profeti finivano invisibili dietro
+  una parete bianca (visibile chiaramente nel render di controllo).
+- I frontoni erano spioventi a ~29°, cioè quasi piatti, mentre nell'originale
+  sono ripidi (≈53°) e si toccano alla base fra campate vicine.
+- Mancava del tutto la **cresta superiore di piccoli frontoni** che nel Duomo
+  corre sopra i frontoni maggiori sul fondo rosso scuro.
+
+**Cosa è stato rifatto**
+
+- **Nicchie come veri vani.** Fondo in marmo rigato rosa **a strisce
+  verticali** (texture rifatta: prima le righe erano orizzontali), catino e
+  spallette svasate, arco a tutto sesto doppio (bianco + rosa) con perlinatura
+  sull'intradosso. L'ombra nasce dalla geometria, non da una fodera scura.
+- **Piedritti autonomi.** Ogni parasta (15, comprese le due d'estremità) è un
+  oggetto a sé: specchio incassato in marmo rigato, quatrifoglio a rilievo,
+  colonnine snelle con capitelli fogliati, zanca e cimasa in aggetto. Nessuna
+  parete si sovrappone più alle nicchie.
+- **Frontoni a chevron ripidi.** Quattro fasce modanate parallele allo
+  spiovente (bianco → gola in ombra → filo bianco → filetto rosa → cornice
+  bianca), gattoni rampanti digradanti, fiorone e crocetta in punta, tagliati a
+  mitra sull'asse; i frontoni vicini si toccano alla base come nell'originale.
+- **Cresta di frontoni minori** sopra i frontoni maggiori, con gattoni,
+  fioroni e fondo rosa scuro, più un cordolo di raccordo alla trabeazione.
+- **Tabernacoli fra i frontoni**, sull'asse di ogni piedritto: zoccolo a
+  gradoni, vano in ombra con statuina fra due colonnine, cornice, ghimberga con
+  gattoni e pinnacolo svettante a due ordini di foglie.
+- **Profeti più leggibili.** Busto in altorilievo con tonaca scanalata a
+  campana, spalle e petto modellati, braccia articolate (spalla → gomito →
+  polso) con mani e dita, volto con fronte, sopraccigli, occhi, naso, bocca,
+  orecchie, capelli, barba a punta e nimbo a disco; gesti, barbe e copricapi
+  (capelli, berretta, cappuccio, mitra, corona) differenziati per campata.
 
 ## Versione 2.2 — galleria dei Profeti ricostruita da zero
 
@@ -222,4 +264,4 @@ oppure con il modulo Python `bpy` (`pip install bpy==4.2.0`):
 python genera_facciata.py
 ```
 
-Lo script sovrascrive `Facciata_Duomo_Siena.blend`, `anteprima_facciata.png`, `anteprima_apice.png` e `Facciata_Duomo_Siena.glb`.
+Lo script sovrascrive `Facciata_Duomo_Siena.blend`, `anteprima_facciata.png`, `anteprima_apice.png`, `anteprima_galleria.png` e `Facciata_Duomo_Siena.glb`.
