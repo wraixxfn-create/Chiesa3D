@@ -6,10 +6,12 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 | File | Descrizione |
 |---|---|
-| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire, con sculture v2.5 e materiali PBR a texture incorporate |
+| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire, con sculture v2.6 e materiali PBR a texture incorporate |
 | `Facciata_Duomo_Siena.glb` | Esportazione glTF 2.0 per visualizzatori web / game engine |
 | `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 64 campioni, 900×1050) |
 | `anteprima_apice.png` | Render ravvicinato della cuspide centrale e dei pinnacoli (Cycles CPU, 64 campioni, 900×1022) |
+| `anteprima_rosone.png` | Il rosone e le statue che lo circondano, inquadrati come nella fotografia di dettaglio (Cycles CPU, 1100×1200) |
+| `confronto_rosone.png` | Confronto fotografia / versione 2.5 / versione 2.6 del rosone e dei pennacchi |
 | `anteprima_galleria.png` | Dettaglio panoramico v2.5 sul taglio della fotografia: fregio di cherubini, trabeazione a scacchiera, 15 edicole con profeti in altorilievo, pennacchi e sommità del rosone (Cycles CPU, 1600×520) |
 | `confronto_galleria.png` | Confronto fotografia di riferimento / versione 2.4 / versione 2.5 della galleria dei Profeti |
 | `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprime e GLB da zero |
@@ -17,11 +19,54 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 | `riferimento_facciata.jpg` | Fotografia d'insieme di riferimento |
 | `riferimento_apice.jpg` | Fotografia ravvicinata ad alta risoluzione (2176×2472) usata per calibrare l'intera zona superiore centrale |
 | `riferimento_galleria.jpg` | Fotografia di dettaglio (1866×619) della galleria dei Profeti e dei pennacchi del rosone, riferimento della versione 2.3 |
+| `riferimento_vetrata.jpg` | Fotografia di dettaglio (1453×1582) del rosone, delle nicchie laterali e dei pennacchi, riferimento della versione 2.6 |
 
 ## Dimensioni
 
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
+
+## Versione 2.6 — il rosone e le statue che lo circondano
+
+Intervento dedicato alla **vetrata, alla ghiera e alle sculture che la
+circondano**, riletti sulla nuova fotografia di dettaglio
+`riferimento_vetrata.jpg` (1453×1582). Il resto della facciata è invariato.
+
+- **Vetrata cattedrale vera.** Il vetro non è più un disco scuro con un
+  ritaglio stirato: è un disco con UV proprie, la cui texture è composta da
+  **quattro riquadri puliti letti dalla fotografia** (azzurro-verde
+  lattiginoso, nuvolature, bollicine) disposti 2×2 senza specchiature, quindi
+  senza ripetizioni visibili. Dietro il vetro c'è un fondo opaco: niente più
+  cielo che filtra dalle fughe.
+- **Piombatura sottile**: due montanti verticali a un terzo del raggio, cinque
+  traversi e filo perimetrale, a sezione piatta di ferro — non più tubi neri
+  spessi e non più il reticolo dorato che girava *dentro* il vetro.
+- **Ghiera rifatta come nell'intaglio originale**: orlo modanato doppio, gola
+  in ombra, **perlinatura fitta (196 perle)**, **due ordini di fogliame
+  d'acanto che corrono lungo l'arco** — ogni foglia è orientata da un telaio
+  locale tangente all'ellisse, quindi giace *sulla* fascia invece di sporgere
+  a raggiera — **corda intrecciata oro/avorio** a due capi, occhi di voluta e
+  **mosaico aureo a tessere** sul bordo del vetro.
+- **Strombatura troncoconica in ombra** fra il filo della ghiera e il vetro:
+  la profondità del rosone nasce dalla geometria.
+- **Quattro profeti sui pennacchi** (prima due): i due superiori sdraiati in
+  diagonale con il braccio teso verso l'oculo, i due inferiori ritti e rivolti
+  al centro, su pannelli di marmo rigato con cornice.
+- **Nicchie laterali rifatte** (`edicola_v26`): incasso in marmo rigato,
+  pilastrini con capitello, doppia ghiera, ghimberga a gattoni e fiorone,
+  **quattro per lato con statue a figura intera**. Le vecchie nicchiette
+  lasciavano intravedere lastre nere: eliminate.
+- **Statue a figura intera nuove** (`statua_gotica_v26`): corpo a sezioni con
+  pieghe lunghe e scanalate, pieghe-cordone del manto, cintola annodata,
+  spalle raccordate, mani articolate con polsino, volto di
+  `_bm_testa_profeta24`. Pose differenziate (libro, lettura, croce, petto,
+  benedizione).
+- **Il Redentore al centro**, a figura intera e benedicente, si staglia
+  davanti al vetro del rosone come in fotografia (prima era una statuina di
+  sfere e coni).
+- Nuova inquadratura `anteprima_rosone.png`, nuovo `confronto_rosone.png`
+  (foto / 2.5 / 2.6) e variabile `CHIESA_SOLO_ROSone=1` per renderizzare solo
+  questo settore durante le prove.
 
 ## Versione 2.5 — la fascia sopra lo specchio riletta sulla fotografia
 
@@ -316,12 +361,13 @@ oculo, logge, torrioni e gradinata sono invariati.
 
 ## Prova rapida del render
 
-Lo script legge quattro variabili d'ambiente opzionali, utili per iterare senza
+Lo script legge alcune variabili d'ambiente opzionali, utili per iterare senza
 toccare `config_facciata.json`:
 
 ```bash
 CHIESA_SAMPLES=16 CHIESA_RES_X=450 CHIESA_RES_Y=600 CHIESA_NO_GLB=1 python genera_facciata.py
 CHIESA_NO_RENDER=1 python genera_facciata.py       # solo .blend, senza render
+CHIESA_SOLO_ROSone=1 python genera_facciata.py     # solo la vista del rosone
 ```
 
 ## Rigenerare il modello
@@ -338,4 +384,4 @@ oppure con il modulo Python `bpy` (`pip install bpy==4.2.0`):
 python genera_facciata.py
 ```
 
-Lo script sovrascrive `Facciata_Duomo_Siena.blend`, `anteprima_facciata.png`, `anteprima_apice.png` e `Facciata_Duomo_Siena.glb`.
+Lo script sovrascrive `Facciata_Duomo_Siena.blend`, `anteprima_facciata.png`, `anteprima_apice.png`, `anteprima_galleria.png`, `anteprima_rosone.png` e `Facciata_Duomo_Siena.glb`.
