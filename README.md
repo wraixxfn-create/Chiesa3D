@@ -6,12 +6,12 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 | File | Descrizione |
 |---|---|
-| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire, con sculture v2.4 e materiali PBR a texture incorporate |
+| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire, con sculture v2.5 e materiali PBR a texture incorporate |
 | `Facciata_Duomo_Siena.glb` | Esportazione glTF 2.0 per visualizzatori web / game engine |
 | `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 64 campioni, 900×1050) |
 | `anteprima_apice.png` | Render ravvicinato della cuspide centrale e dei pinnacoli (Cycles CPU, 64 campioni, 900×1022) |
-| `anteprima_galleria.png` | Dettaglio panoramico v2.4: fregio, 15 edicole con profeti scolpiti, frontoni a chevron e sommità del rosone (Cycles CPU, 1600×520) |
-| `confronto_galleria.png` | Confronto fotografia di riferimento / versione 2.3 / versione 2.4 della galleria dei Profeti |
+| `anteprima_galleria.png` | Dettaglio panoramico v2.5 sul taglio della fotografia: fregio di cherubini, trabeazione a scacchiera, 15 edicole con profeti in altorilievo, pennacchi e sommità del rosone (Cycles CPU, 1600×520) |
+| `confronto_galleria.png` | Confronto fotografia di riferimento / versione 2.4 / versione 2.5 della galleria dei Profeti |
 | `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprime e GLB da zero |
 | `config_facciata.json` | Tutti i parametri (dimensioni, materiali PBR, luci, camera, render, export) |
 | `riferimento_facciata.jpg` | Fotografia d'insieme di riferimento |
@@ -22,6 +22,48 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
+
+## Versione 2.5 — la fascia sopra lo specchio riletta sulla fotografia
+
+Terzo passaggio sulla fascia **sopra lo specchio del rosone e sotto il
+triangolo centrale**, questa volta per chiudere i conti con il dettaglio
+fotografico `riferimento_galleria.jpg`: non cambiano le 15 campate né le
+pose, ma sfondi, trabeazione, pennacchi e corona dell'oculo.
+
+- **Via la banda grigio-azzurra.** Nella 2.4 dietro le punte dei frontoni
+  restava un campo azzurro che nel render leggeva come una striscia di
+  cielo. Ora il marmo rosa rigato sale continuo fino al filetto verde
+  sotto la trabeazione (chiusa anche la fessura da cui il cielo
+  traspariva), e i pannellini cosmateschi nella V fra i frontoni sono
+  più ampi e incorniciati, quindi il mosaico si legge fra le punte.
+- **Frontoni più fitti e più bassi:** chevron ribassato, una seconda
+  cornice a chevron in rilievo e un'**ogivetta con giglio senese,
+  rosetta e volute** al posto del motivo precedente (che a distanza
+  leggeva come una “X”); sei gattoni uncinati per falda invece di quattro.
+- **Profeti più presenti ma più ariosi:** i busti sono un poco più
+  stretti della luce (il fondale rosa si rivede ai lati, come in foto) e
+  avanzati verso la ghiera, in vero altorilievo; i lembi dei manti
+  scendono più lunghi sul parapetto e le specchiature cosmatesche di
+  parapetto e piedritti sono più larghe.
+- **Pennacchi del rosone finalmente protagonisti.** I due profeti ai
+  lati dell'arco sono ora **mezze figure grandi sdraiate in diagonale**
+  sui pannelli rosa (testa all'angolo alto esterno, corpo sporto in
+  avanti, braccio teso verso il rosone a sinistra e mano alzata a
+  destra). Nella 2.4, piccoli e verticali, restavano semisepolti
+  dietro la ghiera: si vedevano quasi solo le teste.
+- **Trabeazione completata:** sopra la galleria compaiono la
+  **scacchiera cosmatesca a due ordini** bianco/verde sotto il fregio e
+  la fascia a **ovoli e dardi** fra toro e dentelli; i cherubini del
+  fregio sono più grandi, con le ali abbassate sulla soglia, e i gigli
+  riempiono gli intervalli.
+- **Sommità dell'oculo rifinita:** 172 dentelli fogliati e 172 perle
+  (prima 112, che leggevano come borchie distanziate) e nuovo **anello
+  a losanghe oro/verde** sullo sguincio interno. Ai lati del quadrato,
+  le strisce con sfere diventano pannelli bianchi a quatrifogli con
+  cornice in marmo verde.
+- `anteprima_galleria.png` è ri-inquadrata sul taglio esatto della
+  fotografia: dentro fregio, trabeazione, galleria e i due pennacchi
+  per intero. `confronto_galleria.png` affianca foto / 2.4 / 2.5.
 
 ## Versione 2.4 — sculture e decori della fascia interamente rifiniti
 
