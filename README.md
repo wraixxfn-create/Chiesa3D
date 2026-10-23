@@ -6,21 +6,63 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 | File | Descrizione |
 |---|---|
-| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire (2.748 oggetti mesh, 28 materiali PBR con texture incorporate) |
+| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire (2.780 oggetti mesh, 28 materiali PBR con texture incorporate) |
 | `Facciata_Duomo_Siena.glb` | Esportazione glTF 2.0 per visualizzatori web / game engine |
 | `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 64 campioni, 900×1050) |
 | `anteprima_apice.png` | Render ravvicinato della cuspide centrale e dei pinnacoli (Cycles CPU, 64 campioni, 900×1022) |
-| `anteprima_galleria.png` | Dettaglio panoramico della fascia richiesta: edicole, frontoni a chevron, profeti e sommità del rosone (Cycles CPU, 1200×400) |
-| `confronto_galleria.png` | Confronto affiancato fotografia di riferimento / versione 2.1 / versione 2.2 della galleria dei Profeti |
+| `anteprima_galleria.png` | Dettaglio panoramico della fascia richiesta: 15 edicole a tutto sesto, frontoni pieni a chevron, profeti e sommità del rosone (Cycles CPU, 1600×520) |
+| `confronto_galleria.png` | Confronto affiancato fotografia di riferimento / versione 2.2 / versione 2.3 della galleria dei Profeti |
 | `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprime e GLB da zero |
 | `config_facciata.json` | Tutti i parametri (dimensioni, materiali PBR, luci, camera, render, export) |
 | `riferimento_facciata.jpg` | Fotografia d'insieme di riferimento |
 | `riferimento_apice.jpg` | Fotografia ravvicinata ad alta risoluzione (2176×2472) usata per calibrare l'intera zona superiore centrale |
+| `riferimento_galleria.jpg` | Fotografia di dettaglio (1866×619) della galleria dei Profeti e dei pennacchi del rosone, riferimento della versione 2.3 |
 
 ## Dimensioni
 
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
+
+## Versione 2.3 — galleria dei Profeti rifatta sulla nuova fotografia
+
+Nuovo intervento integrale sulla fascia **sopra lo specchio del rosone e sotto
+il triangolo centrale** (`Nicchia_Sup_00` … `Nicchia_Sup_14`), ricostruita sulla
+fotografia di dettaglio ad alta risoluzione `riferimento_galleria.jpg`.
+Il resto della facciata resta invariato.
+
+- **Sono 15 campate, non 14.** Contando gli archi in fotografia: 7 profeti, la
+  **Madonna col Bambino esattamente sull'asse** della facciata (con i due
+  angiolini sdraiati sul frontone centrale), altri 7 profeti. Nella 2.2 l'asse
+  cadeva fra due campate.
+- **Busti grandi in altorilievo, mai più “pedine”.** La testa sale dentro la
+  curva dell'arco e il torso è una massa organica di panneggio (ventre sulle
+  ginocchia, petto, spalle) tagliata al parapetto; via la silhouette a cono del
+  tornio, via il nimbo (in foto non c'è), via il colletto a piedistallo.
+- **15 pose lette una per una dalla foto** (tabella `_POSE_PROFETI`): il grande
+  profeta sporgente in diagonale col braccio oltre il davanzale, il pensatore
+  con la mano alla guancia, l'orante a mani giunte, l'inchinato verso la
+  Madonna, i lettori col libro aperto, il rotolo la cui punta scende sul
+  parapetto… e i **lembi di manto appuntiti** che scendono davanti al parapetto
+  cosmatesco dove la foto li mostra.
+- **Frontone triangolare pieno.** Nella 2.2 era un doppio contorno di fasce
+  vuoto; ora è un pannello pieno con doppia cornice modanata, triangolo
+  inciso, losanga cosmatesca verso la punta, gattoni e fiorone. Fra i frontoni,
+  pinnacolini bassi con statuina davanti a pannellini cosmatesci incassati.
+- **Niente più banda nera.** La fascia cosmatesca alta un quarto della fascia
+  (in foto non esiste: è solo un filetto di marmo verde sotto la trabeazione)
+  è stata eliminata; il cosmatesco, con texture schiarita in toni caldi, vive
+  dove sta davvero: specchiature verticali dei piedritti (con file di perle),
+  parapetto sotto ogni campata, pannellini fra i frontoni.
+- **Nicchie a tutto sesto poco profonde** con fondale rosa unico che riempie
+  anche la lunetta dietro la testa e triplice ghiera concentrica perlinata;
+  piedritti a parasta con capitello a fasce all'imposta.
+- **Pennacchi del rosone corretti.** Ai piedi della galleria, ai lati
+  dell'arco dell'oculo, non ci sono angeli alati con fiori (vecchia versione):
+  sono i **due profeti a mezza figura sui pannelli di marmo rosa** con cornice
+  verde — a sinistra indica il rosone col braccio teso, a destra parla con la
+  mano alzata. Rimosse anche le rosette a fiore che li coprivano.
+- `CHIESA_SOLO_GALLERIA=1` renderizza solo la vista della galleria (prove
+  rapide); `anteprima_galleria.png` sale a 1600×520.
 
 ## Versione 2.2 — galleria dei Profeti ricostruita da zero
 
