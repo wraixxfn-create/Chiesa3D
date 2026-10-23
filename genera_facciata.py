@@ -11,7 +11,7 @@ Uso:
 Output (nella stessa cartella dello script):
   - Facciata_Duomo_Siena.blend
   - anteprima_facciata.png
-  - anteprima_apice.png e anteprima_galleria.png
+  - anteprima_apice.png, anteprima_galleria.png e anteprima_rosone.png
   - Facciata_Duomo_Siena.glb (se abilitato in config)
 
 Coordinate: X = larghezza (m), Y = profondita' (fronte verso -Y), Z = altezza (m).
@@ -91,6 +91,22 @@ nuova fotografia di dettaglio `riferimento_vetrata.jpg`:
      `riferimento_vetrata.jpg`; `CHIESA_SOLO_ROSone=1` renderizza solo il
      rosone per le prove rapide.
 
+AGGIORNAMENTO v2.7 — VETRATA E SCULTURE DEL ROSONE:
+
+  1. Apertura circolare e texture 1536 px letta dall'intera vetrata reale;
+     piombo e statua rimossi dalla mappa per campionamento locale. Il vetro
+     conserva lastre, graffi e bollicine, con micro-bump e riflesso controllato.
+  2. Piombatura sottile realmente davanti al vetro: due montanti, cinque
+     traversi e filo perimetrale; niente barre impresse nella fotografia.
+  3. Telaio della ghiera corretto (larghezza radiale / profondita' frontale),
+     288 foglie d'acanto con costa, 180 dentelli e perlinatura concentrica.
+  4. Quattro profeti dei pennacchi a figura intera, con contrapposto, manti a
+     doppia superficie, piedi separati e pose indica/parla/rotolo/leggi.
+  5. Otto nicchie laterali con catino concavo, costole, ghiere circolari,
+     ghimberghe non occlusive e busti piu' grandi in posa differente.
+  6. Redentore riproporzionato e raccolto nella posa della fotografia;
+     inquadratura allargata a 1453x1582 per comprendere tutte le sculture.
+
 """
 
 import bpy
@@ -153,7 +169,7 @@ scene = bpy.context.scene
 scene.unit_settings.system = "METRIC"
 scene.unit_settings.scale_length = 1.0
 scene["titolo"] = "Duomo di Siena — solo facciata ovest"
-scene["nota"] = "Modello procedurale v2.6: galleria superiore in 15 campate con Madonna col Bambino sull'asse, busti in altorilievo con pose dalla fotografia e profeti sui pennacchi del rosone; retro piatto."
+scene["nota"] = "Modello procedurale v2.7: rosone circolare con vetro cattedrale fotografico pulito, piombatura in rilievo, ghiera scolpita e statue a tutto tondo rilette sulla fotografia; retro piatto."
 
 
 # -----------------------------------------------------------------------------
@@ -575,6 +591,51 @@ def _vetro_da_foto(name, topdown_rgb, riquadri, size=1024):
     return _save_packed_image(name, tile)
 
 
+def _vetro_rosone_da_foto(name, topdown_rgb, size=1536):
+    """Lastra del rosone riletta integralmente dalla fotografia di dettaglio.
+
+    La mappatura polare conserva le diverse lastre, le nuvolature, i graffi e
+    le piccole bolle del vetro vero.  I montanti e il Redentore, che nella
+    foto coprono il vetro, vengono rimossi per campionamento locale: le barre
+    sono poi geometria 3D e non un'ombra stampata nella texture.
+    """
+    img_h, img_w = topdown_rgb.shape[:2]
+    kx, ky = img_w / 1453.0, img_h / 1582.0
+    lin = np.linspace(-1.0, 1.0, size, dtype=np.float32)
+    vv, uu = np.meshgrid(lin, lin, indexing="ij")  # riga 0 = basso (UV Blender)
+
+    # Ritaglio leggermente interno al filo del vetro: la ghiera non finisce
+    # nella texture nemmeno sugli spicchi perimetrali curvi.
+    px = (729.0 + 410.0 * uu) * kx
+    py = (854.0 - 410.0 * vv) * ky
+    fx, fy = px / kx, py / ky
+
+    vert = (np.abs(fx - 610.0) < 10.0) | (np.abs(fx - 845.0) < 10.0)
+    horiz = np.zeros((size, size), dtype=bool)
+    for y_bar in (578.0, 720.0, 861.0, 1003.0, 1144.0):
+        horiz |= np.abs(fy - y_bar) < 9.0
+    half_statue = np.clip(27.0 + 0.095 * (fy - 1170.0), 27.0, 58.0)
+    statua = (fy > 1168.0) & (np.abs(fx - 731.0) < half_statue)
+
+    cx = px.copy()
+    cy = py.copy()
+    cx[vert] += 22.0 * kx
+    cy[horiz] += 18.0 * ky
+    cx[statua] -= 145.0 * kx
+    cy[statua] -= 18.0 * ky
+    col = _bilinear_sample(topdown_rgb, cx, cy)
+
+    # Correzione molto contenuta: restano le differenze fra le diciotto
+    # lastre e la luce celeste reale, senza l'effetto marmo della v2.6.
+    disco = (uu * uu + vv * vv) < 0.96
+    if np.any(disco):
+        medio = col[disco].mean(axis=0, keepdims=True)
+        col = (col - medio) * 0.84 + medio
+    col *= np.array([0.90, 0.965, 1.00], dtype=np.float32)[None, None, :]
+    col = np.clip(col * 0.94, 0.0, 1.0)
+    return _save_packed_image(name, col)
+
+
 def build_all_textures():
     tex = {}
     tex["marmo_bianco"] = _make_marble_tex(
@@ -689,17 +750,10 @@ def build_all_textures():
             vimg.pixels.foreach_get(vbuf)
             bpy.data.images.remove(vimg)
             vtop = vbuf.reshape((vh, vw, 4))[::-1, :, :3].copy()
-            # coordinate nel sistema della foto 1453x1582: una lastra pulita
-            # fra due montanti, sotto la fascia superiore del telaio
-            kx, ky = vw / 1453.0, vh / 1582.0
-            # quattro riquadri di vetro pulito (fra i montanti di piombo)
-            tex["oculo_vetro"] = _vetro_da_foto(
-                "Tex_Vetro_Cattedrale", vtop,
-                ((478 * kx, 600 * ky, 604 * kx, 712 * ky),
-                 (640 * kx, 600 * ky, 838 * kx, 712 * ky),
-                 (478 * kx, 745 * ky, 604 * kx, 856 * ky),
-                 (640 * kx, 745 * ky, 838 * kx, 856 * ky)),
-                size=1024,
+            # v2.7: l'intera lastra, non quattro campioni ripetuti.  Il
+            # reticolo e la statua sono tolti dalla mappa e rimodellati in 3D.
+            tex["oculo_vetro"] = _vetro_rosone_da_foto(
+                "Tex_Vetro_Cattedrale_Rosone", vtop, size=1536,
             )
         except Exception as e:
             print(f"Vetrata di riferimento non leggibile ({e}); uso il vetro procedurale.")
@@ -732,6 +786,13 @@ def mat_from_cfg(name, cfg):
     bsdf.inputs["Base Color"].default_value = (*c, 1.0)
     bsdf.inputs["Roughness"].default_value = cfg.get("roughness", 0.55)
     bsdf.inputs["Metallic"].default_value = cfg.get("metallic", 0.0)
+    if name == "Vetro_Rosone":
+        # Vetro cattedrale opaco sul fondo, ma con una pelle leggermente
+        # lucida e ondulata: niente emissione da pannello retroilluminato.
+        bsdf.inputs["IOR"].default_value = 1.46
+        bsdf.inputs["Specular IOR Level"].default_value = 0.34
+        bsdf.inputs["Coat Weight"].default_value = 0.24
+        bsdf.inputs["Coat Roughness"].default_value = 0.20
 
     tex_key = cfg.get("tex")
     base_color_socket = None
@@ -748,6 +809,15 @@ def mat_from_cfg(name, cfg):
     if "emission" in cfg and not tex_key:
         bsdf.inputs["Emission Color"].default_value = (*cfg["emission"], 1.0)
         bsdf.inputs["Emission Strength"].default_value = cfg.get("emission_strength", 0.2)
+
+    if name == "Vetro_Rosone" and base_color_socket is not None:
+        micro = nodes.new("ShaderNodeBump")
+        micro.label = "Ondulazione e bollicine del vetro cattedrale"
+        micro.location = (-30, -120)
+        micro.inputs["Strength"].default_value = cfg.get("bump", 0.10)
+        micro.inputs["Distance"].default_value = 0.018
+        links.new(base_color_socket, micro.inputs["Height"])
+        links.new(micro.outputs["Normal"], bsdf.inputs["Normal"])
 
     ao_strength = cfg.get("ao_strength", 0.0)
     if ao_strength > 0.0:
@@ -845,6 +915,8 @@ VETRO = MATS.get("Vetro_Rosone")
 FERRO = MATS.get("Ferro_Griglia")
 PIETRA = MATS.get("Pietra_Statue")
 PIETRA_RIL = MATS.get("Pietra_Rilievi", PIETRA)
+PIETRA_ROS = MATS.get("Pietra_Rosone", PIETRA_RIL)
+PATINA_ROS = MATS.get("Patina_Rosone", MATS.get("Patina_Scolpita", PIETRA))
 PATINA = MATS.get("Patina_Scolpita", SCURO if "SCURO" in globals() else PIETRA)
 SCURO = MATS.get("Vano_Scuro")
 PATINA = MATS.get("Patina_Scolpita", SCURO)
@@ -3314,23 +3386,294 @@ def _bm_figura_gotica(bm, bm_pat, mat4, H, spec):
     _bm_testa_profeta24(bm, bm_pat, Mh, r_h, yaw * 0.35, nod * 0.5, barba, copricapo, seed)
 
 
+def _bm_figura_gotica_v27(bm, bm_pat, mat4, H, spec):
+    """Figura a tutto tondo v2.7, con contrapposto e panneggi scolpiti.
+
+    Non e' un fusto cilindrico accessoriato: il volume cambia fra piede,
+    ginocchio, bacino, torace e spalle; il manto e' una doppia superficie
+    continua con orli e pieghe profonde.  Le braccia hanno polsi e maniche
+    raccordate, mentre le pose dei pennacchi sono quelle della fotografia.
+    """
+    gesto = spec.get("gesto", "libro")
+    barba = spec.get("barba", 0.70)
+    copricapo = spec.get("copricapo", "capelli")
+    yaw = spec.get("yaw", 0.0)
+    nod = spec.get("nod", 0.05)
+    seed = spec.get("seed", 0)
+    lato = spec.get("lato", 1)
+
+    z_embase, z_collo = 0.055, 0.825
+    prof = (
+        (0.045, 0.136, 0.101), (0.090, 0.151, 0.113),
+        (0.190, 0.143, 0.107), (0.310, 0.126, 0.094),
+        (0.410, 0.132, 0.098), (0.500, 0.142, 0.105),
+        (0.575, 0.123, 0.088), (0.655, 0.119, 0.085),
+        (0.720, 0.141, 0.096), (0.775, 0.158, 0.091),
+        (0.805, 0.125, 0.077), (0.825, 0.074, 0.062),
+    )
+
+    def sez(t):
+        t = max(prof[0][0], min(prof[-1][0], t))
+        for a_, b_ in zip(prof, prof[1:]):
+            if a_[0] <= t <= b_[0]:
+                u = (t - a_[0]) / max(1e-7, b_[0] - a_[0])
+                u = u * u * (3.0 - 2.0 * u)
+                return (a_[1] * (1 - u) + b_[1] * u,
+                        a_[2] * (1 - u) + b_[2] * u)
+        return prof[-1][1], prof[-1][2]
+
+    def spost(z):
+        t = z / max(H, 1e-6)
+        # Bacino in appoggio e spalle controspostate: la silhouette non e'
+        # piu' simmetrica ne' rigida come un manichino.
+        return H * (0.025 * math.sin(0.5 * math.pi * t)
+                    - 0.015 * math.sin(math.pi * t))
+
+    def superficie(t, a):
+        rx, ry = sez(t)
+        front = max(0.0, -math.sin(a)) ** 1.3
+        basso = max(0.0, min(1.0, (0.66 - t) / 0.54))
+        fase = (8.0 * a + 1.25 * math.sin(t * 7.0 + seed)
+                + 0.55 * math.sin(3.0 * a - t * 4.0))
+        piega = H * (0.0055 + 0.0070 * basso) * (
+            math.sin(fase) + 0.28 * math.sin(2.0 * fase + 0.6))
+        piega *= min(1.0, max(0.0, (t - 0.05) / 0.10))
+        # Ammasso diagonale sul bacino e grandi curve fra le ginocchia.
+        piega += H * 0.0055 * math.sin(25.0 * t + 2.6 * a + seed) \
+            * math.exp(-((t - 0.49) / 0.17) ** 2) * front
+        piega += H * 0.0045 * math.sin(34.0 * t + 2.0 * math.cos(a)) \
+            * math.exp(-((t - 0.25) / 0.14) ** 2) * front
+        x = spost(H * t) + (rx * H + piega) * math.cos(a)
+        y = -H * 0.006 * math.sin(math.pi * t) + (ry * H + 0.78 * piega) * math.sin(a)
+        orlo = max(0.0, 1.0 - (t - z_embase) / 0.105)
+        z = H * t + H * 0.006 * math.sin(3.0 * a + seed) * orlo
+        z += H * 0.006 * math.cos(a) * math.exp(-((t - 0.775) / 0.055) ** 2)
+        return Vector((x, y, z))
+
+    # Tunica continua ad alta densita'.
+    nz, na = 54, 64
+    grid = []
+    for i in range(nz + 1):
+        t = z_embase + (z_collo - z_embase) * i / nz
+        grid.append([bm.verts.new(mat4 @ superficie(t, math.tau * j / na))
+                     for j in range(na)])
+    for i in range(nz):
+        for j in range(na):
+            j2 = (j + 1) % na
+            bm.faces.new((grid[i][j], grid[i][j2], grid[i + 1][j2], grid[i + 1][j]))
+    bm.faces.new(list(reversed(grid[0])))
+    bm.faces.new(grid[-1])
+
+    # Piedi separati, uno avanzato: appoggio e contrapposto restano leggibili
+    # sotto l'orlo invece di terminare in un unico cono.
+    for s in (-1, 1):
+        avanti = 0.020 * H if s == lato else -0.006 * H
+        fx = spost(0.04 * H) + s * 0.064 * H
+        _bm_sfera(bm, mat4, fx, -0.044 * H - avanti, 0.035 * H,
+                  0.048 * H, sx=0.74, sy=1.34, sz=0.42, u=16, v=10)
+        for dito in range(3):
+            _bm_sfera(bm, mat4, fx + (dito - 1) * 0.013 * H,
+                      -0.102 * H - avanti, 0.029 * H, 0.009 * H,
+                      sx=0.85, sy=1.20, sz=0.65, u=8, v=5)
+
+    # Pochi cordoni larghi, non una griglia nera disegnata sul vestito.
+    for k, a in enumerate((-2.70, -2.22, -1.72, -1.18, -0.70)):
+        pts = []
+        for j in range(9):
+            t = 0.075 + 0.46 * j / 8.0
+            aa = a + 0.075 * math.sin(t * 8.0 + seed + k)
+            p = superficie(t, aa)
+            p.y -= H * 0.004
+            pts.append(p)
+        _bm_sweep24(bm, mat4, pts,
+                    [H * (0.0055 + 0.0020 * math.sin(math.pi * j / 8.0)) for j in range(9)],
+                    lati=7, ellisse=0.52, campioni=2)
+
+    # Manto vero: pelle doppia, larga sul fianco e diagonale sul petto.
+    nu, nv = 34, 14
+    fronte, retro, local = [], [], []
+    for i in range(nu + 1):
+        t = i / nu
+        zc = 0.785 - 0.655 * t
+        xc = spost(zc * H) + lato * H * (0.115 - 0.190 * t)
+        larg = H * (0.055 + 0.067 * t)
+        fr, br, lr = [], [], []
+        for j in range(nv + 1):
+            u = 2.0 * j / nv - 1.0
+            x = xc + u * larg
+            zz = zc + lato * u * 0.024 + 0.006 * math.sin(t * 6.0 + seed) * t
+            tt = max(0.06, min(0.80, zz))
+            rx, ry = sez(tt)
+            q = (x - spost(tt * H)) / max(rx * H, 1e-5)
+            qclip = max(-0.995, min(0.995, q))
+            yb = -ry * H * math.sqrt(max(0.0, 1.0 - qclip * qclip))
+            if abs(q) > 1.0:
+                yb = -0.030 * H - 0.025 * H * (abs(q) - 1.0)
+            onda = (math.sin(3.0 * math.pi * u + 1.25 * math.sin(t * 5.0 + seed))
+                    + 0.30 * math.sin(6.0 * math.pi * u - t * 3.0))
+            yb -= H * (0.016 + 0.0085 * onda * math.sin(math.pi * (0.08 + 0.84 * t)))
+            p = Vector((x, yb, zz * H))
+            fr.append(bm.verts.new(mat4 @ p))
+            br.append(bm.verts.new(mat4 @ (p + Vector((0.0, 0.006 * H, 0.0)))))
+            lr.append(p)
+        fronte.append(fr)
+        retro.append(br)
+        local.append(lr)
+    for i in range(nu):
+        for j in range(nv):
+            bm.faces.new((fronte[i][j], fronte[i][j + 1], fronte[i + 1][j + 1], fronte[i + 1][j]))
+            bm.faces.new((retro[i + 1][j], retro[i + 1][j + 1], retro[i][j + 1], retro[i][j]))
+    for i in range(nu):
+        bm.faces.new((fronte[i][0], fronte[i + 1][0], retro[i + 1][0], retro[i][0]))
+        bm.faces.new((fronte[i + 1][-1], fronte[i][-1], retro[i][-1], retro[i + 1][-1]))
+    for j in range(nv):
+        bm.faces.new((fronte[-1][j], fronte[-1][j + 1], retro[-1][j + 1], retro[-1][j]))
+    for edge in (0, -1):
+        pts = [local[i][edge] + Vector((0.0, -0.002 * H, 0.0)) for i in range(0, nu + 1, 2)]
+        _bm_sweep24(bm, mat4, pts, [0.0055 * H] * len(pts),
+                    lati=7, ellisse=0.65, campioni=2)
+
+    # Cintura sottile e nodo morbido all'altezza del bacino.
+    t_c = 0.515
+    rx_c, ry_c = sez(t_c)
+    cintura = []
+    for k in range(37):
+        a = math.tau * k / 36.0
+        cintura.append((spost(t_c * H) + (rx_c * H + 0.004 * H) * math.cos(a),
+                        (ry_c * H + 0.004 * H) * math.sin(a), t_c * H))
+    _bm_sweep24(bm, mat4, cintura, [0.0055 * H] * len(cintura),
+                lati=8, ellisse=0.62, campioni=1)
+    _bm_sfera(bm, mat4, spost(t_c * H), -ry_c * H - 0.008 * H, t_c * H,
+              0.013 * H, sx=1.15, sy=0.62, sz=0.80, u=12, v=8)
+    for s in (-1, 1):
+        _bm_sweep24(bm, mat4,
+                    ((spost(t_c * H) + s * 0.007 * H, -ry_c * H - 0.012 * H, 0.507 * H),
+                     (spost(0.44 * H) + s * 0.022 * H, -ry_c * H - 0.018 * H, 0.440 * H),
+                     (spost(0.36 * H) + s * 0.016 * H, -ry_c * H - 0.010 * H, 0.365 * H)),
+                    (0.010 * H, 0.011 * H, 0.004 * H), lati=8,
+                    ellisse=0.45, rughe=0.05, campioni=4)
+
+    # Braccia e mani articolate.
+    W = 0.42 * H
+    z_spalla = 0.770 * H
+
+    def braccio(s, gomito, polso, r=1.0, modo="grip", direzione=None):
+        sp = Vector((spost(z_spalla) + s * 0.145 * H, -0.002 * H, z_spalla))
+        g, p = Vector(gomito), Vector(polso)
+        upper = sp.lerp(g, 0.48) + Vector((s * 0.006 * H, -0.008 * H, 0.006 * H))
+        lower = g.lerp(p, 0.52) + Vector((0.0, -0.008 * H, 0.0))
+        _bm_sweep24(bm, mat4, (sp, upper, g, lower, p),
+                    (0.052 * H * r, 0.047 * H * r, 0.038 * H * r,
+                     0.030 * H * r, 0.022 * H * r),
+                    lati=16, ellisse=0.86, rughe=0.075, campioni=4)
+        d = (p - g).normalized()
+        _bm_sweep24(bm, mat4, (p - d * 0.028 * H, p + d * 0.004 * H),
+                    (0.030 * H * r, 0.023 * H * r), lati=14,
+                    ellisse=0.84, rughe=0.04, campioni=3)
+        # Un risvolto segue l'avambraccio e suggerisce la stoffa della manica.
+        off = Vector((0.0, -0.020 * H, 0.0))
+        _bm_sweep24(bm, mat4, (upper + off, g + off * 0.75, lower + off * 0.45),
+                    (0.0045 * H, 0.0050 * H, 0.0030 * H),
+                    lati=6, ellisse=0.55, campioni=3)
+        _bm_mano24(bm, mat4, W, p,
+                   direzione if direzione is not None else p - g,
+                   modo=modo, lato=s)
+
+    if gesto == "libro":
+        for s in (-1, 1):
+            braccio(s, (s * 0.158 * H, -0.048 * H, 0.590 * H),
+                    (s * 0.055 * H, -0.112 * H, 0.585 * H), 0.92)
+        _bm_libro24(bm, bm_pat, mat4, W, H, (0.0, -0.112 * H, 0.590 * H), True, lato, 0.92)
+    elif gesto == "leggi":
+        for s in (-1, 1):
+            braccio(s, (s * 0.155 * H, -0.050 * H, 0.620 * H),
+                    (s * 0.045 * H, -0.116 * H, 0.660 * H), 0.90)
+        _bm_libro24(bm, bm_pat, mat4, W, H, (0.0, -0.116 * H, 0.660 * H), True, lato, 0.90)
+    elif gesto == "indica":
+        braccio(lato, (lato * 0.260 * H, -0.030 * H, 0.735 * H),
+                (lato * 0.405 * H, -0.075 * H, 0.790 * H), 1.00,
+                modo="aperta", direzione=(lato, -0.05, 0.24))
+        braccio(-lato, (-lato * 0.150 * H, -0.035 * H, 0.575 * H),
+                (-lato * 0.105 * H, -0.095 * H, 0.480 * H), 0.94)
+    elif gesto == "parla":
+        braccio(lato, (lato * 0.225 * H, -0.030 * H, 0.655 * H),
+                (lato * 0.290 * H, -0.090 * H, 0.850 * H), 0.88,
+                modo="aperta", direzione=(lato * 0.15, -0.08, 1.0))
+        braccio(-lato, (-lato * 0.150 * H, -0.040 * H, 0.610 * H),
+                (-lato * 0.025 * H, -0.112 * H, 0.690 * H), 0.92,
+                modo="aperta", direzione=(lato * 0.4, -0.1, 0.8))
+    elif gesto == "croce":
+        braccio(lato, (lato * 0.160 * H, -0.040 * H, 0.660 * H),
+                (lato * 0.130 * H, -0.095 * H, 0.745 * H), 0.90)
+        braccio(-lato, (-lato * 0.150 * H, -0.050 * H, 0.575 * H),
+                (-lato * 0.045 * H, -0.105 * H, 0.550 * H), 0.92)
+        _bm_sweep24(bm, mat4, ((lato * 0.130 * H, -0.102 * H, 0.690 * H),
+                               (lato * 0.130 * H, -0.104 * H, 0.905 * H)),
+                    (0.008 * H, 0.006 * H), lati=8, campioni=2)
+        _bm_box(bm, mat4 @ Matrix.Translation((lato * 0.130 * H, -0.106 * H, 0.875 * H)),
+                0.0, 0.0, 0.0, 0.075 * H, 0.010 * H, 0.016 * H)
+    elif gesto == "rotolo":
+        braccio(lato, (lato * 0.155 * H, -0.040 * H, 0.625 * H),
+                (lato * 0.075 * H, -0.110 * H, 0.690 * H), 0.90)
+        braccio(-lato, (-lato * 0.150 * H, -0.045 * H, 0.560 * H),
+                (lato * 0.020 * H, -0.115 * H, 0.565 * H), 0.92)
+        _bm_sweep24(bm, mat4, ((lato * 0.080 * H, -0.125 * H, 0.500 * H),
+                               (lato * 0.075 * H, -0.128 * H, 0.650 * H),
+                               (lato * 0.078 * H, -0.124 * H, 0.760 * H)),
+                    (0.014 * H, 0.016 * H, 0.012 * H), lati=12,
+                    ellisse=0.65, campioni=4)
+    elif gesto == "benedicente":
+        braccio(lato, (lato * 0.165 * H, -0.035 * H, 0.670 * H),
+                (lato * 0.180 * H, -0.080 * H, 0.845 * H), 0.88,
+                modo="aperta", direzione=(lato * 0.28, -0.08, 1.0))
+        braccio(-lato, (-lato * 0.150 * H, -0.050 * H, 0.580 * H),
+                (-lato * 0.048 * H, -0.110 * H, 0.550 * H), 0.92)
+        _bm_libro24(bm, bm_pat, mat4, W, H, (-lato * 0.020 * H, -0.120 * H, 0.550 * H),
+                    False, lato, 0.78)
+    else:  # petto / redentore: gesto raccolto, come la statua della foto
+        braccio(lato, (lato * 0.155 * H, -0.035 * H, 0.625 * H),
+                (lato * 0.020 * H, -0.118 * H, 0.700 * H), 0.90,
+                modo="aperta", direzione=(-lato * 0.45, -0.15, 0.85))
+        braccio(-lato, (-lato * 0.150 * H, -0.030 * H, 0.555 * H),
+                (-lato * 0.120 * H, -0.075 * H, 0.445 * H), 0.94,
+                modo="aperta", direzione=(-lato * 0.10, -0.05, -1.0))
+
+    # Collo e testa, con leggere torsioni diverse per ciascuna figura.
+    z_head, r_h = 0.895 * H, 0.066 * H
+    x_h = spost(z_head)
+    _bm_sweep24(bm, mat4,
+                ((spost(0.800 * H), -0.003 * H, 0.800 * H),
+                 (x_h * 0.92, -0.010 * H, 0.845 * H),
+                 (x_h, -0.016 * H, z_head - r_h * 0.78)),
+                (0.047 * H, 0.040 * H, r_h * 0.68),
+                lati=18, ellisse=0.86, campioni=4)
+    Mh = (mat4 @ Matrix.Translation((x_h, -0.017 * H, z_head))
+          @ Matrix.Rotation(yaw, 4, "Z") @ Matrix.Rotation(nod, 4, "X"))
+    _bm_testa_profeta24(bm, bm_pat, Mh, r_h, yaw * 0.30, nod * 0.45,
+                        barba * 0.88, copricapo, seed)
+
+
 def statua_gotica_v26(name, col, x, y, z, h, spec=None, material=None):
-    """Statua gotica completa (piedistallo, figura, incavi patinati)."""
+    """Statua v2.7: piedistallo modanato e figura a tutto tondo scolpita."""
     spec = spec or {}
     bm = bmesh.new()
     bm_pat = bmesh.new()
     M = (Matrix.Translation((x, y, z))
          @ Matrix.Rotation(spec.get("rot_z", 0.0), 4, "Z")
          @ Matrix.Diagonal((h, h, h, 1.0)))
-    # piedistallo
-    _bm_box(bm, Matrix.Translation((x, y + 0.01, z + 0.022 * h)),
-            0.0, 0.0, 0.0, 0.30 * h, 0.24 * h, 0.045 * h)
-    _bm_figura_gotica(bm, bm_pat,
-                      Matrix.Translation((x, y, z)) @ Matrix.Rotation(spec.get("rot_z", 0.0), 4, "Z")
-                      @ Matrix.Diagonal((h, h, h, 1.0)),
-                      1.0, spec)
-    _mesh_da_bmesh(f"{name}_Marmo", col, bm, material or PIETRA_RIL, uv_scale=(0.9, 0.9))
-    _mesh_da_bmesh(f"{name}_Incavi", col, bm_pat, PATINA, uv_scale=(0.9, 0.9))
+    # Tre fili di plinto, con l'impronta dei piedi appena sopra l'ultimo.
+    _bm_box(bm, Matrix.Translation((x, y + 0.012 * h, z - 0.008 * h)),
+            0.0, 0.0, 0.0, 0.34 * h, 0.27 * h, 0.025 * h)
+    _bm_box(bm, Matrix.Translation((x, y + 0.008 * h, z + 0.007 * h)),
+            0.0, 0.0, 0.0, 0.305 * h, 0.245 * h, 0.020 * h)
+    _bm_box(bm, Matrix.Translation((x, y + 0.004 * h, z + 0.020 * h)),
+            0.0, 0.0, 0.0, 0.275 * h, 0.220 * h, 0.016 * h)
+    _bm_figura_gotica_v27(bm, bm_pat, M, 1.0, spec)
+    _mesh_da_bmesh(f"{name}_Marmo", col, bm, material or PIETRA_ROS, uv_scale=(0.9, 0.9))
+    if len(bm_pat.faces):
+        _mesh_da_bmesh(f"{name}_Incavi", col, bm_pat, PATINA_ROS, uv_scale=(0.9, 0.9))
+    else:
+        bm_pat.free()
 
 
 
@@ -3461,11 +3804,11 @@ def portale_pisano(cx, door_w, door_h, r_ext, gh_base, gh_apex, door_mat, centra
     # come in fotografia — figura intera panneggiata, benedizione con la destra,
     # libro nella sinistra.
     if central:
-        box("Piedistallo_Redentore", ST, cx, -1.66, gh_apex + 0.10, 0.46, 0.34, 0.20, BIANCO2)
+        box("Piedistallo_Redentore", ST, cx, -1.66, gh_apex - 0.32, 0.46, 0.34, 0.16, BIANCO2)
         statua_gotica_v26(
-            "Statua_Redentore_Oculo", ST, cx, -1.70, gh_apex + 0.20, 1.78,
-            spec=dict(gesto="benedicente", barba=0.95, copricapo="capelli_lunghi",
-                      yaw=0.0, nod=0.02, seed=11, lato=1, rot_z=0.0),
+            "Statua_Redentore_Oculo", ST, cx, -1.76, gh_apex - 0.24, 1.72,
+            spec=dict(gesto="petto", barba=0.72, copricapo="capelli_lunghi",
+                      yaw=-0.18, nod=0.09, seed=11, lato=1, rot_z=-0.08),
         )
     else:
         statua_gotica_v26(
@@ -3514,7 +3857,7 @@ for m_k in range(38):
     box(f"Mensola_Galleria_{m_k}", D, mx, -1.62, Z_GALLERIA - 0.18, 0.22, 0.32, 0.24, PIETRA)
 
 # =============================================================================
-# 4. REGISTRO SUPERIORE CENTRALE — IL ROSONE DI CAMAINO (v2.6)
+# 4. REGISTRO SUPERIORE CENTRALE — IL ROSONE DI CAMAINO (v2.7)
 #
 #   Rilettura integrale della zona della vetrata sulla fotografia di dettaglio
 #   `riferimento_vetrata.jpg`:
@@ -3537,9 +3880,9 @@ for m_k in range(38):
 
 # --- 4.0 Parametri del rosone ------------------------------------------------
 Z_PAN = Z_OCULO - 0.45                 # centro del pannello quadrato
-PAN_HW, PAN_HH = 4.30, 3.55            # semiassi del pannello
+PAN_HW, PAN_HH = 3.55, 3.55            # pannello poco piu' largo della ghiera
 GH_OUT_RX = RX_OCULO + 0.62            # filo esterno della ghiera
-GH_OUT_RZ = RZ_OCULO + 0.50
+GH_OUT_RZ = RZ_OCULO + 0.62            # v2.7: apertura e corona circolari
 Y_PARETE = -1.58                       # piano del pannello di marmo rigato
 Y_GHIERA = -1.72                       # risalto massimo della ghiera
 Y_VETRO = -1.10                        # fondo della strombatura
@@ -3558,7 +3901,9 @@ def disco_vetro(name, col, cx, y, cz, rx, rz, material, seg=128, anelli=9, tile=
         row = []
         for j in range(seg):
             a = math.tau * j / seg
-            row.append(bm.verts.new((rx * f * math.cos(a), 0.0, rz * f * math.sin(a))))
+            px, pz = rx * f * math.cos(a), rz * f * math.sin(a)
+            onda = 0.0035 * math.sin(px * 4.1 + pz * 1.7) * math.sin(pz * 3.3 - px * 0.8)
+            row.append(bm.verts.new((px, onda, pz)))
         fasce.append(row)
 
     def _uv(co):
@@ -3574,6 +3919,7 @@ def disco_vetro(name, col, cx, y, cz, rx, rz, material, seg=128, anelli=9, tile=
             j2 = (j + 1) % seg
             facce.append(bm.faces.new((ra[j], rb[j], rb[j2], ra[j2])))
     for f in facce:
+        f.smooth = True
         for loop in f.loops:
             loop[uv].uv = _uv(loop.vert.co)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
@@ -3645,25 +3991,26 @@ box("Oculo_Fondo_Opaco", R, 0.0, -0.62, Z_OCULO, RX_OCULO * 2.05, 0.10,
 
 # Piombatura: due montanti per lato e cinque traversi, sezione sottile come
 # nell'originale (barre di ferro piatto, non tubi neri spessi).
-BARRA_HW = 0.042
+BARRA_HW = 0.026
+Y_PIOMBO = Y_VETRO - 0.035
 # due soli montanti verticali interni (a un terzo del raggio), come in fotografia
 for _x in (-RX_OCULO * 0.335, RX_OCULO * 0.335):
     _hh = RZ_OCULO * math.sqrt(max(0.0, 1.0 - (_x / RX_OCULO) ** 2)) - 0.02
-    box(f"Piombo_Vert_{_x:+.2f}", R, _x, -1.068, Z_OCULO,
-        BARRA_HW * 2.0, 0.050, 2.0 * _hh, FERRO)
-    box(f"Piombo_Vert_Filo_{_x:+.2f}", R, _x + BARRA_HW * 2.4, -1.085, Z_OCULO,
-        BARRA_HW * 0.55, 0.030, 2.0 * _hh * 0.995, FERRO)
+    box(f"Piombo_Vert_{_x:+.2f}", R, _x, Y_PIOMBO, Z_OCULO,
+        BARRA_HW * 2.0, 0.030, 2.0 * _hh, FERRO)
+    box(f"Piombo_Vert_Filo_{_x:+.2f}", R, _x + BARRA_HW * 1.45, Y_PIOMBO - 0.018, Z_OCULO,
+        BARRA_HW * 0.42, 0.012, 2.0 * _hh * 0.995, FERRO)
 # cinque traversi orizzontali, equidistanti
 for _k in range(-2, 3):
     _dz = _k * RZ_OCULO * 0.335
     _ww = RX_OCULO * math.sqrt(max(0.0, 1.0 - (_dz / RZ_OCULO) ** 2)) - 0.02
-    box(f"Piombo_Orizz_{_k:+d}", R, 0.0, -1.068, Z_OCULO + _dz,
-        2.0 * _ww, 0.050, BARRA_HW * 2.0, FERRO)
-    box(f"Piombo_Orizz_Filo_{_k:+d}", R, 0.0, -1.085, Z_OCULO + _dz + BARRA_HW * 2.4,
-        2.0 * _ww * 0.995, 0.030, BARRA_HW * 0.55, FERRO)
+    box(f"Piombo_Orizz_{_k:+d}", R, 0.0, Y_PIOMBO, Z_OCULO + _dz,
+        2.0 * _ww, 0.030, BARRA_HW * 2.0, FERRO)
+    box(f"Piombo_Orizz_Filo_{_k:+d}", R, 0.0, Y_PIOMBO - 0.018, Z_OCULO + _dz + BARRA_HW * 1.45,
+        2.0 * _ww * 0.995, 0.012, BARRA_HW * 0.42, FERRO)
 # Telaio di piombo perimetrale (la ghiera del vetro, sottile e scura)
-torus_ellipse("Piombo_Filo_Perimetrale", R, 0.0, -1.083, Z_OCULO,
-              RX_OCULO - 0.02, RZ_OCULO - 0.02, 0.036, FERRO, seg_u=120, seg_v=8)
+torus_ellipse("Piombo_Filo_Perimetrale", R, 0.0, Y_PIOMBO - 0.005, Z_OCULO,
+              RX_OCULO - 0.02, RZ_OCULO - 0.02, 0.024, FERRO, seg_u=160, seg_v=8)
 
 # Strombatura in ombra fra il filo della ghiera e il vetro
 anello_strombato("Oculo_Strombatura", R, Z_OCULO, -1.545, Y_VETRO + 0.02,
@@ -3690,9 +4037,12 @@ def _telaio_arco(a, rx, rz, cz, y, tilt=0.0, incl=0.0):
     P = Vector((rx * ca, y, cz + rz * sa))
     n = Vector((ca / max(rx, 1e-5), 0.0, sa / max(rz, 1e-5))).normalized()
     t = Vector((-sa * rx, 0.0, ca * rz)).normalized()
-    d = (t * math.cos(tilt) + n * math.sin(incl)).normalized()
-    yc = n
-    xc = yc.cross(d).normalized()
+    ang = tilt + 0.35 * incl
+    d = (t * math.cos(ang) + n * math.sin(ang)).normalized()
+    # X = larghezza radiale, Y = profondita' (fronte verso -Y), Z = lunghezza
+    # tangente.  Nella v2.6 X e Y erano scambiati e le foglie si disponevano
+    # come scaglie piatte invece di riempire la fascia scolpita.
+    xc = (n * math.cos(ang) - t * math.sin(ang)).normalized()
     yc = d.cross(xc).normalized()
     M = Matrix(((xc.x, yc.x, d.x, P.x),
                 (xc.y, yc.y, d.y, P.y),
@@ -3718,63 +4068,81 @@ _mesh_da_bmesh("Oculo_Mosaico_Avorio", R, _bm_oro_b, BIANCO2)
 torus_ellipse("Ghiera_Filo_Esterno", R, 0.0, Y_GHIERA + 0.030, Z_OCULO,
               GH_OUT_RX, GH_OUT_RZ, 0.105, BIANCO, seg_u=132, seg_v=14)
 torus_ellipse("Ghiera_Filo_Esterno_Interno", R, 0.0, Y_GHIERA - 0.020, Z_OCULO,
-              GH_OUT_RX - 0.108, GH_OUT_RZ - 0.095, 0.036, BIANCO2, seg_u=132, seg_v=8)
+              GH_OUT_RX - 0.108, GH_OUT_RZ - 0.108, 0.036, BIANCO2, seg_u=160, seg_v=8)
 torus_ellipse("Ghiera_Fondo_Rosa", R, 0.0, Y_PARETE - 0.045, Z_OCULO,
-              GH_OUT_RX - 0.075, GH_OUT_RZ - 0.065, 0.150, ROSA, seg_u=132, seg_v=10)
+              GH_OUT_RX - 0.075, GH_OUT_RZ - 0.075, 0.150, PIETRA_RIL, seg_u=160, seg_v=10)
 # gola in ombra subito dentro l'orlo (da' profondita' alla fascia)
 torus_ellipse("Ghiera_Gola_Ombra", R, 0.0, Y_PARETE + 0.02, Z_OCULO,
-              GH_OUT_RX - 0.150, GH_OUT_RZ - 0.130, 0.055, SGUINCIO, seg_u=132, seg_v=8)
+              GH_OUT_RX - 0.150, GH_OUT_RZ - 0.150, 0.055, SGUINCIO, seg_u=160, seg_v=8)
 
 # filo di perle appoggiato sul fondo rosa, sotto l'orlo
 _bm_gh_perle = bmesh.new()
 for k in range(196):
     a = math.tau * (k + 0.5) / 196
-    Mp = _telaio_arco(a, GH_OUT_RX - 0.205, GH_OUT_RZ - 0.178, Z_OCULO, Y_PARETE - 0.055)
+    Mp = _telaio_arco(a, GH_OUT_RX - 0.205, GH_OUT_RZ - 0.205, Z_OCULO, Y_PARETE - 0.055)
     _bm_sfera(_bm_gh_perle, Mp @ Matrix.Translation((0.0, 0.055, 0.0)),
               0.0, 0.0, 0.0, 0.032, sx=1.0, sy=0.75, sz=1.0, u=8, v=5)
 _mesh_da_bmesh("Ghiera_Perlinatura", R, _bm_gh_perle, BIANCO, uv_scale=(1.0, 1.0))
 
 # --- fogliame d'acanto corrente: due ordini sfalsati che corrono lungo l'arco
-N_FOGLIE = 112
+N_FOGLIE = 144
 _bm_foglie_a = bmesh.new()
 _bm_foglie_b = bmesh.new()
 _bm_volute = bmesh.new()
+_PROF_ACANTO = ((0.00, 0.15), (0.08, 0.31), (0.16, 0.22), (0.24, 0.48),
+                (0.32, 0.30), (0.40, 0.54), (0.48, 0.32), (0.57, 0.48),
+                (0.65, 0.27), (0.74, 0.37), (0.83, 0.19), (0.92, 0.15),
+                (1.00, 0.015))
 for k in range(N_FOGLIE):
     a = math.tau * (k + 0.5) / N_FOGLIE
-    tilt = 0.42 if k % 2 == 0 else -0.42
+    tilt = 0.34 if k % 2 == 0 else -0.34
     for riga, (dr_r, dr_z, lun, lar, bm_t, incl) in enumerate((
-        (0.520, 0.462, 0.300, 0.160, _bm_foglie_a, 0.30),
-        (0.355, 0.315, 0.250, 0.140, _bm_foglie_b, 0.34),
+        (0.520, 0.520, 0.250, 0.138, _bm_foglie_a, 0.24),
+        (0.355, 0.355, 0.215, 0.120, _bm_foglie_b, 0.28),
     )):
         aa = a + (0.5 * math.tau / N_FOGLIE if riga else 0.0)
         M_g = _telaio_arco(aa, GH_OUT_RX - dr_r, GH_OUT_RZ - dr_z, Z_OCULO,
                            Y_PARETE - 0.02, tilt=tilt, incl=incl)
-        _bm_foglia(
-            bm_t, lun, lar, 0.080,
-            M_g @ Matrix.Translation((0.0, 0.014, -lun * 0.42)),
-            profilo=((0.0, 0.16), (0.14, 0.42), (0.32, 0.52), (0.52, 0.50),
-                     (0.72, 0.38), (0.88, 0.22), (1.0, 0.04)),
-            piega=0.22 * (1 if tilt > 0 else -1), gonfia=1.15,
-        )
-        # occhio della voluta all'attacco della foglia
-        _bm_sfera(_bm_volute, M_g @ Matrix.Translation((0.0, 0.045, -lun * 0.40)),
-                  0.0, 0.0, 0.0, 0.048, sx=1.15, sy=0.60, sz=1.15, u=10, v=6)
-_mesh_da_bmesh("Ghiera_Fogliame_Esterno", R, _bm_foglie_a, PIETRA_RIL)
-_mesh_da_bmesh("Ghiera_Fogliame_Interno", R, _bm_foglie_b, PIETRA_RIL)
+        M_leaf = M_g @ Matrix.Translation((0.0, -0.010, -lun * 0.42))
+        _bm_foglia(bm_t, lun, lar, 0.072, M_leaf, profilo=_PROF_ACANTO,
+                   piega=0.15 * (1 if tilt > 0 else -1), gonfia=1.18)
+        # costa centrale e due lobi appena sollevati: il rilievo non e' una
+        # silhouette piatta, ma una foglia con una nervatura scolpita.
+        _bm_sweep24(bm_t, M_leaf,
+                    ((0.0, -0.030, lun * 0.07),
+                     (0.0, -0.092, lun * 0.46),
+                     (0.0, -0.034, lun * 0.88)),
+                    (0.0055, 0.0080, 0.0030), lati=6,
+                    ellisse=0.60, campioni=3)
+        _bm_sfera(_bm_volute, M_g @ Matrix.Translation((0.0, -0.045, -lun * 0.40)),
+                  0.0, 0.0, 0.0, 0.038, sx=1.15, sy=0.60, sz=1.15, u=10, v=6)
+_mesh_da_bmesh("Ghiera_Fogliame_Esterno", R, _bm_foglie_a, PIETRA_ROS)
+_mesh_da_bmesh("Ghiera_Fogliame_Interno", R, _bm_foglie_b, PIETRA_ROS)
 _mesh_da_bmesh("Ghiera_Occhi_Volute", R, _bm_volute, BIANCO2)
+
+# Dentelli minuti fra l'orlo e la perlinatura: una seconda scala di dettaglio
+# che resta leggibile nel close-up senza trasformare la corona in borchie.
+_bm_dentelli = bmesh.new()
+for k in range(180):
+    a = math.tau * (k + 0.5) / 180
+    Md = _telaio_arco(a, GH_OUT_RX - 0.118, GH_OUT_RZ - 0.118,
+                      Z_OCULO, Y_PARETE - 0.090)
+    _bm_box(_bm_dentelli, Md @ Matrix.Translation((0.0, -0.022, 0.0)),
+            0.0, 0.0, 0.0, 0.052, 0.052, 0.046)
+_mesh_da_bmesh("Ghiera_Dentelli_Minuti", R, _bm_dentelli, BIANCO2)
 
 # --- seconda fascia: corda intrecciata oro/avorio (treccia fitta a due capi)
 torus_ellipse("Ghiera_Filo_Rosa_Interno", R, 0.0, Y_GHIERA + 0.055, Z_OCULO,
-              RX_OCULO + 0.360, RZ_OCULO + 0.318, 0.070, ROSA, seg_u=132, seg_v=10)
+              RX_OCULO + 0.360, RZ_OCULO + 0.360, 0.070, ROSA, seg_u=160, seg_v=10)
 _bm_corda_avorio = bmesh.new()
 _bm_corda_oro = bmesh.new()
 N_CORDA = 132
 for k in range(N_CORDA):
     a = math.tau * (k + 0.5) / N_CORDA
     tilt = 0.70 if k % 2 == 0 else -0.70
-    Mc = _telaio_arco(a, RX_OCULO + 0.262, RZ_OCULO + 0.232, Z_OCULO,
+    Mc = _telaio_arco(a, RX_OCULO + 0.262, RZ_OCULO + 0.262, Z_OCULO,
                       Y_GHIERA + 0.030, tilt=tilt, incl=0.16)
-    _bm_box(_bm_corda_avorio if k % 2 == 0 else _bm_corda_oro,
+    _bm_box(_bm_corda_avorio if k % 4 else _bm_corda_oro,
             Mc @ Matrix.Translation((0.0, 0.012, 0.0)),
             0.0, 0.0, 0.0, 0.120, 0.072, 0.040)
 _mesh_da_bmesh("Ghiera_Corda_Avorio", R, _bm_corda_avorio, BIANCO2)
@@ -3782,9 +4150,9 @@ _mesh_da_bmesh("Ghiera_Corda_Oro", R, _bm_corda_oro, ORO_MOS)
 
 # --- orli modanati interno ed esterno della corda
 torus_ellipse("Ghiera_Filo_Sopra_Corda", R, 0.0, Y_GHIERA + 0.085, Z_OCULO,
-              RX_OCULO + 0.352, RZ_OCULO + 0.312, 0.030, BIANCO, seg_u=132, seg_v=8)
+              RX_OCULO + 0.352, RZ_OCULO + 0.352, 0.030, BIANCO, seg_u=160, seg_v=8)
 torus_ellipse("Ghiera_Filo_Interno", R, 0.0, Y_GHIERA + 0.085, Z_OCULO,
-              RX_OCULO + 0.170, RZ_OCULO + 0.152, 0.044, BIANCO2, seg_u=132, seg_v=8)
+              RX_OCULO + 0.170, RZ_OCULO + 0.170, 0.044, BIANCO2, seg_u=160, seg_v=8)
 # mosaico aureo a tessere sul bordo del vetro + filo di raccordo alla strombatura
 torus_ellipse("Ghiera_Filo_Sotto_Strombatura", R, 0.0, -1.545, Z_OCULO,
               RX_OCULO + 0.105, RZ_OCULO + 0.100, 0.030, BIANCO2, seg_u=132, seg_v=8)
@@ -3841,6 +4209,124 @@ def edicola_v26(name, col, cx, y, z0, w, h, material_statua=None):
     torus(f"{name}_Rosetta", R, cx, y - 0.145, z0 + h * 0.055, 0.055, 0.014, BIANCO)
 
 
+def edicola_v27(name, col, cx, y, z0, w, h, variant=0):
+    """Edicola laterale del rosone con catino concavo e vero altorilievo."""
+    z_dav = z0 + 0.105 * h
+    z_imp = z0 + 0.570 * h
+    hw = 0.38 * w
+    z_top = z_imp + hw
+
+    box(f"{name}_Fondo_Rosa", col, cx, y + 0.205, (z_dav + z_top) * 0.5,
+        0.88 * w, 0.075, z_top - z_dav + 0.045, RIGATO, fit_uv=True)
+    # Catino semicircolare: il fondo arretra al centro e la luce descrive la
+    # concavita'.  Niente parallelepipedo nero dietro la statua.
+    bm_shell = bmesh.new()
+    seg, rings = 32, 9
+    center = bm_shell.verts.new((cx, y + 0.200, z_imp))
+    rows = []
+    for ir in range(1, rings + 1):
+        r = ir / rings
+        row = []
+        for j in range(seg + 1):
+            a = math.pi * j / seg
+            row.append(bm_shell.verts.new((cx + hw * r * math.cos(a),
+                                            y + 0.200 - 0.155 * r,
+                                            z_imp + hw * r * math.sin(a))))
+        rows.append(row)
+    for j in range(seg):
+        bm_shell.faces.new((center, rows[0][j], rows[0][j + 1]))
+    for ir in range(rings - 1):
+        for j in range(seg):
+            bm_shell.faces.new((rows[ir][j], rows[ir + 1][j],
+                                rows[ir + 1][j + 1], rows[ir][j + 1]))
+    _mesh_da_bmesh(f"{name}_Catino", col, bm_shell, RIGATO, uv_scale=(0.85, 0.85))
+
+    bm_w = bmesh.new()
+    bm_r = bmesh.new()
+    bm_f = bmesh.new()
+    bm_c = bmesh.new()
+    Mi = Matrix.Identity(4)
+    for sd in (-1, 1):
+        xs = cx + sd * w * 0.455
+        _bm_box(bm_w, Mi, xs, y - 0.015, (z_dav + z_imp) * 0.5,
+                w * 0.085, 0.155, z_imp - z_dav + 0.035)
+        _bm_box(bm_r, Mi, xs, y - 0.100, (z_dav + z_imp) * 0.5,
+                w * 0.022, 0.018, (z_imp - z_dav) * 0.88)
+        for zz, ww, hh in ((z_dav + 0.015, 0.140, 0.040),
+                           (z_imp - 0.025, 0.145, 0.045),
+                           (z_imp + 0.018, 0.165, 0.028)):
+            _bm_box(bm_w, Mi, xs, y - 0.025, zz, w * ww, 0.190, h * hh)
+        # fogliolina del capitello
+        _bm_foglia(bm_f, h * 0.050, w * 0.040, h * 0.012,
+                   Mi @ Matrix.Translation((xs, y - 0.130, z_imp - h * 0.045)),
+                   gonfia=1.15)
+        # spallette strombate del vano
+        _bm_box(bm_w, Mi, cx + sd * (hw + 0.010), y + 0.100,
+                (z_dav + z_imp) * 0.5, 0.025, 0.220, z_imp - z_dav)
+
+    arch(f"{name}_Arco_Esterno", col, cx, y - 0.065, z_imp,
+         hw + 0.050, 0.030, BIANCO, seg_u=34, seg_v=10)
+    arch(f"{name}_Arco_Rosa", col, cx, y - 0.048, z_imp,
+         hw + 0.008, 0.018, ROSA, seg_u=32, seg_v=8)
+    arch(f"{name}_Arco_Interno", col, cx, y - 0.025, z_imp,
+         hw - 0.030, 0.016, BIANCO2, seg_u=30, seg_v=8)
+    for k in range(21):
+        a = math.pi * k / 20.0
+        _bm_sfera(bm_f, Mi, cx - (hw + 0.050) * math.cos(a), y - 0.098,
+                  z_imp + (hw + 0.050) * math.sin(a), 0.0085,
+                  sy=0.70, u=7, v=5)
+    # Costole sottili del catino, appena accennate come nell'originale.
+    for k in range(1, 8):
+        a = math.pi * k / 8.0
+        _bm_sweep24(bm_r, Mi,
+                    ((cx, y + 0.192, z_imp + 0.006),
+                     (cx + hw * 0.52 * math.cos(a), y + 0.115,
+                      z_imp + hw * 0.52 * math.sin(a)),
+                     (cx + hw * 0.96 * math.cos(a), y + 0.052,
+                      z_imp + hw * 0.96 * math.sin(a))),
+                    (0.004, 0.006, 0.008), lati=6, ellisse=0.65, campioni=3)
+
+    # Ghimberga alle spalle dell'arco: solo le modanature avanzano, cosi' la
+    # testa non viene tagliata da un triangolo pieno.
+    z_gb, z_ap = z0 + 0.735 * h, z0 + 1.025 * h
+    hw_g = 0.53 * w
+    prism(f"{name}_Campo_Ghimberga", col, cx, y + 0.115, z_gb,
+          hw_g * 1.75, z_ap - z_gb, 0.055, BIANCO2)
+    _bm_fascia_spiovente(bm_w, Mi, cx, hw_g, z_gb, z_ap, y - 0.050,
+                         -0.008, 0.020, 0.065)
+    _bm_fascia_spiovente(bm_r, Mi, cx, hw_g, z_gb, z_ap, y - 0.040,
+                         0.020, 0.033, 0.045)
+    _bm_fascia_spiovente(bm_w, Mi, cx, hw_g, z_gb, z_ap, y - 0.055,
+                         0.033, 0.055, 0.055)
+    ang = math.atan2(z_ap - z_gb, hw_g)
+    for sd in (-1, 1):
+        for k in range(5):
+            t = 0.16 + 0.68 * k / 4.0
+            gx = cx + sd * hw_g * (1.0 - t) + sd * math.sin(ang) * 0.045
+            gz = z_gb + (z_ap - z_gb) * t + math.cos(ang) * 0.045
+            _bm_foglia(bm_f, h * 0.050 * (1.05 - 0.22 * t), h * 0.022,
+                       h * 0.013, Mi @ Matrix.Translation((gx, y - 0.070, gz))
+                       @ Matrix.Rotation(-sd * ang * 0.88, 4, "Y"),
+                       piega=-0.13 * sd, gonfia=1.22)
+    _bm_lathe(bm_f, Mi @ Matrix.Translation((cx, y - 0.070, z_ap)),
+              ((0.0, 0.025), (h * 0.025, 0.032), (h * 0.070, 0.012),
+               (h * 0.095, 0.003)), seg=10, sy=0.88)
+
+    # Davanzale cosmatesco e mensola a foglia che sostiene il busto.
+    _bm_box(bm_w, Mi, cx, y - 0.040, z_dav - 0.018, w * 0.94, 0.225, 0.045)
+    _bm_box(bm_c, Mi, cx, y - 0.158, z0 + 0.050 * h,
+            w * 0.74, 0.018, h * 0.072)
+    _bm_foglia(bm_f, h * 0.105, w * 0.115, h * 0.030,
+               Mi @ Matrix.Translation((cx, y - 0.100, z0 + 0.065 * h)),
+               piega=0.08, gonfia=1.30)
+
+    _mesh_da_bmesh(f"{name}_Marmo", col, bm_w, BIANCO, uv_scale=(1.0, 1.0))
+    _mesh_da_bmesh(f"{name}_Rosa", col, bm_r, ROSA, uv_scale=(1.0, 1.0))
+    _mesh_da_bmesh(f"{name}_Scultura", col, bm_f, PIETRA_ROS, uv_scale=(1.1, 1.1))
+    _mesh_da_bmesh(f"{name}_Cosmatesco", col, bm_c, COSMATE, uv_scale=(2.2, 2.2))
+    return z_dav
+
+
 # =============================================================================
 # 4.5 I QUATTRO PROFETI DEI PENNACCHI
 # =============================================================================
@@ -3867,30 +4353,38 @@ def profeta_pennacchio_v26(name, col, side, x, z_centro, w=1.30, h=1.72, alto=Tr
 
     bm = bmesh.new()
     bm_pat = bmesh.new()
+    lato = -side  # il gesto e lo sguardo sono rivolti verso il rosone
+    base_z = z_centro - h * 0.42
+    x_fig = x + side * (0.18 if alto else 0.14)
+    y_fig = y_pan - (0.16 if alto else 0.10)
     if alto:
-        lato = -side  # gesto verso il centro (il rosone)
-        spec = dict(yaw=lato * 0.52, nod=0.16, gesto="indica",
-                    barba=0.9, copricapo="capelli_lunghi", lato=lato,
-                    seed=3 if side < 0 else 5)
-        s = h / 1.72
-        M = (Matrix.Translation((x - lato * 0.03 * s, y_pan + 0.02, z_centro - h * 0.40))
-             @ Matrix.Rotation(0.12, 4, "X")
-             @ Matrix.Rotation(side * 0.22, 4, "Y")
-             @ Matrix.Diagonal((0.78 * s, 0.78 * s, 0.78 * s, 1.0)))
-        _bm_busto_profeta24(bm, bm_pat, M, 1.00, 1.50, spec)
+        spec = dict(yaw=lato * 0.27, nod=0.07,
+                    gesto="indica" if side < 0 else "parla",
+                    barba=0.72 if side < 0 else 0.88,
+                    copricapo="capelli_lunghi" if side < 0 else "capelli",
+                    lato=lato, seed=3 if side < 0 else 5)
+        M = (Matrix.Translation((x_fig, y_fig, base_z))
+             @ Matrix.Rotation(lato * 0.09, 4, "Z")
+             @ Matrix.Rotation(-side * 0.105, 4, "Y")
+             @ Matrix.Diagonal((h * 1.02, h * 0.96, h * 0.96, 1.0)))
     else:
-        lato = -side
-        spec = dict(yaw=lato * 0.22, nod=0.06,
-                    gesto="libro" if side < 0 else "leggi",
-                    barba=1.05, copricapo="capelli", lato=lato,
-                    seed=7 if side < 0 else 9)
-        s = h / 1.72
-        M = (Matrix.Translation((x, y_pan + 0.02, z_centro - h * 0.42))
-             @ Matrix.Rotation(side * 0.08, 4, "Y")
-             @ Matrix.Diagonal((0.80 * s, 0.80 * s, 0.80 * s, 1.0)))
-        _bm_busto_profeta24(bm, bm_pat, M, 1.00, 1.52, spec)
-    _mesh_da_bmesh(f"{name}_Marmo", col, bm, PIETRA_RIL, uv_scale=(1.2, 1.2))
-    _mesh_da_bmesh(f"{name}_Incavi", col, bm_pat, PATINA, uv_scale=(1.2, 1.2))
+        spec = dict(yaw=lato * 0.24, nod=0.08,
+                    gesto="rotolo" if side < 0 else "leggi",
+                    barba=0.92 if side < 0 else 0.68,
+                    copricapo="capelli_lunghi" if side < 0 else "capelli",
+                    lato=lato, seed=7 if side < 0 else 9)
+        M = (Matrix.Translation((x_fig, y_fig, base_z))
+             @ Matrix.Rotation(lato * 0.08, 4, "Z")
+             @ Matrix.Rotation(-side * 0.035, 4, "Y")
+             @ Matrix.Diagonal((h * 1.02, h * 0.96, h * 0.96, 1.0)))
+    _bm_box(bm, Matrix.Translation((x_fig, y_fig + 0.015, base_z + 0.012)),
+            0.0, 0.0, 0.0, 0.43, 0.27, 0.050)
+    _bm_figura_gotica_v27(bm, bm_pat, M, 1.0, spec)
+    _mesh_da_bmesh(f"{name}_Marmo", col, bm, PIETRA_ROS, uv_scale=(1.2, 1.2))
+    if len(bm_pat.faces):
+        _mesh_da_bmesh(f"{name}_Incavi", col, bm_pat, PATINA_ROS, uv_scale=(1.2, 1.2))
+    else:
+        bm_pat.free()
 
 
 for _sx in (-1, 1):
@@ -3975,24 +4469,37 @@ for side in (-1, 1):
         box(f"Fregio_Quatrifogli_Filo_{tag}_{_s:+d}", D,
             side * 4.52 + _s * 0.185, -1.61, (z_v0 + z_v1) * 0.5,
             0.045, 0.055, z_v1 - z_v0 + 0.10, VERDE)
-    for k_r in range(8):
+    for k_r in range(16):
         rosetta_rilievo(f"Quatrifoglio_{tag}_{k_r}", D, side * 4.52, -1.645,
-                        z_v0 + (z_v1 - z_v0) * (k_r + 0.5) / 8.0, 0.115, petals=4)
+                        z_v0 + (z_v1 - z_v0) * (k_r + 0.5) / 16.0, 0.073, petals=4)
+    _POSE_LAT_SX = ("parla", "pensatore", "libro", "petto_tavola")
+    _POSE_LAT_DX = ("libro_chiuso", "rotolo", "leggi", "pensatore")
     for j in range(n_side):
         z_n = z_v0 + j * h_nside
-        edicola_v26(
-            f"Nicchia_Lat_{tag}_{j}", R, side * 3.93, -1.52,
-            z_n, 0.94, h_nside * 0.99,
+        cx_n = side * 3.93
+        z_dav = edicola_v27(
+            f"Nicchia_Lat_{tag}_{j}", R, cx_n, -1.52,
+            z_n, 0.94, h_nside * 0.99, variant=j,
         )
-        gesto = _GESTI_LAT[(j + (0 if side < 0 else 3)) % len(_GESTI_LAT)]
-        statua_gotica_v26(
-            f"Statua_Lat_{tag}_{j}", ST, side * 3.93, -1.50,
-            z_n + 0.085, h_nside * 0.585,
-            spec=dict(gesto=gesto, barba=0.55 + 0.18 * (j % 3),
-                      copricapo=("capelli", "berretta", "capelli_lunghi")[j % 3],
-                      yaw=-side * 0.12, nod=0.05, seed=j * 3 + (0 if side < 0 else 1),
-                      lato=-side),
-        )
+        gesto = (_POSE_LAT_SX if side < 0 else _POSE_LAT_DX)[j]
+        if gesto == "leggi":
+            gesto = "libro"
+        spec = dict(gesto=gesto, barba=(0.05, 0.62, 0.88, 0.52)[j],
+                    copricapo=("capelli", "capelli_lunghi", "berretta", "cappuccio")[j],
+                    yaw=-side * (0.20 + 0.08 * (j % 2)), nod=0.10 + 0.05 * (j % 2),
+                    seed=j * 3 + (0 if side < 0 else 1), lato=-side)
+        bm_lat = bmesh.new()
+        bm_lat_pat = bmesh.new()
+        M_lat = (Matrix.Translation((cx_n, -1.655, z_dav + 0.018))
+                 @ Matrix.Rotation(-side * 0.08, 4, "Z"))
+        _bm_busto_profeta24(bm_lat, bm_lat_pat, M_lat, 0.68, h_nside * 0.70, spec)
+        _mesh_da_bmesh(f"Statua_Lat_{tag}_{j}_Marmo", ST, bm_lat, PIETRA_ROS,
+                       uv_scale=(1.3, 1.3))
+        if len(bm_lat_pat.faces):
+            _mesh_da_bmesh(f"Statua_Lat_{tag}_{j}_Incavi", ST, bm_lat_pat, PATINA_ROS,
+                           uv_scale=(1.3, 1.3))
+        else:
+            bm_lat_pat.free()
 
 # =============================================================================
 # 5. PILASTRI CONTRAFFORTI CENTRALI POLISTILI + GUGLIE GOTICHE CON TABERNACOLI
@@ -5383,14 +5890,14 @@ else:
             bpy.ops.render.render(write_still=True)
             print("Dettaglio della galleria salvato: anteprima_galleria.png")
 
-        # Quarta inquadratura (v2.6): il rosone e le statue che lo circondano,
+        # Quarta inquadratura (v2.7): il rosone e le statue che lo circondano,
         # inquadrati come nella fotografia di riferimento `riferimento_vetrata.jpg`.
-        target_rosone = Vector((0.0, -1.45 * SCALA, (Z_PAN + 0.55) * SCALA))
-        cam.location = (0.0, -15.0 * SCALA, (Z_PAN + 0.55) * SCALA)
+        target_rosone = Vector((0.0, -1.45 * SCALA, (Z_PAN + 0.88) * SCALA))
+        cam.location = (0.0, -15.0 * SCALA, (Z_PAN + 0.88) * SCALA)
         cam.rotation_euler = (target_rosone - cam.location).to_track_quat("-Z", "Y").to_euler()
-        cam.data.lens = 56.0
-        scene.render.resolution_x = int(os.environ.get("CHIESA_ROSone_RES_X", 1100))
-        scene.render.resolution_y = int(os.environ.get("CHIESA_ROSone_RES_Y", 1200))
+        cam.data.lens = 47.5
+        scene.render.resolution_x = int(os.environ.get("CHIESA_ROSone_RES_X", 1453))
+        scene.render.resolution_y = int(os.environ.get("CHIESA_ROSone_RES_Y", 1582))
         scene.render.filepath = ROSONE_PNG_PATH
         bpy.ops.render.render(write_still=True)
         print("Dettaglio del rosone salvato: anteprima_rosone.png")
@@ -5421,7 +5928,7 @@ if "gltf" in EXPORT.get("formats", []) and not os.environ.get("CHIESA_NO_GLB"):
     except Exception as e:
         print(f"Export GLB non riuscito: {e}")
 
-print("Generazione v2.6 completata!")
+print("Generazione v2.7 completata!")
 sys.stdout.flush()
 sys.stderr.flush()
 if "bpy" in sys.modules and not bpy.app.binary_path:
