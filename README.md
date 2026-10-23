@@ -6,10 +6,11 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 | File | Descrizione |
 |---|---|
-| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire (2.738 oggetti mesh fusi, 26 materiali PBR con texture incorporate) |
+| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire (2.757 oggetti mesh, 26 materiali PBR con texture incorporate) |
 | `Facciata_Duomo_Siena.glb` | Esportazione glTF 2.0 per visualizzatori web / game engine |
 | `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 64 campioni, 900×1050) |
-| `anteprima_apice.png` | Render ravvicinato ad alta fedeltà della cuspide centrale, dei pinnacoli e della galleria dei profeti (Cycles CPU, 64 campioni, 900×1022) |
+| `anteprima_apice.png` | Render ravvicinato della cuspide centrale e dei pinnacoli (Cycles CPU, 64 campioni, 900×1022) |
+| `anteprima_galleria.png` | Dettaglio panoramico della fascia richiesta: fregio, profeti, angeli e sommità del rosone (Cycles CPU, 64 campioni, 1200×400) |
 | `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprime e GLB da zero |
 | `config_facciata.json` | Tutti i parametri (dimensioni, materiali PBR, luci, camera, render, export) |
 | `riferimento_facciata.jpg` | Fotografia d'insieme di riferimento |
@@ -19,6 +20,28 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
+
+## Versione 2.1 — galleria dei Profeti, fregio e angeli del rosone
+
+Intervento mirato alla fascia **sopra l'oculo e sotto il timpano centrale**,
+ricostruita sul dettaglio fotografico fornito. Il resto della facciata resta
+invariato.
+
+- Le `14` campate superiori sono ora edicole gotiche individuali più leggibili:
+  colonnine scanalate con capitelli fogliati, archi acuti strombati, doppie
+  ghimberghe, gattoni rampanti e finiali scolpiti.
+- I `14` profeti hanno silhouette e gesti differenziati (libro, cartiglio,
+  tavola, mano alzata), con panneggio, barbe, copricapi e volti modellati in
+  altorilievo; il fondo rosato e le nicchie ombreggiate danno profondità alla
+  galleria.
+- I due rilievi ai lati dell'arco sono stati rifatti come angeli alati
+  speculari, con nimbo, piume separate, panneggio e braccio rivolto verso il
+  rosone.
+- La trabeazione sotto il mosaico aggiunge una sequenza scolpita di cherubini e
+  gigli; il fregio alla base del mosaico passa da `6` a `10` testine, alternate
+  a palmette.
+- `anteprima_galleria.png` mostra il dettaglio aggiornato con un'inquadratura
+  ravvicinata e panoramica.
 
 ## Versione 2.0 — ricostruzione integrale della zona centrale superiore
 
