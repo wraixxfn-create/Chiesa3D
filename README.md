@@ -6,12 +6,12 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 | File | Descrizione |
 |---|---|
-| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire, con sculture v2.6 e materiali PBR a texture incorporate |
+| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire, con rosone e sculture v2.7 e materiali PBR a texture incorporate |
 | `Facciata_Duomo_Siena.glb` | Esportazione glTF 2.0 per visualizzatori web / game engine |
-| `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 64 campioni, 900×1050) |
-| `anteprima_apice.png` | Render ravvicinato della cuspide centrale e dei pinnacoli (Cycles CPU, 64 campioni, 900×1022) |
-| `anteprima_rosone.png` | Il rosone e le statue che lo circondano, inquadrati come nella fotografia di dettaglio (Cycles CPU, 1100×1200) |
-| `confronto_rosone.png` | Confronto fotografia / versione 2.5 / versione 2.6 del rosone e dei pennacchi |
+| `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 48 campioni, 900×1050) |
+| `anteprima_apice.png` | Render ravvicinato della cuspide centrale e dei pinnacoli (Cycles CPU, 48 campioni, 900×1022) |
+| `anteprima_rosone.png` | Il rosone e tutte le statue che lo circondano, inquadrati come nella fotografia di dettaglio (Cycles CPU, 48 campioni, 1453×1582) |
+| `confronto_rosone.png` | Confronto fotografia / versione 2.6 / versione 2.7 del rosone, della vetrata e delle sculture |
 | `anteprima_galleria.png` | Dettaglio panoramico v2.5 sul taglio della fotografia: fregio di cherubini, trabeazione a scacchiera, 15 edicole con profeti in altorilievo, pennacchi e sommità del rosone (Cycles CPU, 1600×520) |
 | `confronto_galleria.png` | Confronto fotografia di riferimento / versione 2.4 / versione 2.5 della galleria dei Profeti |
 | `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprime e GLB da zero |
@@ -25,6 +25,43 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
+
+## Versione 2.7 — vetrata e sculture del rosone, secondo passaggio profondo
+
+Intervento concentrato sulla fotografia `riferimento_vetrata.jpg`: non si
+limita ai materiali, ma corregge geometria, proporzioni, pose e inquadratura.
+
+- **Rosone circolare.** L'apertura e tutti gli ordini concentrici della ghiera
+  usano ora lo stesso raggio orizzontale e verticale; il pannello dei
+  pennacchi è stato riportato alla larghezza misurata sulla fotografia.
+- **Vetro fotografico pulito, non quattro campioni ripetuti.** Una texture da
+  **1536×1536 px** rilegge l'intera vetrata e conserva le differenze fra le
+  diciotto lastre, i graffi, le nuvolature e le bollicine. Montanti e
+  Redentore presenti nella foto sono rimossi per campionamento locale: il
+  reticolo e la statua sono soltanto geometria 3D, mai ombre stampate.
+- **Materiale del vetro più credibile.** Emissione bilanciata per evitare sia
+  il disco nero sia il pannello piatto, micro-bump, ondulazione millimetrica
+  della lastra e riflesso controllato. La piombatura è davanti al vetro, con
+  due montanti, cinque traversi e filo perimetrale a sezione sottile.
+- **Ghiera scolpita sul telaio corretto.** Eliminate le scaglie disposte sul
+  piano sbagliato: **288 foglie d'acanto lobate** con costa centrale,
+  **180 dentelli**, perlinatura, volute, corda e mosaico seguono ora la
+  circonferenza con profondità frontale coerente.
+- **Quattro profeti a figura intera.** I busti dei pennacchi sono sostituiti
+  da figure complete in contrapposto: tunica continua, manto a doppia
+  superficie con orli, piedi separati, maniche raccordate e mani articolate.
+  I superiori indicano e parlano verso l'oculo; gli inferiori reggono rotolo
+  e libro. Sono avanzati e spostati quanto basta per non nascondere i gesti
+  dietro la ghiera.
+- **Otto nicchie laterali abitate.** Ogni edicola ha fondo chiaro, catino
+  concavo con costole, triplice arco, capitelli, ghimberga, mensola e
+  cosmatesco. I busti sono più grandi e alternano lettura, pensiero, rotolo,
+  preghiera e gesto parlante; la fascia esterna ha sedici quatrifogli per lato.
+- **Redentore rifatto nella posa e nella scala.** Figura raccolta con mano al
+  petto, capelli lunghi e manto continuo; l'altezza e il piedistallo sono
+  calibrati sul rapporto fra testa, bordo inferiore del vetro e ghimberga.
+- **Nuovo render 1453×1582** con tutte le sculture nel campo e
+  `confronto_rosone.png` aggiornato a fotografia / v2.6 / v2.7.
 
 ## Versione 2.6 — il rosone e le statue che lo circondano
 
