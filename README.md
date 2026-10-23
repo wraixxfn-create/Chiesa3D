@@ -6,19 +6,59 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 | File | Descrizione |
 |---|---|
-| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire (~4.000 oggetti, 23 materiali PBR con texture incorporate) |
+| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire (2.738 oggetti mesh fusi, 26 materiali PBR con texture incorporate) |
 | `Facciata_Duomo_Siena.glb` | Esportazione glTF 2.0 per visualizzatori web / game engine |
-| `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 900×1050) |
-| `anteprima_apice.png` | Render ravvicinato dell'apice centrale (denoising, 900×1000) |
-| `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprima e GLB da zero |
+| `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 64 campioni, 900×1050) |
+| `anteprima_apice.png` | Render ravvicinato ad alta fedeltà della cuspide centrale, dei pinnacoli e della galleria dei profeti (Cycles CPU, 64 campioni, 900×1022) |
+| `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprime e GLB da zero |
 | `config_facciata.json` | Tutti i parametri (dimensioni, materiali PBR, luci, camera, render, export) |
 | `riferimento_facciata.jpg` | Fotografia d'insieme di riferimento |
-| `riferimento_apice.jpg` | Fotografia ravvicinata dell'apice (usata per cuspide, mosaico e angelo) |
+| `riferimento_apice.jpg` | Fotografia ravvicinata ad alta risoluzione (2176×2472) usata per calibrare l'intera zona superiore centrale |
 
 ## Dimensioni
 
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
+
+## Versione 2.0 — ricostruzione integrale della zona centrale superiore
+
+Rifacimento completo, calibrato millimetricamente sulla fotografia ad alta
+risoluzione `riferimento_apice.jpg` (`2176×2472 px`), di tutta la parte
+superiore centrale del Duomo di Siena — angelo apicale, cuspide musiva,
+contrafforti centrali con tabernacoli gotici, trabeazione e galleria superiore
+dei profeti — con rigenerazione integrale di `Facciata_Duomo_Siena.blend`,
+`Facciata_Duomo_Siena.glb`, `anteprima_apice.png` e `anteprima_facciata.png`:
+
+1. **Angelo apicale e capitello pensile (`statua_angelo_apicale`, `ala_angelo`)**:
+   - Ali in bronzo/rame ossidato verderame (`Rame_Verde` + `Patina_Bronzo`) a
+     10 larghe remiganti spatolate sovrapposte senza fessure interne, costolone
+     carpale arcuato e tre ordini embricati di copritrici sbalzate.
+   - Statua marmorea in contrapposto classico-gotico con braccio destro alzato
+     che impugna la lancia bronzea, tunica e manto drappeggiati con sottosquadri
+     patinati (`Patina_Scolpita`), cuscino a foglie d'acanto e grande capitello
+     corinzio pensile coronato da abaco aggettante.
+2. **Cuspide centrale e Mosaico dell'Incoronazione della Vergine (Sez. 6)**:
+   - Triangoli esterni e interni ricalibrati a `61,05°` (`8,80 × 8,12 m`,
+     incassati esattamente fra i due contrafforti centrali senza intersezioni).
+   - Mosaico riestratto a `1536×1536 px` da `riferimento_apice.jpg` con restauro
+     delle tessere auree perimetrali, shader metallico dorato e ghirlanda 3D ad
+     altorilievo di cherubini alati, angeli d'angolo e gigli senesi lungo
+     spioventi, base e lunetta apicale.
+   - Gattoni rampanti a foglia d'acanto uncinata lungo gli spioventi e doppia
+     fila di dentelli e mensole aggettanti illuminate dal sole sia lungo le
+     cornici oblique sia lungo l'intera trabeazione orizzontale (`96` dentelli +
+     `48` mensole).
+3. **Contrafforti centrali e tabernacoli gotici (`pilastro_centrale_completo`)**:
+   - Fusti a fascio in marmo bianco-crema e rosa di Siena con doppio ordine di
+     ghimberghe acuminate, doccioni zoomorfi aggettanti e marcapiani patinati.
+   - Eliminata la vecchia scatola nera `Luce_Guglia`: al suo posto veri
+     tabernacoli gotici aperti su quattro lati con archetti trilobati, pinnacoli
+     angolari, statua di santo scolpita all'interno, guglia a doppio ordine di
+     gattoni, capitello fogliato e santo sommitale.
+4. **Galleria superiore dei Patriarchi e Profeti (`edicola_gotica_busto`)**:
+   - `14` edicole gotiche trilobate a tutta altezza fino alla trabeazione,
+     arricchite da traforo gotico a lancette nei pennacchi e `14` busti scolpiti
+     individuali (mitrie vescovili, cappucci, nimbi, cartigli e barbe).
 
 ## Versione 1.9 — angelo apicale e ali più fedeli alla fotografia
 

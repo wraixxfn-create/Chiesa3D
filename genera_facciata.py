@@ -183,36 +183,55 @@ def _fbm2d(size, seed=0, octaves=4):
     return acc / norm
 
 
-def _make_marble_tex(name, base_srgb, vein_srgb, courses=8, seed=1, contrast=0.14):
-    """Lastra marmorea a conci con venature senesi sottili."""
-    sz = 256
-    n1 = _fbm2d(sz, seed=seed, octaves=4)
-    n2 = _fbm2d(sz, seed=seed + 17, octaves=3)
+def _make_marble_tex(name, base_srgb, vein_srgb, courses=8, seed=1, contrast=0.12, blocks=True):
+    """Lastra marmorea senese con venature morbide; opzionalmente senza giunti per statue."""
+    sz = 512 if not blocks or courses >= 8 else 256
+    n1 = _fbm2d(sz, seed=seed, octaves=5)
+    n2 = _fbm2d(sz, seed=seed + 17, octaves=4)
     yy, xx = np.meshgrid(
         np.linspace(0, 1, sz, endpoint=False),
         np.linspace(0, 1, sz, endpoint=False),
         indexing="ij",
     )
-    veins = 0.5 + 0.5 * np.sin(2.0 * math.pi * (3.0 * yy + 1.15 * n1 + 0.35 * n2))
-    veins = veins ** 2.2
-
-    # Leggera variazione di tono fra un concio lapideo e l'altro + giunti sottili
-    row_id = np.floor(yy * courses).astype(np.int32)
-    stagger = (row_id % 2) * 0.5
-    col_id = np.floor((xx * (courses // 2) + stagger) % (courses // 2)).astype(np.int32)
-    rng = np.random.default_rng(seed + 99)
-    block_lut = rng.uniform(1.0 - contrast * 0.55, 1.0 + contrast * 0.45, (courses + 1, courses + 1))
-    block_tone = block_lut[row_id, col_id]
-
-    fy = np.abs((yy * courses) % 1.0 - 0.5)
-    fx = np.abs(((xx * (courses // 2) + stagger)) % 1.0 - 0.5)
-    mortar = np.where((fy > 0.475) | (fx > 0.482), 0.86, 1.0)
+    veins = 0.5 + 0.5 * np.sin(2.0 * math.pi * (2.6 * yy + 0.4 * xx + 1.25 * n1 + 0.40 * n2))
+    veins = veins ** 2.6
+    fine = (n2 - 0.5) * 0.06
 
     base = np.array(base_srgb, dtype=np.float32)[None, None, :]
     vein = np.array(vein_srgb, dtype=np.float32)[None, None, :]
-    col = base * (1.0 - 0.30 * veins[:, :, None]) + vein * (0.30 * veins[:, :, None])
-    col = col * block_tone[:, :, None] * mortar[:, :, None]
-    return _save_packed_image(name, col)
+    col = base * (1.0 - 0.26 * veins[:, :, None]) + vein * (0.26 * veins[:, :, None]) + fine[:, :, None]
+
+    if blocks:
+        row_id = np.floor(yy * courses).astype(np.int32)
+        stagger = (row_id % 2) * 0.5
+        col_id = np.floor((xx * (courses // 2) + stagger) % max(1, courses // 2)).astype(np.int32)
+        rng = np.random.default_rng(seed + 99)
+        block_lut = rng.uniform(1.0 - contrast * 0.42, 1.0 + contrast * 0.35, (courses + 1, courses + 1))
+        block_tone = block_lut[row_id, col_id]
+        fy = np.abs((yy * courses) % 1.0 - 0.5)
+        fx = np.abs(((xx * max(1, courses // 2) + stagger)) % 1.0 - 0.5)
+        mortar = np.where((fy > 0.484) | (fx > 0.488), 0.90, 1.0)
+        col = col * block_tone[:, :, None] * mortar[:, :, None]
+
+    return _save_packed_image(name, np.clip(col, 0.0, 1.0))
+
+
+def _make_verdigris_tex(name, seed=77):
+    """Lastra di rame ossidato (verderame senese con screziature turchesi e bronzee)."""
+    sz = 512
+    n1 = _fbm2d(sz, seed=seed, octaves=5)
+    n2 = _fbm2d(sz, seed=seed + 31, octaves=4)
+    yy, xx = np.meshgrid(
+        np.linspace(0, 1, sz, endpoint=False),
+        np.linspace(0, 1, sz, endpoint=False),
+        indexing="ij",
+    )
+    striations = 0.5 + 0.5 * np.sin(2.0 * math.pi * (14.0 * xx + 0.85 * n2))
+    patina = np.clip(0.30 + 0.62 * n1 + 0.16 * striations, 0.0, 1.0)
+    dark_bronze = np.array((0.20, 0.33, 0.35), dtype=np.float32)[None, None, :]
+    bright_verd = np.array((0.46, 0.63, 0.61), dtype=np.float32)[None, None, :]
+    col = dark_bronze * (1.0 - patina[:, :, None]) + bright_verd * patina[:, :, None]
+    return _save_packed_image(name, np.clip(col, 0.0, 1.0))
 
 
 def _bilinear_sample(topdown_rgb, x_coords, y_coords):
@@ -301,29 +320,112 @@ def _extract_rect_tex(name, topdown_rgb, x0, y0_top, x1, y1_bot, w_out=256, h_ou
     return _save_packed_image(name, sampled)
 
 
+def _box_blur_mask(mask, r=2):
+    acc = np.zeros_like(mask, dtype=np.float32)
+    cnt = 0
+    for dy in range(-r, r + 1):
+        for dx in range(-r, r + 1):
+            acc += np.roll(np.roll(mask, dy, axis=0), dx, axis=1)
+            cnt += 1
+    return acc / float(cnt)
+
+
+def _extract_mosaic_apice_clean(name, apice_rgb, p_bl, p_br, p_top, size=1536):
+    """Estrae il mosaico dell'Incoronazione lungo l'intero triangolo della cornice
+    interna, ripristinando il fondo aureo a tessere lungo il margine esterno dove
+    nella fotografia compaiono i rilievi lapidei dei cherubini (ricostruiti qui in 3D)."""
+    v_lin = np.linspace(0.0, 1.0, size, dtype=np.float32)
+    u_lin = np.linspace(0.0, 1.0, size, dtype=np.float32)
+    vv, uu = np.meshgrid(v_lin, u_lin, indexing="ij")
+    denom = np.maximum(1.0 - vv, 1e-4)
+    s = np.clip((uu - 0.5 * vv) / denom, 0.0, 1.0)
+    px = (1.0 - vv) * ((1.0 - s) * p_bl[0] + s * p_br[0]) + vv * p_top[0]
+    py = (1.0 - vv) * ((1.0 - s) * p_bl[1] + s * p_br[1]) + vv * p_top[1]
+    sampled = _bilinear_sample(apice_rgb, px, py)
+
+    w_side = 0.088 + 0.048 * vv
+    d_bot = np.clip((vv - 0.058) / 0.042, 0.0, 1.0)
+    d_left = np.clip((((1.0 - vv) * s) - w_side * 0.62) / (w_side * 0.42), 0.0, 1.0)
+    d_right = np.clip((((1.0 - vv) * (1.0 - s)) - w_side * 0.62) / (w_side * 0.42), 0.0, 1.0)
+    d_top = np.clip(((1.0 - vv) - 0.145) / 0.065, 0.0, 1.0)
+    core = np.minimum(np.minimum(d_bot, d_top), np.minimum(d_left, d_right))
+    edge_mask = 1.0 - core
+    edge_mask = edge_mask * edge_mask * (3.0 - 2.0 * edge_mask)
+
+    max_c = sampled.max(axis=2)
+    min_c = sampled.min(axis=2)
+    sat = (max_c - min_c) / np.maximum(max_c, 1e-3)
+    in_outer_rim = (
+        (vv < 0.046)
+        | (((1.0 - vv) * s) < 0.054)
+        | (((1.0 - vv) * (1.0 - s)) < 0.054)
+        | (vv > 0.875)
+    )
+    hue_garment = (
+        ((sampled[:, :, 2] > sampled[:, :, 1] * 0.94) & (sat > 0.11))
+        | ((sampled[:, :, 1] > sampled[:, :, 0] * 0.94) & (sat > 0.13))
+        | ((sampled[:, :, 0] - sampled[:, :, 1] > 0.07) & (sat > 0.24))
+    )
+    protect = _box_blur_mask(
+        np.where((~in_outer_rim) & hue_garment & (vv < 0.56), 1.0, 0.0).astype(np.float32),
+        r=3,
+    )
+    clean_w = edge_mask * (1.0 - np.clip(protect * 1.25, 0.0, 1.0))
+
+    rng = np.random.default_rng(42)
+    fine_tess = np.kron(
+        rng.normal(0.0, 0.017, (512, 512)).astype(np.float32),
+        np.ones((size // 512, size // 512), dtype=np.float32),
+    )
+    soft_glow = (
+        0.026 * np.sin(2.0 * math.pi * (2.3 * uu + 1.7 * vv))
+        + 0.018 * np.cos(2.0 * math.pi * (3.9 * uu - 2.6 * vv))
+    )
+    gold_base = (
+        np.array([0.962, 0.910, 0.742], dtype=np.float32)[None, None, :] * (1.0 - 0.30 * vv[:, :, None])
+        + np.array([0.952, 0.885, 0.688], dtype=np.float32)[None, None, :] * (0.30 * vv[:, :, None])
+    )
+    gold_tex = np.clip(
+        gold_base + (fine_tess + soft_glow)[:, :, None] * np.array([1.0, 0.94, 0.78], dtype=np.float32),
+        0.0,
+        1.0,
+    )
+    merged = sampled * (1.0 - clean_w[:, :, None]) + gold_tex * clean_w[:, :, None]
+    merged = _affina_textura(
+        merged, lo=0.5, hi=99.4, contrasto=1.08, unsharp=0.50, raggio=1, saturazione=1.22, gamma=1.18
+    )
+    # Calibrazione fotometrica per Cycles + Sole diretto: la foto contiene già
+    # l'illuminazione diurna; attenuando lievemente l'albedo ed esaltando la
+    # componente ambra dell'oro musivo, sotto il sole 4.45 non sbianca in giallo pallido
+    # ma brilla d'oro bizantino caldo e saturo identico all'originale!
+    merged = np.clip(merged * np.array([0.80, 0.75, 0.64], dtype=np.float32)[None, None, :], 0.0, 1.0)
+    return _save_packed_image(name, merged)
+
+
 def build_all_textures():
     tex = {}
     tex["marmo_bianco"] = _make_marble_tex(
-        "Tex_Marmo_Bianco", (0.75, 0.70, 0.62), (0.60, 0.54, 0.46), courses=8, seed=3, contrast=0.12
+        "Tex_Marmo_Bianco", (0.88, 0.84, 0.77), (0.76, 0.71, 0.63), courses=8, seed=3, contrast=0.09
     )
     tex["marmo_caldo"] = _make_marble_tex(
-        "Tex_Marmo_Caldo", (0.70, 0.63, 0.53), (0.54, 0.47, 0.39), courses=8, seed=11, contrast=0.14
+        "Tex_Marmo_Caldo", (0.83, 0.78, 0.69), (0.70, 0.64, 0.55), courses=8, seed=11, contrast=0.10
     )
     tex["pietra_statue"] = _make_marble_tex(
-        "Tex_Pietra_Statue", (0.63, 0.56, 0.47), (0.46, 0.40, 0.33), courses=4, seed=21, contrast=0.08
+        "Tex_Pietra_Statue", (0.84, 0.79, 0.71), (0.71, 0.65, 0.56), courses=6, seed=21, contrast=0.06, blocks=False
     )
     tex["gradinata"] = _make_marble_tex(
-        "Tex_Gradinata", (0.58, 0.59, 0.63), (0.44, 0.46, 0.50), courses=12, seed=31, contrast=0.16
+        "Tex_Gradinata", (0.62, 0.63, 0.67), (0.48, 0.50, 0.54), courses=12, seed=31, contrast=0.14
     )
     tex["marmo_rosa"] = _make_marble_tex(
-        "Tex_Marmo_Rosa", (0.58, 0.41, 0.37), (0.42, 0.28, 0.24), courses=6, seed=41, contrast=0.15
+        "Tex_Marmo_Rosa", (0.64, 0.46, 0.41), (0.48, 0.33, 0.29), courses=6, seed=41, contrast=0.13
     )
     tex["marmo_rosa_chiaro"] = _make_marble_tex(
-        "Tex_Marmo_Rosa_Chiaro", (0.67, 0.53, 0.47), (0.52, 0.39, 0.34), courses=6, seed=51, contrast=0.12
+        "Tex_Marmo_Rosa_Chiaro", (0.76, 0.62, 0.55), (0.61, 0.47, 0.41), courses=6, seed=51, contrast=0.10
     )
     tex["serpentino"] = _make_marble_tex(
         "Tex_Serpentino_Prato", (0.17, 0.19, 0.19), (0.10, 0.13, 0.12), courses=6, seed=61, contrast=0.12
     )
+    tex["rame_verde"] = _make_verdigris_tex("Tex_Rame_Verde", seed=77)
 
     if os.path.exists(REF_PATH):
         ref_img = bpy.data.images.load(REF_PATH)
@@ -331,7 +433,6 @@ def build_all_textures():
         buf = np.empty(rw * rh * 4, dtype=np.float32)
         ref_img.pixels.foreach_get(buf)
         bpy.data.images.remove(ref_img)
-        # In Blender riga 0 = basso -> invertiamo per avere y=0 in alto come nella foto
         topdown = buf.reshape((rh, rw, 4))[::-1, :, :3].copy()
         sx = rw / 2560.0
         sy = rh / 2438.0
@@ -371,9 +472,7 @@ def build_all_textures():
         tex["oculo_vetro"] = _extract_rect_tex(
             "Tex_Oculo_Vetro", topdown, 1126 * sx, 952 * sy, 1560 * sx, 1314 * sy, 256, 256, boost=1.12
         )
-    # Il mosaico dell'Incoronazione viene ritagliato dalla fotografia ravvicinata
-    # dell'apice (più definita): il dipinto resta quello originale, mentre
-    # cornici, crockets e cappuccio sono modellati in geometria.
+
     if os.path.exists(APICE_PATH):
         apice_img = bpy.data.images.load(APICE_PATH)
         aw, ah = apice_img.size
@@ -381,23 +480,21 @@ def build_all_textures():
         apice_img.pixels.foreach_get(abuf)
         bpy.data.images.remove(apice_img)
         apice = abuf.reshape((ah, aw, 4))[::-1, :, :3].copy()
-        ax_s, ay_s = aw / 2067.0, ah / 2092.0
-        # Il ritaglio resta abbondantemente dentro il campo d'oro: i bordi
-        # della fotografia contengono le ombre delle cornici, che nel modello
-        # sarebbero rimappate come macchie scure sul mosaico.
-        tex["mosaico_centrale"] = _extract_triangle_tex(
-            "Tex_Mosaico_Incoronazione",
-            apice,
-            (330 * ax_s, 1940 * ay_s),
-            (1770 * ax_s, 1940 * ay_s),
-            (1040 * ax_s, 1145 * ay_s),
-            size=1536,
-            boost=1.0,
-            saturazione=1.10,
+        if ah / max(aw, 1) > 1.07:
+            ax_s, ay_s = aw / 2176.0, ah / 2472.0
+            p_bl = (520.0 * ax_s, 2108.0 * ay_s)
+            p_br = (1718.0 * ax_s, 2108.0 * ay_s)
+            p_top = (1119.0 * ax_s, 1002.0 * ay_s)
+        else:
+            ax_s, ay_s = aw / 2067.0, ah / 2092.0
+            p_bl = (478.0 * ax_s, 2036.0 * ay_s)
+            p_br = (1598.0 * ax_s, 2036.0 * ay_s)
+            p_top = (1038.0 * ax_s, 1020.0 * ay_s)
+        tex["mosaico_centrale"] = _extract_mosaic_apice_clean(
+            "Tex_Mosaico_Incoronazione", apice, p_bl, p_br, p_top, size=1536
         )
 
     if not os.path.exists(REF_PATH):
-        # Fallback procedurale autonomo
         oro = _make_marble_tex("Tex_Mosaico_Fallback", (0.72, 0.58, 0.28), (0.45, 0.28, 0.16), courses=16, seed=7)
         for k in ("mosaico_centrale", "mosaico_sx", "mosaico_dx"):
             tex[k] = oro
@@ -411,10 +508,11 @@ TEXTURES = build_all_textures()
 
 
 # -----------------------------------------------------------------------------
-# Materiali PBR da config + texture incorporate
+# Materiali PBR da config + texture incorporate + patina di cavità per Cycles
 # -----------------------------------------------------------------------------
 def mat_from_cfg(name, cfg):
-    """Crea materiale Principled BSDF compatibile sia con Cycles che con export GLB."""
+    """Crea materiale Principled BSDF compatibile sia con export GLB che con Cycles
+    (con patina d'ombra naturale nelle cavità scolpite tramite Ambient Occlusion)."""
     m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
     m.use_nodes = True
     nodes = m.node_tree.nodes
@@ -422,22 +520,25 @@ def mat_from_cfg(name, cfg):
     nodes.clear()
 
     out = nodes.new("ShaderNodeOutputMaterial")
-    out.location = (420, 0)
+    out.target = "ALL"
+    out.location = (520, 120)
     bsdf = nodes.new("ShaderNodeBsdfPrincipled")
-    bsdf.location = (120, 0)
+    bsdf.location = (180, 120)
     links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
 
-    c = cfg.get("color", [0.4, 0.4, 0.4])
+    c = cfg.get("color", [0.4, 0.4, 0.4])[:3]
     bsdf.inputs["Base Color"].default_value = (*c, 1.0)
     bsdf.inputs["Roughness"].default_value = cfg.get("roughness", 0.55)
     bsdf.inputs["Metallic"].default_value = cfg.get("metallic", 0.0)
 
     tex_key = cfg.get("tex")
+    base_color_socket = None
     if tex_key and tex_key in TEXTURES:
         tex_node = nodes.new("ShaderNodeTexImage")
-        tex_node.location = (-260, 0)
+        tex_node.location = (-340, 60)
         tex_node.image = TEXTURES[tex_key]
         links.new(tex_node.outputs["Color"], bsdf.inputs["Base Color"])
+        base_color_socket = tex_node.outputs["Color"]
         if cfg.get("emission_strength", 0.0) > 0.0:
             links.new(tex_node.outputs["Color"], bsdf.inputs["Emission Color"])
             bsdf.inputs["Emission Strength"].default_value = cfg["emission_strength"]
@@ -445,6 +546,76 @@ def mat_from_cfg(name, cfg):
     if "emission" in cfg and not tex_key:
         bsdf.inputs["Emission Color"].default_value = (*cfg["emission"], 1.0)
         bsdf.inputs["Emission Strength"].default_value = cfg.get("emission_strength", 0.2)
+
+    ao_strength = cfg.get("ao_strength", 0.0)
+    if ao_strength > 0.0:
+        out_c = nodes.new("ShaderNodeOutputMaterial")
+        out_c.target = "CYCLES"
+        out_c.location = (520, -220)
+        bsdf_c = nodes.new("ShaderNodeBsdfPrincipled")
+        bsdf_c.location = (180, -220)
+        bsdf_c.inputs["Roughness"].default_value = cfg.get("roughness", 0.55)
+        bsdf_c.inputs["Metallic"].default_value = cfg.get("metallic", 0.0)
+        links.new(bsdf_c.outputs["BSDF"], out_c.inputs["Surface"])
+
+        ao = nodes.new("ShaderNodeAmbientOcclusion")
+        ao.location = (-420, -220)
+        ao.samples = 8
+        ao.inputs["Distance"].default_value = 0.32
+
+        ramp = nodes.new("ShaderNodeValToRGB")
+        ramp.location = (-200, -220)
+        ramp.color_ramp.elements[0].position = 0.08
+        ramp.color_ramp.elements[1].position = 0.94
+
+        # Rilevamento geometrico fine delle pieghe, cavità scolpite, riccioli e orbite
+        # (indipendente dalla scala 3x e visibile anche in pieno sole diretto!)
+        geom = nodes.new("ShaderNodeNewGeometry")
+        geom.location = (-420, -430)
+        p_ramp = nodes.new("ShaderNodeValToRGB")
+        p_ramp.location = (-200, -430)
+        p_ramp.color_ramp.elements[0].position = 0.455
+        p_ramp.color_ramp.elements[0].color = (1.0, 1.0, 1.0, 1.0)
+        p_ramp.color_ramp.elements[1].position = 0.515
+        p_ramp.color_ramp.elements[1].color = (0.0, 0.0, 0.0, 1.0)
+        links.new(geom.outputs["Pointiness"], p_ramp.inputs["Fac"])
+
+        # Combina AO d'occlusione e concavità fine Pointiness in patina bruno-senese
+        cav_mix = nodes.new("ShaderNodeMixRGB")
+        cav_mix.blend_type = "MULTIPLY"
+        cav_mix.inputs["Fac"].default_value = min(1.0, ao_strength * 0.85)
+        cav_mix.location = (-20, -280)
+
+        patina_col = nodes.new("ShaderNodeMixRGB")
+        patina_col.blend_type = "MIX"
+        patina_col.location = (-20, -460)
+        patina_col.inputs["Color1"].default_value = (1.0, 1.0, 1.0, 1.0)
+        patina_col.inputs["Color2"].default_value = (0.24, 0.19, 0.145, 1.0)
+        links.new(p_ramp.outputs["Color"], patina_col.inputs["Fac"])
+
+        mix_ao = nodes.new("ShaderNodeMixRGB")
+        mix_ao.blend_type = "MULTIPLY"
+        mix_ao.location = (30, -180)
+        mix_ao.inputs["Fac"].default_value = ao_strength
+        if base_color_socket is not None:
+            links.new(base_color_socket, mix_ao.inputs["Color1"])
+            bump = nodes.new("ShaderNodeBump")
+            bump.location = (-40, -380)
+            bump.inputs["Strength"].default_value = 0.08
+            bump.inputs["Distance"].default_value = 0.02
+            links.new(base_color_socket, bump.inputs["Height"])
+            links.new(bump.outputs["Normal"], bsdf_c.inputs["Normal"])
+        else:
+            mix_ao.inputs["Color1"].default_value = (*c, 1.0)
+
+        patina_tint = (0.28, 0.23, 0.18, 1.0) if "Verde" not in name else (0.12, 0.20, 0.26, 1.0)
+        ramp.color_ramp.elements[0].color = patina_tint
+        ramp.color_ramp.elements[1].color = (1.0, 1.0, 1.0, 1.0)
+        links.new(ao.outputs["AO"], ramp.inputs["Fac"])
+        links.new(ramp.outputs["Color"], cav_mix.inputs["Color1"])
+        links.new(patina_col.outputs["Color"], cav_mix.inputs["Color2"])
+        links.new(cav_mix.outputs["Color"], mix_ao.inputs["Color2"])
+        links.new(mix_ao.outputs["Color"], bsdf_c.inputs["Base Color"])
 
     return m
 
@@ -471,7 +642,11 @@ LEGNO_S = MATS.get("Legno_Scuro")
 VETRO = MATS.get("Vetro_Rosone")
 FERRO = MATS.get("Ferro_Griglia")
 PIETRA = MATS.get("Pietra_Statue")
+PIETRA_RIL = MATS.get("Pietra_Rilievi", PIETRA)
+PATINA = MATS.get("Patina_Scolpita", SCURO if "SCURO" in globals() else PIETRA)
 SCURO = MATS.get("Vano_Scuro")
+PATINA = MATS.get("Patina_Scolpita", SCURO)
+PATINA_BR = MATS.get("Patina_Bronzo", SCURO)
 NICCHIA = MATS.get("Vano_Nicchia", PIETRA)
 VERDE_RAME = MATS.get("Bronzo_Verde", PIETRA)
 
@@ -902,54 +1077,405 @@ def statua_vergine(name, col, x, y, z, h=1.55, material=PIETRA):
     cone(f"{name}_Bambino_Veste", col, x + 0.13, y - 0.10, z + 0.22 + h * 0.44, 0.10, 0.06, 0.22, material, vertices=8)
 
 
-def gargolla(name, col, x, y, z, side, length, radius, material=PIETRA):
-    """Doccione a drago sporgente in orizzontale: corpo, testa col muso e ala.
+PROFILO_FOGLIA = (
+    (0.00, 0.24), (0.12, 0.44), (0.24, 0.38), (0.36, 0.52),
+    (0.50, 0.40), (0.64, 0.40), (0.76, 0.26), (0.90, 0.13), (1.00, 0.01),
+)
+PROFILO_PENNA = (
+    (0.00, 0.16), (0.14, 0.42), (0.30, 0.48), (0.46, 0.46),
+    (0.62, 0.40), (0.78, 0.29), (0.90, 0.16), (1.00, 0.01),
+)
 
-    Sostituisce il cono con sfera della v1.3, che nel render leggeva come un
-    "piolo" piantato nel torrione invece della gargolla monumentale della foto.
-    """
-    # Corpo orizzontale proteso verso l'esterno (asse inclinato sui lati)
-    cone(f"{name}_Corpo", col, x, y, z, radius, radius * 0.52, length, material,
-         vertices=8, rot_y=side * math.radians(80))
-    # Testa allungata all'estremita' esterna, col muso rivolto in fuori
-    hx = x + side * length * 0.52
-    sphere(f"{name}_Testa", col, hx, y, z + radius * 0.35, radius * 0.82, material,
-           sx=1.45, sy=0.9, sz=0.9)
-    cone(f"{name}_Muso", col, hx + side * radius * 1.15, y, z + radius * 0.22,
-         radius * 0.42, radius * 0.14, radius * 1.7, material, vertices=7,
-         rot_y=side * math.radians(84))
-    # Ala ripiegata verso l'alto alla radice del corpo
-    cone(f"{name}_Ala", col, x - side * length * 0.16, y, z + radius * 1.55,
-         radius * 0.55, 0.015, radius * 3.4, material, vertices=7,
-         rot_z=-side * math.radians(24))
+
+def _bm_foglia(bm, lung, larg, spess, mat4, profilo=None, piega=0.0, gonfia=1.0):
+    """Aggiunge al bmesh una foglia lanceolata a rilievo (lunghezza +Z locale)."""
+    profilo = profilo or PROFILO_FOGLIA
+    lf, rf, lb, rb = [], [], [], []
+    for t, hw in profilo:
+        w = hw * larg
+        zz = t * lung
+        bulge = spess * gonfia * (0.34 + 0.66 * math.sin(math.pi * min(1.0, t * 1.05)))
+        curv = piega * (t ** 2) * lung
+        for lst, xx, yy in ((lf, -w, -bulge), (rf, w, -bulge),
+                            (lb, -w * 0.90, 0.0), (rb, w * 0.90, 0.0)):
+            lst.append(bm.verts.new(mat4 @ Vector((xx + curv, yy, zz))))
+    n = len(profilo)
+    for i in range(n - 1):
+        bm.faces.new((lf[i], rf[i], rf[i + 1], lf[i + 1]))
+        bm.faces.new((lb[i + 1], rb[i + 1], rb[i], lb[i]))
+        bm.faces.new((lf[i + 1], lf[i], lb[i], lb[i + 1]))
+        bm.faces.new((rf[i], rf[i + 1], rb[i + 1], rb[i]))
+    bm.faces.new((lf[0], lb[0], rb[0], rf[0]))
+    bm.faces.new((rf[-1], rb[-1], lb[-1], lf[-1]))
+
+
+def _bm_sfera(bm, mat4, x, y, z, r, sx=1.0, sy=1.0, sz=1.0, u=10, v=6):
+    m = mat4 @ Matrix.Translation((x, y, z)) @ Matrix.Diagonal((r * sx, r * sy, r * sz, 1.0))
+    bmesh.ops.create_uvsphere(bm, u_segments=u, v_segments=v, radius=1.0, matrix=m)
+
+
+def _bm_cono(bm, mat4, x, y, z, r1, r2, h, rot=None, seg=8, sy=1.0):
+    m = mat4 @ Matrix.Translation((x, y, z))
+    if rot is not None:
+        m = m @ rot
+    m = m @ Matrix.Diagonal((1.0, sy, 1.0, 1.0))
+    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=True, segments=seg,
+                          radius1=r1, radius2=r2, depth=h, matrix=m)
+
+
+def _bm_lathe(bm, mat4, profile, seg=24, sy=0.76, rib=0.0, rib_n=9, cap=True):
+    """Solido di rotazione dentro un bmesh (profilo = sequenza di (z, raggio))."""
+    grid = []
+    for k, (zz, rr) in enumerate(profile):
+        row = []
+        for j in range(seg):
+            a = 2.0 * math.pi * j / seg
+            f = 1.0 + rib * math.cos(rib_n * a + k * 0.45)
+            row.append(bm.verts.new(mat4 @ Vector((rr * f * math.cos(a),
+                                                   rr * f * math.sin(a) * sy, zz))))
+        grid.append(row)
+    for k in range(len(profile) - 1):
+        for j in range(seg):
+            j2 = (j + 1) % seg
+            bm.faces.new((grid[k][j], grid[k][j2], grid[k + 1][j2], grid[k + 1][j]))
+    if cap:
+        bm.faces.new(list(reversed(grid[0])))
+        bm.faces.new(grid[-1])
+
+
+def _bm_segmento(bm, mat4, p0, p1, r0, r1, seg=8, sy=1.0):
+    """Tronco di cono orientato da p0 a p1 (braccia, aste, panneggi)."""
+    p0, p1 = Vector(p0), Vector(p1)
+    d = p1 - p0
+    ln = max(d.length, 1e-4)
+    q = d.to_track_quat("Z", "Y").to_matrix().to_4x4()
+    m = mat4 @ Matrix.Translation((p0 + p1) * 0.5) @ q @ Matrix.Diagonal((1.0, sy, 1.0, 1.0))
+    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=True, segments=seg,
+                          radius1=r0, radius2=r1, depth=ln, matrix=m)
+
+
+def _mesh_da_bmesh(name, col, bm, material, uv_scale=(0.31, 0.31)):
+    mesh = bpy.data.meshes.new(name + "Mesh")
+    _finish_bmesh(bm, mesh, uv_scale=uv_scale)
+    return _create_mesh_object(name, mesh, col, (0, 0, 0), (0, 0, 0), (1, 1, 1), material)
+
+
+def _bm_box(bm, mat4, x, y, z, sx, sy, sz, rot=None):
+    m = mat4 @ Matrix.Translation((x, y, z))
+    if rot is not None:
+        m = m @ rot
+    m = m @ Matrix.Diagonal((sx, sy, sz, 1.0))
+    bmesh.ops.create_cube(bm, size=1.0, matrix=m)
+
+
+def _bm_arco_acuto(bm, mat4, cx, y, cz, span, rise, minor, seg_u=18, seg_v=7):
+    """Arco gotico acuto nel piano XZ dentro un bmesh condiviso."""
+    hw = span * 0.5
+    grid = []
+    for i in range(seg_u + 1):
+        t = i / seg_u
+        if t <= 0.5:
+            u = t * 2.0
+            a = math.pi * 0.5 * u
+            bx = -hw * math.cos(a)
+            bz = rise * math.sin(a)
+            nx, nz = -math.cos(a), math.sin(a) * (hw / max(rise, 1e-3))
+        else:
+            u = (t - 0.5) * 2.0
+            a = math.pi * 0.5 * (1.0 - u)
+            bx = hw * math.cos(a)
+            bz = rise * math.sin(a)
+            nx, nz = math.cos(a), math.sin(a) * (hw / max(rise, 1e-3))
+        nl = max(math.hypot(nx, nz), 1e-4)
+        nx, nz = nx / nl, nz / nl
+        row = []
+        for j in range(seg_v):
+            b = math.tau * j / seg_v
+            cb, sb = math.cos(b), math.sin(b)
+            row.append(
+                bm.verts.new(
+                    mat4 @ Vector((cx + bx + minor * cb * nx, y + minor * sb, cz + bz + minor * cb * nz))
+                )
+            )
+        grid.append(row)
+    for i in range(seg_u):
+        for j in range(seg_v):
+            j2 = (j + 1) % seg_v
+            bm.faces.new((grid[i][j], grid[i + 1][j], grid[i + 1][j2], grid[i][j2]))
+
+
+def gargolla(name, col, x, y, z, side, length, radius, material=PIETRA, pitch_deg=0.0):
+    """Doccione gotico scolpito (drago/chimera senese proteso nel vuoto)."""
+    bm = bmesh.new()
+    pitch = math.radians(pitch_deg)
+    M = (
+        Matrix.Translation((x, y, z))
+        @ Matrix.Rotation(-side * pitch, 4, "Y")
+    )
+    # Mensola modanata d'innesto contro il contrafforte
+    _bm_box(bm, M, -side * length * 0.42, 0.0, -radius * 0.35, length * 0.28, radius * 2.1, radius * 1.9)
+    # Dorso inarcato muscoloso e collo teso in avanti
+    p0 = (-side * length * 0.36, 0.0, -radius * 0.10)
+    p1 = (side * length * 0.14, -radius * 0.10, radius * 0.12)
+    p2 = (side * length * 0.50, -radius * 0.14, radius * 0.06)
+    _bm_segmento(bm, M, p0, p1, radius * 1.05, radius * 0.72, seg=10, sy=0.88)
+    _bm_segmento(bm, M, p1, p2, radius * 0.74, radius * 0.56, seg=10, sy=0.86)
+    # Zampe anteriori artigliate ripiegate sotto il petto
+    for sy_z in (-0.42, 0.42):
+        _bm_segmento(
+            bm, M,
+            (side * length * 0.04, sy_z * radius, -radius * 0.15),
+            (side * length * 0.32, sy_z * radius * 0.8, -radius * 0.62),
+            radius * 0.34, radius * 0.22, seg=7,
+        )
+    # Testa allungata con fauci spalancate e orecchie/cresta gotica
+    hx = side * length * 0.58
+    _bm_sfera(bm, M, hx, -radius * 0.14, radius * 0.14, radius * 0.76, sx=1.35, sy=0.84, sz=0.82, u=12, v=8)
+    _bm_segmento(
+        bm, M,
+        (hx, -radius * 0.14, radius * 0.22),
+        (hx + side * radius * 1.55, -radius * 0.15, radius * 0.12),
+        radius * 0.46, radius * 0.20, seg=8, sy=0.80,
+    )
+    _bm_segmento(
+        bm, M,
+        (hx, -radius * 0.14, -radius * 0.08),
+        (hx + side * radius * 1.35, -radius * 0.15, -radius * 0.38),
+        radius * 0.34, radius * 0.14, seg=7, sy=0.75,
+    )
+    # Ali membranose ripiegate lungo i fianchi e orecchie appuntite
+    for sy_a in (-0.48, 0.48):
+        _bm_foglia(
+            bm, radius * 2.9, radius * 1.05, radius * 0.26,
+            M @ Matrix.Translation((-side * length * 0.05, sy_a * radius, radius * 0.35))
+              @ Matrix.Rotation(-side * math.radians(52), 4, "Y"),
+            piega=-0.12,
+        )
+    return _mesh_da_bmesh(name, col, bm, material)
 
 
 def finial(name, col, x, y, z, s=1.0):
-    cyl(name + "_fusto", col, x, y, z + 0.22 * s, 0.065 * s, 0.44 * s, BIANCO, vertices=8)
-    sphere(name + "_nodo", col, x, y, z + 0.50 * s, 0.10 * s, PIETRA)
-    cone(name + "_punta", col, x, y, z + 0.82 * s, 0.085 * s, 0.01, 0.52 * s, PIETRA, vertices=8)
+    bm = bmesh.new()
+    M = Matrix.Translation((x, y, z))
+    _bm_lathe(
+        bm, M,
+        ((0.0, 0.095 * s), (0.14 * s, 0.070 * s), (0.38 * s, 0.062 * s),
+         (0.48 * s, 0.115 * s), (0.58 * s, 0.065 * s), (0.98 * s, 0.018 * s)),
+        seg=10, sy=1.0,
+    )
+    for k in range(4):
+        a = math.pi * 0.5 * k + 0.4
+        _bm_foglia(
+            bm, 0.24 * s, 0.11 * s, 0.045 * s,
+            M @ Matrix.Translation((0.06 * s * math.cos(a), 0.06 * s * math.sin(a), 0.44 * s))
+              @ Matrix.Rotation(a, 4, "Z") @ Matrix.Rotation(0.55, 4, "X"),
+            piega=0.14,
+        )
+    return _mesh_da_bmesh(name, col, bm, PIETRA)
+
+
+def busto_profeta_scolpito(name, col, cx, y, z0, w, body_h, variant=0, material=None):
+    """Altorilievo espressivo di Profeta / Patriarca senese (Giovanni Pisano / Camaino):
+    pose variate, barbe scolpite, cappucci o mitre, panneggi obliqui e cartigli/codici."""
+    material = material or PIETRA
+    bm = bmesh.new()
+    s = w
+    M = Matrix.Translation((cx, y, z0))
+    turn = ((variant * 37) % 11 - 5) * 0.065
+    tilt_x = ((variant * 19) % 5 - 2) * 0.035
+
+    # Mensoletta e basamento del busto
+    _bm_box(bm, M, 0.0, 0.02, body_h * 0.07, w * 0.62, 0.14, body_h * 0.13)
+
+    # Torso panneggiato ad altorilievo con pieghe diagonali scavate
+    _bm_lathe(
+        bm, M @ Matrix.Translation((0.0, 0.02, body_h * 0.12)),
+        ((0.00, w * 0.30), (body_h * 0.16, w * 0.33), (body_h * 0.34, w * 0.34), (body_h * 0.46, w * 0.24)),
+        seg=16, sy=0.58, rib=0.06, rib_n=7,
+    )
+    _bm_sfera(bm, M, 0.0, -0.01, body_h * 0.54, w * 0.22, sx=1.52, sy=0.62, sz=0.62, u=14, v=8)
+
+    # Pieghe del manto obliquo sul petto
+    for pf in (-1, 0, 1):
+        _bm_segmento(
+            bm, M,
+            (-w * 0.20 + pf * w * 0.09, -w * 0.12, body_h * 0.52),
+            (w * 0.14 + pf * w * 0.07, -w * 0.13, body_h * 0.16),
+            w * 0.038, w * 0.030, seg=7, sy=0.7,
+        )
+
+    # Braccia piegate e attributo profetico (cartiglio srotolato o libro sacro)
+    side_hand = 1 if variant % 2 == 0 else -1
+    _bm_segmento(
+        bm, M,
+        (-side_hand * w * 0.27, -0.01, body_h * 0.52),
+        (-side_hand * w * 0.24, -w * 0.13, body_h * 0.30),
+        w * 0.068, w * 0.052, seg=8,
+    )
+    _bm_segmento(
+        bm, M,
+        (side_hand * w * 0.27, -0.01, body_h * 0.52),
+        (side_hand * w * 0.14, -w * 0.16, body_h * 0.36),
+        w * 0.068, w * 0.052, seg=8,
+    )
+    if variant % 3 != 2:
+        # Cartiglio profetico in marmo ricurvo
+        _bm_segmento(
+            bm, M,
+            (-w * 0.17, -w * 0.165, body_h * 0.34 + side_hand * 0.03),
+            (w * 0.18, -w * 0.175, body_h * 0.25 - side_hand * 0.02),
+            w * 0.042, w * 0.038, seg=8, sy=0.38,
+        )
+    else:
+        # Codice / tavola della Legge
+        _bm_box(
+            bm, M, side_hand * w * 0.06, -w * 0.16, body_h * 0.32,
+            w * 0.22, w * 0.06, body_h * 0.20,
+            rot=Matrix.Rotation(side_hand * 0.18, 4, "Y"),
+        )
+
+    # Testa scolpita con rotazione individuale, barba e copricapo gotico
+    Mh = (
+        M
+        @ Matrix.Translation((turn * w * 0.18, -w * 0.04, body_h * 0.72))
+        @ Matrix.Rotation(turn, 4, "Z")
+        @ Matrix.Rotation(tilt_x, 4, "X")
+    )
+    r_h = w * 0.155
+    _bm_segmento(bm, Mh, (0.0, 0.01, -r_h * 1.15), (0.0, 0.0, -r_h * 0.35), r_h * 0.52, r_h * 0.46, seg=8)
+    _bm_sfera(bm, Mh, 0.0, 0.0, 0.0, r_h, sx=0.84, sy=0.88, sz=1.06, u=14, v=10)
+    # Arcata sopracciliare, orbite patinate, naso e zigomi per espressività gotica
+    bm_pat = bmesh.new()
+    for es in (-1, 1):
+        _bm_sfera(bm, Mh, es * r_h * 0.30, -r_h * 0.80, r_h * 0.16, r_h * 0.20, sx=1.1, sy=0.45, sz=0.32, u=8, v=5)
+        _bm_sfera(bm_pat, Mh, es * r_h * 0.30, -r_h * 0.85, r_h * 0.02, r_h * 0.14, sx=1.15, sy=0.38, sz=0.55, u=7, v=5)
+        _bm_sfera(bm, Mh, es * r_h * 0.36, -r_h * 0.70, -r_h * 0.12, r_h * 0.22, sx=0.8, sy=0.5, sz=0.6, u=8, v=5)
+    _bm_segmento(bm, Mh, (0.0, -r_h * 0.82, r_h * 0.18), (0.0, -r_h * 0.98, -r_h * 0.20), r_h * 0.15, r_h * 0.19, seg=6)
+    # Solchi d'ombra patinati sotto il cappuccio, nella barba e nelle pieghe del manto
+    _bm_sfera(bm_pat, Mh, 0.0, -r_h * 0.86, -r_h * 0.36, r_h * 0.13, sx=1.35, sy=0.35, sz=0.32, u=7, v=5)
+    for pf in (-1, 1):
+        _bm_segmento(
+            bm_pat, M,
+            (-w * 0.16 + pf * w * 0.08, -w * 0.128, body_h * 0.49),
+            (w * 0.12 + pf * w * 0.06, -w * 0.136, body_h * 0.18),
+            w * 0.020, w * 0.016, seg=6,
+        )
+    _mesh_da_bmesh(f"{name}_ProfetaPatina", col, bm_pat, PATINA)
+
+    # Barba fluente (lunga bipartita, media riccia o corta)
+    beard_len = (1.55, 1.05, 0.55, 1.35)[variant % 4]
+    if beard_len > 0.7:
+        for bs in (-1, 1):
+            _bm_segmento(
+                bm, Mh,
+                (bs * r_h * 0.22, -r_h * 0.66, -r_h * 0.42),
+                (bs * r_h * 0.16, -r_h * 0.74, -r_h * (0.55 + beard_len)),
+                r_h * 0.30, r_h * 0.13, seg=7, sy=0.62,
+            )
+    else:
+        _bm_sfera(bm, Mh, 0.0, -r_h * 0.62, -r_h * 0.62, r_h * 0.42, sx=0.85, sy=0.62, sz=0.75, u=8, v=6)
+
+    # Copricapo / chioma (cappuccio drappeggiato, berretto profetico, mitra o chioma fluente)
+    hat = variant % 4
+    if hat == 0:
+        _bm_sfera(bm, Mh, 0.0, r_h * 0.04, r_h * 0.28, r_h * 1.06, sx=0.98, sy=0.96, sz=0.92, u=12, v=8)
+    elif hat == 1:
+        _bm_lathe(
+            bm, Mh @ Matrix.Translation((0.0, 0.0, r_h * 0.32)),
+            ((0.0, r_h * 0.96), (r_h * 0.45, r_h * 1.04), (r_h * 0.85, r_h * 0.62)),
+            seg=12, sy=0.92,
+        )
+    elif hat == 2:
+        for hs in (-1, 1):
+            _bm_segmento(
+                bm, Mh,
+                (hs * r_h * 0.68, 0.0, r_h * 0.35),
+                (hs * r_h * 0.82, -r_h * 0.10, -r_h * 0.85),
+                r_h * 0.26, r_h * 0.16, seg=7,
+            )
+        _bm_sfera(bm, Mh, 0.0, r_h * 0.06, r_h * 0.34, r_h * 0.94, sx=0.95, sy=0.95, sz=0.78, u=10, v=7)
+    else:
+        _bm_cono(bm, Mh, 0.0, 0.0, r_h * 0.92, r_h * 0.88, r_h * 0.14, r_h * 1.15, seg=10, sy=0.85)
+
+    return _mesh_da_bmesh(f"{name}_Profeta", col, bm, material)
+
+
+_BUST_COUNTER = 0
 
 
 def edicola_gotica_busto(name, col, cx, y, z0, w, h, con_busto=True):
-    """Singola nicchia gotica cuspidata con archetto trilobo, ghimberga e mezzo busto."""
-    arch_h = h * 0.34
+    """Nicchia gotica senese con fondo scanalato in marmo rosato, colonnine con capitello,
+    arco acuto trilobato inscritto, ghimberga modanata con gattoni, fiorone e profeta scolpito."""
+    global _BUST_COUNTER
+    variant = _BUST_COUNTER
+    _BUST_COUNTER += 1
+
+    arch_h = h * 0.36
     body_h = h - arch_h
-    # Fondo in ombra calda e poco profondo (non il "buco nero" piatto della v1.3):
-    # nella foto le nicchie sono altorilievi chiari in edicole appena incassate
-    box(f"{name}_Vano", col, cx, y + 0.06, z0 + body_h * 0.5, w * 0.74, 0.14, body_h, NICCHIA)
-    prism(f"{name}_VanoCima", col, cx, y + 0.06, z0 + body_h, w * 0.74, arch_h * 0.9, 0.14, NICCHIA)
-    # Colonnine divisorie e ghimberga acuta
+    # Fondo profondo in ombra nella parte superiore + specchiatura rosata scanalata inferiore
+    # (fa risaltare nitidamente in 3D ogni volto, barba e cartiglio dei Profeti!)
+    box(f"{name}_Vano", col, cx, y + 0.075, z0 + body_h * 0.34, w * 0.78, 0.12, body_h * 0.66, NICCHIA)
+    box(f"{name}_OmbraBusto", col, cx, y + 0.065, z0 + body_h * 0.78, w * 0.76, 0.10, body_h * 0.44, SCURO)
+    prism(f"{name}_OmbraArco", col, cx, y + 0.055, z0 + body_h * 0.94, w * 0.76, arch_h * 0.90, 0.10, SCURO)
+
+    # Architettura marmorea dell'edicola (colonnine, capitelli, arco acuto trilobato, ghimberga e gattoni)
+    bm = bmesh.new()
+    M = Matrix.Identity(4)
+    # Soglia inferiore modanata
+    _bm_box(bm, M, cx, y - 0.03, z0 + 0.035, w * 0.98, 0.18, 0.07)
+    # Colonnine laterali e capitelli fogliati
     for s in (-1, 1):
-        box(f"{name}_Stip_{s}", col, cx + s * w * 0.46, y - 0.02, z0 + body_h * 0.5,
-            w * 0.11, 0.16, body_h, BIANCO2)
-    spioventi_modanati(f"{name}_Ghim", col, cx, y - 0.05, z0 + body_h * 0.86,
-                       w * 0.96, arch_h * 1.12, 0.075, 0.16, BIANCO)
-    cone(f"{name}_Fiorone", col, cx, y - 0.05, z0 + h + 0.09, 0.055, 0.01, 0.18, PIETRA, vertices=6)
+        kx = cx + s * w * 0.455
+        _bm_lathe(
+            bm, Matrix.Translation((kx, y - 0.045, z0 + 0.07)),
+            ((0.0, w * 0.075), (0.07, w * 0.052), (body_h * 0.80, w * 0.048),
+             (body_h * 0.88, w * 0.088), (body_h * 0.95, w * 0.098)),
+            seg=10, sy=0.92,
+        )
+    # Arco gotico acuto + archetti trilobi interni sotto la ghimberga
+    _bm_arco_acuto(bm, M, cx, y - 0.055, z0 + body_h * 0.92, w * 0.84, arch_h * 0.72, w * 0.046, seg_u=16, seg_v=7)
+    _bm_arco_acuto(bm, M, cx, y - 0.035, z0 + body_h * 0.89, w * 0.72, arch_h * 0.58, w * 0.032, seg_u=14, seg_v=6)
+    # Spioventi acuti della ghimberga con taglio pulito e gattoni rampanti
+    gh_z0 = z0 + body_h * 0.86
+    gh_h = arch_h * 1.18
+    gh_hw = w * 0.50
+    ang = math.atan2(gh_h, gh_hw)
+    sl_len = math.hypot(gh_hw, gh_h) + 0.05
+    for s in (-1, 1):
+        _bm_box(
+            bm, M, cx + s * gh_hw * 0.5, y - 0.075, gh_z0 + gh_h * 0.5,
+            sl_len, 0.15, 0.068, rot=Matrix.Rotation(s * ang, 4, "Y"),
+        )
+        _bm_box(
+            bm, M, cx + s * gh_hw * 0.46, y - 0.055, gh_z0 + gh_h * 0.46 - 0.03,
+            sl_len * 0.88, 0.12, 0.036, rot=Matrix.Rotation(s * ang, 4, "Y"),
+        )
+        for kc in range(3):
+            tc = 0.24 + 0.56 * kc / 2.0
+            gx = cx + s * gh_hw * (1.0 - tc)
+            gz = gh_z0 + gh_h * tc
+            _bm_foglia(
+                bm, 0.13, 0.07, 0.04,
+                Matrix.Translation((gx, y - 0.085, gz + 0.03)) @ Matrix.Rotation(s * 0.42, 4, "Y"),
+                piega=-0.14 * s,
+            )
+    # Fiorone apicale trilobato
+    fz = gh_z0 + gh_h
+    _bm_lathe(
+        bm, Matrix.Translation((cx, y - 0.075, fz - 0.01)),
+        ((0.0, 0.045), (0.08, 0.062), (0.19, 0.024), (0.25, 0.008)),
+        seg=8, sy=0.85,
+    )
+    for fs in (-1, 1):
+        _bm_foglia(
+            bm, 0.11, 0.065, 0.035,
+            Matrix.Translation((cx, y - 0.08, fz + 0.05)) @ Matrix.Rotation(fs * 0.68, 4, "Y"),
+            piega=-0.10 * fs,
+        )
+    _mesh_da_bmesh(f"{name}_Architettura", col, bm, BIANCO)
+
     if con_busto:
-        # Busto piu' grande, che riempie l'edicola come gli altorilievi reali
-        cone(f"{name}_Busto", col, cx, y - 0.07, z0 + body_h * 0.34,
-             w * 0.31, w * 0.19, body_h * 0.52, PIETRA, vertices=9)
-        sphere(f"{name}_Testa", col, cx, y - 0.08, z0 + body_h * 0.72, w * 0.19, PIETRA)
+        busto_profeta_scolpito(name, col, cx, y - 0.025, z0 + 0.06, w, body_h, variant=variant, material=PIETRA)
 
 
 # -----------------------------------------------------------------------------
@@ -1307,12 +1833,29 @@ for sx_e in (-1, 1):
         statue(f"Evangelista_{sx_e}_{sz_e}", ST, ex, -1.78, ez - 0.52, 1.02, PIETRA)
 
 # LA VERA CORONA QUADRATA DI NICCHIE GOTICHE CUSPIDATE (non un cerchio!)
-# 14 nicchie nella fila orizzontale superiore
+# 14 nicchie nella fila orizzontale superiore + fregio gotico traforato nei pennacchi
 n_top = 14
 w_ntop = (HALF_SQ * 2.0) / n_top
+box("Fondo_Pennacchi_Galleria_Sup", R, 0.0, -1.52, 23.66, HALF_SQ * 2.0, 0.14, 0.70, SCURO)
+bm_trac = bmesh.new()
+M_id = Matrix.Identity(4)
+for i in range(n_top + 1):
+    px_m = -HALF_SQ + w_ntop * i
+    # Lesena / pinnacolino verticale luminoso fra una ghimberga e l'altra fino alla trabeazione!
+    _bm_box(bm_trac, M_id, px_m, -1.605, 23.62, 0.068, 0.14, 0.72)
+    _bm_lathe(
+        bm_trac, Matrix.Translation((px_m, -1.620, 23.83)),
+        ((0.0, 0.048), (0.08, 0.056), (0.16, 0.020)), seg=8, sy=0.85,
+    )
 for i in range(n_top):
     nx = -HALF_SQ + w_ntop * (i + 0.5)
-    edicola_gotica_busto(f"Nicchia_Sup_{i}", R, nx, -1.44, 22.42, w_ntop * 0.98, 1.32, con_busto=True)
+    edicola_gotica_busto(f"Nicchia_Sup_{i}", R, nx, -1.54, 22.40, w_ntop * 0.99, 1.56, con_busto=True)
+    # Archetti ciechi acuti gotici nei pennacchi tra le ghimberghe e i pinnacolini
+    for sub_s in (-1, 1):
+        sx_t = nx + sub_s * w_ntop * 0.34
+        _bm_arco_acuto(bm_trac, M_id, sx_t, -1.585, 23.68, w_ntop * 0.28, 0.28, 0.024, seg_u=10, seg_v=5)
+_bm_box(bm_trac, M_id, 0.0, -1.615, 23.96, HALF_SQ * 2.0, 0.18, 0.075)
+_mesh_da_bmesh("Traforo_Pennacchi_Galleria_Sup", R, bm_trac, BIANCO)
 
 # 12 nicchie nella fila orizzontale inferiore (interrotta al centro dalla Madonna col Bambino)
 n_bot = 14
@@ -1327,13 +1870,13 @@ n_side = 5
 z_v0, z_v1 = 16.58, 22.38
 h_nside = (z_v1 - z_v0) / n_side
 for side in (-1, 1):
-    box(f"Fregio_Est_Oculo_{side}", D, side * 4.30, -1.40, (z_v0 + z_v1) * 0.5, 0.34, 0.14, z_v1 - z_v0, ROSA_C)
+    box(f"Fregio_Est_Oculo_{side}", D, side * 4.22, -1.40, (z_v0 + z_v1) * 0.5, 0.30, 0.14, z_v1 - z_v0, ROSA_C)
     for k_r in range(12):
-        sphere(f"Rosetta_Oculo_{side}_{k_r}", D, side * 4.30, -1.48, z_v0 + 0.24 + k_r * 0.47, 0.095, BIANCO)
+        sphere(f"Rosetta_Oculo_{side}_{k_r}", D, side * 4.22, -1.48, z_v0 + 0.24 + k_r * 0.47, 0.088, BIANCO)
     for j in range(n_side):
         edicola_gotica_busto(
-            f"Nicchia_Lat_{side}_{j}", R, side * 3.84, -1.44,
-            z_v0 + j * h_nside, 0.68, h_nside * 0.97, con_busto=True
+            f"Nicchia_Lat_{side}_{j}", R, side * 3.80, -1.44,
+            z_v0 + j * h_nside, 0.66, h_nside * 0.97, con_busto=True
         )
 
 # Simboli tetramorfi / statue lungo il ballatoio inferiore dell'oculo
@@ -1341,36 +1884,218 @@ for sx_b in (-3.6, 3.6):
     statue(f"Simbolo_Ballatoio_{sx_b:+.1f}", ST, sx_b, -1.68, Z_GALLERIA + 0.20, 1.15, PIETRA)
 
 # =============================================================================
-# 5. PILASTRI CONTRAFFORTI CENTRALI CONTINUI + GUGLIE CON STATUE (x = +-5.0 m)
+# 5. PILASTRI CONTRAFFORTI CENTRALI POLISTILI + GUGLIE GOTICHE CON TABERNACOLI
+#    E STATUE (x = +-5.00 m, ricostruiti fedelmente sulla foto ravvicinata)
 # =============================================================================
+def _statua_santa_guglia(name, col, x, y, z, h=1.18, turn=0.14, material=None):
+    """Statua gotica panneggiata sommitale dei due pinnacoli affiancanti la cuspide."""
+    material = material or BIANCO
+    bm = bmesh.new()
+    M = Matrix.Translation((x, y, z)) @ Matrix.Rotation(turn, 4, "Z") @ Matrix.Diagonal((h, h, h, 1.0))
+    _bm_lathe(bm, M, ((0.0, 0.13), (0.04, 0.14), (0.08, 0.115)), seg=16, sy=0.88)
+    _bm_lathe(
+        bm, M,
+        ((0.07, 0.115), (0.18, 0.135), (0.36, 0.128), (0.54, 0.112), (0.68, 0.098), (0.76, 0.105)),
+        seg=22, sy=0.80, rib=0.055, rib_n=11,
+    )
+    # Pieghe verticali scavate e manto avvolgente
+    for i in range(10):
+        a = math.tau * i / 10
+        _bm_segmento(
+            bm, M,
+            (0.115 * math.cos(a), 0.092 * math.sin(a), 0.10),
+            (0.092 * math.cos(a), 0.074 * math.sin(a), 0.64),
+            0.015, 0.011, seg=6,
+        )
+    _bm_sfera(bm, M, 0.0, -0.005, 0.77, 0.082, sx=1.55, sy=0.82, sz=0.72, u=14, v=8)
+    # Braccia piegate sul petto con codice / rotolo
+    for sa in (-1, 1):
+        _bm_segmento(bm, M, (sa * 0.11, 0.0, 0.75), (sa * 0.13, -0.05, 0.61), 0.036, 0.030, seg=8)
+        _bm_segmento(bm, M, (sa * 0.13, -0.05, 0.61), (sa * 0.05, -0.10, 0.63), 0.030, 0.025, seg=8)
+    _bm_box(bm, M, -0.03, -0.115, 0.64, 0.11, 0.045, 0.13, rot=Matrix.Rotation(0.20, 4, "Y"))
+    # Testa velata / chioma scolpita
+    _bm_segmento(bm, M, (0.0, 0.0, 0.79), (0.0, -0.005, 0.85), 0.036, 0.032, seg=10)
+    _bm_sfera(bm, M, 0.0, -0.01, 0.905, 0.072, sx=0.86, sy=0.96, sz=1.08, u=16, v=10)
+    _bm_sfera(bm, M, 0.0, 0.015, 0.925, 0.076, sx=0.96, sy=1.02, sz=1.05, u=14, v=9)
+    return _mesh_da_bmesh(name, col, bm, material)
+
+
 def pilastro_centrale_completo(side):
     cx = side * X_PIL_C
     tag = "Sx" if side < 0 else "Dx"
     h_shaft = Z_PIL_TOP - Z_GALLERIA
-    box(f"Pilastro_Centrale_{tag}", G, cx, -0.55, Z_GALLERIA + h_shaft * 0.5, W_PIL_C, 1.85, h_shaft, BIANCO)
-    for s2 in (-1, 0, 1):
-        box(
-            f"Costolone_Pil_{tag}_{s2}", G, cx + s2 * 0.36, -1.52, Z_GALLERIA + h_shaft * 0.5,
-            0.16, 0.18, h_shaft, ROSA_C if s2 == 0 else BIANCO2
-        )
+    z_mid = Z_GALLERIA + h_shaft * 0.5
+
+    # Nucleo del contrafforte polistilo in marmo senese
+    box(f"Pilastro_Centrale_{tag}", G, cx, -0.62, z_mid, W_PIL_C, 1.86, h_shaft, BIANCO)
+
+    # Specchiature verticali in marmo rosa senese e bianco caldo (pieno marmo luminoso come in cmp_pier.jpg, ZERO fessure nere!)
+    for s2 in (-0.31, 0.31):
+        box(f"Specchio_Rosa_Pil_{tag}_{s2:+.2f}", G, cx + s2, -1.565, z_mid, 0.30, 0.08, h_shaft - 0.20, ROSA_C)
+    for s2 in (-0.58, -0.22, 0.0, 0.22, 0.58):
+        w_rib = 0.135 if abs(s2) > 0.5 else (0.115 if s2 == 0 else 0.095)
+        y_rib = -1.625 if abs(s2) in (0.0, 0.58) else -1.59
+        mat_rib = BIANCO if abs(s2) > 0.1 else BIANCO2
+        box(f"Costolone_Pil_{tag}_{s2:+.2f}", G, cx + s2, y_rib, z_mid, w_rib, 0.20, h_shaft, mat_rib)
+
+    # Statue inferiori nei tabernacoli del registro dell'oculo
     for s2 in (-1, 1):
-        sx_st = cx + s2 * 0.28
-        statue(f"Statua_PilCent_{tag}_{s2}", ST, sx_st, -1.66, Z_GALLERIA + 0.30, 1.65, PIETRA)
-        spioventi_modanati(f"Ghim_PilBase_{tag}_{s2}", G, sx_st, -1.66, Z_GALLERIA + 2.35, 0.56, 0.72, 0.07, 0.26, BIANCO)
-    for s2 in (-1, 1):
-        spioventi_modanati(f"Ghim_PilMed_{tag}_{s2}", G, cx + s2 * 0.28, -1.58, 22.8, 0.56, 0.85, 0.07, 0.22, BIANCO)
-    for zg in (22.9, 25.4):
-        gargolla(
-            f"Gargolla_Pil_{tag}_{zg}", D, cx + side * 0.78, -1.25, zg,
-            side, 0.95, 0.10, PIETRA
-        )
-    box(f"Dado_Guglia_{tag}", G, cx, -0.60, Z_PIL_TOP + 0.85, 0.92, 0.92, 1.65, BIANCO2)
-    box(f"Luce_Guglia_{tag}", G, cx, -1.08, Z_PIL_TOP + 0.85, 0.34, 0.14, 1.10, SCURO)
+        sx_st = cx + s2 * 0.30
+        statue(f"Statua_PilCent_{tag}_{s2}", ST, sx_st, -1.68, Z_GALLERIA + 0.30, 1.65, PIETRA)
+        spioventi_modanati(f"Ghim_PilBase_{tag}_{s2}", G, sx_st, -1.68, Z_GALLERIA + 2.35, 0.58, 0.72, 0.07, 0.26, BIANCO)
+
+    # Costruzione gotica scolpita ad alta definizione del registro alto + guglia (bmesh consolidati)
+    bm_w = bmesh.new()   # elementi in Marmo_Bianco
+    bm_p = bmesh.new()   # elementi scolpiti / gattoni / capitelli in Pietra_Statue
+    Mi = Matrix.Identity(4)
+
+    # 1) Doppie arcate ogivali cieche strombate + ghimberghe acute + doppie cornici marcapiano patinate (cmp_pier.jpg!)
+    bm_pat_pil = bmesh.new()
+    for z_band in (22.36, 23.02, 24.48, 25.92, 26.52, Z_PIL_TOP):
+        _bm_box(bm_w, Mi, cx, -0.64, z_band, W_PIL_C + 0.15, 1.96, 0.10)
+        _bm_box(bm_pat_pil, Mi, cx, -0.65, z_band - 0.068, W_PIL_C + 0.11, 1.93, 0.048)
+    _mesh_da_bmesh(f"Patina_Marcapiani_Pil_{tag}", G, bm_pat_pil, PATINA)
+
+    for z_gable, h_gable, has_lancet in ((22.98, 1.38, True), (27.06, 1.30, True)):
+        for s2 in (-1, 1):
+            gx0 = cx + s2 * 0.305
+            gw0 = 0.60
+            # Triplo ordine di archetti acuti concentrici incassati (come nella foto 3_left_pinnacle.jpg!)
+            if has_lancet:
+                for ord_k, (sp_k, rs_k, y_k, min_k) in enumerate((
+                    (gw0 * 0.88, h_gable * 0.64, -1.63, 0.030),
+                    (gw0 * 0.68, h_gable * 0.52, -1.60, 0.025),
+                    (gw0 * 0.48, h_gable * 0.40, -1.57, 0.020),
+                )):
+                    _bm_arco_acuto(bm_w if ord_k % 2 == 0 else bm_p, Mi, gx0, y_k, z_gable - 0.32, sp_k, rs_k, min_k, seg_u=14, seg_v=6)
+            ang_g = math.atan2(h_gable, gw0 * 0.5)
+            sl_g = math.hypot(gw0 * 0.5, h_gable) + 0.06
+            for gs in (-1, 1):
+                _bm_box(
+                    bm_w, Mi, gx0 + gs * gw0 * 0.25, -1.66, z_gable + h_gable * 0.5,
+                    sl_g, 0.18, 0.068, rot=Matrix.Rotation(gs * ang_g, 4, "Y"),
+                )
+                for kc in range(4):
+                    tc = 0.18 + 0.68 * kc / 3.0
+                    _bm_foglia(
+                        bm_p, 0.14, 0.075, 0.042,
+                        Matrix.Translation((gx0 + gs * gw0 * 0.5 * (1.0 - tc), -1.68, z_gable + h_gable * tc + 0.03))
+                        @ Matrix.Rotation(gs * 0.42, 4, "Y"),
+                        piega=-0.14 * gs,
+                    )
+            _bm_lathe(
+                bm_p, Matrix.Translation((gx0, -1.67, z_gable + h_gable)),
+                ((0.0, 0.048), (0.09, 0.064), (0.24, 0.020)), seg=8, sy=0.85,
+            )
+
+    # 2) Doccioni gotici scolpiti sui fianchi dei contrafforti (coppia esterna + doccione interno)
+    gargolla(f"Gargolla_Pil_Inf_{tag}", D, cx + side * 0.80, -1.48, 26.52, side, 0.72, 0.088, PIETRA, pitch_deg=4.0)
+    gargolla(f"Gargolla_Pil_Med_{tag}", D, cx + side * 0.82, -1.52, 27.14, side, 0.86, 0.098, PIETRA, pitch_deg=34.0)
+    gargolla(f"Gargolla_Pil_Int_{tag}", D, cx - side * 0.76, -1.50, 27.10, -side, 0.68, 0.086, PIETRA, pitch_deg=32.0)
+
+    # 3) Tabernacolo / Edicola gotica traforata in marmo bianco (ZERO riquadro nero piatto!)
+    z_tab = Z_PIL_TOP + 0.06
+    h_tab = 1.48
+    y_tab = -0.98
+    # Basamento a gradoni modanati del tabernacolo
+    _bm_box(bm_w, Mi, cx, y_tab, z_tab + 0.08, 1.06, 1.06, 0.16)
+    _bm_box(bm_p, Mi, cx, y_tab, z_tab + 0.21, 0.94, 0.94, 0.10)
+    _bm_box(bm_w, Mi, cx, y_tab, z_tab + 0.30, 0.88, 0.88, 0.09)
+
+    # Nucleo gotico poligonale scolpito in marmo bianco-avorio + statua frontale in nicchia!
+    # Esattamente come in cmp_pier.jpg (ZERO caverna nera: è un tabernacolo marmoreo scolpito con statua!)
+    _bm_lathe(
+        bm_p, Matrix.Translation((cx, y_tab, z_tab + 0.30)),
+        ((0.0, 0.27), (0.45, 0.24), (0.95, 0.23), (1.18, 0.25)),
+        seg=8, sy=1.0, rib=0.10, rib_n=8,
+    )
+    _statua_santa_guglia(f"Statuetta_Ciborio_{tag}", ST, cx, y_tab - 0.27, z_tab + 0.36, h=0.76, turn=side * 0.18, material=PIETRA_RIL)
+    # 4 pilastrini angolari polistili + pinnacolini angolari fioriti con gattoni
     for sx2 in (-1, 1):
-        finial(f"Pin_Ang_Guglia_{tag}_{sx2}", G, cx + sx2 * 0.44, -0.95, Z_PIL_TOP + 1.35, 0.78)
-    cone(f"Fusto_Guglia_{tag}", G, cx, -0.60, Z_PIL_TOP + 2.40, 0.35, 0.16, 1.55, PIETRA, vertices=8)
-    sphere(f"Capitello_Guglia_{tag}", G, cx, -0.60, Z_PIL_TOP + 3.25, 0.23, PIETRA, sz=0.7)
-    statue(f"Statua_Sommitale_Guglia_{tag}", ST, cx, -0.60, Z_PIL_TOP + 3.36, 1.15, PIETRA)
+        for sy2 in (-1, 1):
+            px_c = cx + sx2 * 0.37
+            py_c = y_tab + sy2 * 0.37
+            _bm_box(bm_w, Mi, px_c, py_c, z_tab + 0.34 + 0.52, 0.17, 0.17, 1.04)
+            _bm_box(bm_p, Mi, px_c + sx2 * 0.04, py_c + sy2 * 0.04, z_tab + 0.34 + 0.52, 0.11, 0.11, 1.00)
+            # Pinnacolino angolare acuto con gattoni e fiorone
+            z_pin = z_tab + 1.38
+            _bm_box(bm_w, Mi, px_c, py_c, z_pin + 0.05, 0.21, 0.21, 0.10)
+            _bm_cono(bm_w, Mi, px_c, py_c, z_pin + 0.44, 0.095, 0.022, 0.68, seg=8)
+            for kp in range(3):
+                _bm_foglia(
+                    bm_p, 0.13, 0.07, 0.04,
+                    Matrix.Translation((px_c + sx2 * 0.05, py_c - 0.04, z_pin + 0.14 + kp * 0.17))
+                    @ Matrix.Rotation(sx2 * 0.38, 4, "Y"),
+                    piega=-0.12 * sx2,
+                )
+            _bm_sfera(bm_p, Mi, px_c, py_c, z_pin + 0.80, 0.045, sz=1.35, u=8, v=6)
+
+    # Archetti ogivali cuspidati e ghimberghe frontali/laterali del tabernacolo
+    for y_face in (-0.38, 0.38):
+        _bm_arco_acuto(bm_w, Mi, cx, y_tab + y_face, z_tab + 0.86, 0.62, 0.46, 0.036, seg_u=14, seg_v=6)
+        ang_t = math.atan2(0.68, 0.34)
+        sl_t = math.hypot(0.34, 0.68) + 0.05
+        for gs in (-1, 1):
+            _bm_box(
+                bm_w, Mi, cx + gs * 0.17, y_tab + y_face - 0.02, z_tab + 0.94 + 0.34,
+                sl_t, 0.11, 0.058, rot=Matrix.Rotation(gs * ang_t, 4, "Y"),
+            )
+            for kc in range(3):
+                tc = 0.22 + 0.62 * kc / 2.0
+                _bm_foglia(
+                    bm_p, 0.13, 0.07, 0.04,
+                    Matrix.Translation((cx + gs * 0.34 * (1.0 - tc), y_tab + y_face - 0.04, z_tab + 0.94 + 0.68 * tc))
+                    @ Matrix.Rotation(gs * 0.40, 4, "Y"),
+                    piega=-0.12 * gs,
+                )
+
+    # Doccioni superiori del tabernacolo (visibilissimi nella foto 3_left_pinnacle.jpg!)
+    gargolla(f"Gargolla_Tab_Inf_{tag}", D, cx - side * 0.58, y_tab - 0.16, z_tab + 0.68, -side, 0.64, 0.082, PIETRA, pitch_deg=-8.0)
+    gargolla(f"Gargolla_Tab_Sup_{tag}", D, cx - side * 0.56, y_tab - 0.14, z_tab + 1.04, -side, 0.66, 0.082, PIETRA, pitch_deg=26.0)
+    gargolla(f"Gargolla_Tab_Est_{tag}", D, cx + side * 0.55, y_tab - 0.15, z_tab + 0.96, side, 0.54, 0.076, PIETRA, pitch_deg=18.0)
+
+    # 4) Fusto ottagonale slanciato della guglia tempestate di gattoni rampanti + grande cesto corinzio d'acanto
+    h_asym = 0.0 if side < 0 else -0.14  # autentica lieve asimmetria Sx/Dx del Duomo di Siena
+    z_sp = z_tab + h_tab
+    h_sp = 0.98 + h_asym
+    _bm_lathe(
+        bm_w, Matrix.Translation((cx, y_tab, z_sp)),
+        ((0.0, 0.28), (h_sp * 0.35, 0.22), (h_sp * 0.72, 0.165), (h_sp, 0.135)),
+        seg=8, sy=1.0,
+    )
+    for ring_i in range(5):
+        tr = ring_i / 4.0
+        rz_i = z_sp + 0.08 + tr * (h_sp - 0.14)
+        rr_i = 0.26 * (1.0 - 0.42 * tr)
+        sz_i = 0.19 * (1.0 - 0.28 * tr)
+        for k8 in range(8):
+            a8 = math.tau * k8 / 8.0 + (0.39 if ring_i % 2 else 0.0)
+            d8 = Vector((0.68 * math.cos(a8), 0.68 * math.sin(a8), 0.73)).normalized()
+            Mp = Matrix.Translation((cx + rr_i * math.cos(a8), y_tab + rr_i * math.sin(a8), rz_i)) @ d8.to_track_quat("Z", "Y").to_matrix().to_4x4()
+            _bm_foglia(bm_p, sz_i, sz_i * 0.62, sz_i * 0.30, Mp, piega=0.18, gonfia=1.2)
+
+    # Capitello corinzio compatto e scolpito a due ordini (proporzione snella esatta di cmp_pier.jpg!)
+    z_cap = z_sp + h_sp
+    _bm_lathe(
+        bm_p, Matrix.Translation((cx, y_tab, z_cap)),
+        ((0.0, 0.115), (0.12, 0.165), (0.24, 0.185), (0.34, 0.165), (0.40, 0.145)),
+        seg=14, sy=1.0,
+    )
+    for tier_c, (nc, rc, lc, wc, tilt_c) in enumerate(((8, 0.125, 0.22, 0.11, 0.46), (8, 0.145, 0.20, 0.115, 0.30))):
+        for kc in range(nc):
+            ac = math.tau * kc / nc + (0.39 if tier_c else 0.0)
+            dc = Vector((math.sin(tilt_c) * math.cos(ac), math.sin(tilt_c) * math.sin(ac), math.cos(tilt_c)))
+            Mcap = Matrix.Translation((cx + rc * math.cos(ac), y_tab + rc * math.sin(ac), z_cap + 0.04 + tier_c * 0.12)) @ dc.to_track_quat("Z", "Y").to_matrix().to_4x4()
+            _bm_foglia(bm_p, lc, wc, 0.042, Mcap, piega=0.18, gonfia=1.25)
+
+    _mesh_da_bmesh(f"Guglia_Gotica_Marmo_{tag}", G, bm_w, BIANCO)
+    _mesh_da_bmesh(f"Guglia_Gotica_Scolpita_{tag}", G, bm_p, PIETRA_RIL)
+
+    # 5) Statua sommitale panneggiata sul capitello fogliato
+    _statua_santa_guglia(
+        f"Statua_Sommitale_Guglia_{tag}", ST,
+        cx, y_tab, z_cap + 0.40, h=1.14, turn=-side * 0.22, material=PIETRA,
+    )
 
 
 pilastro_centrale_completo(-1)
@@ -1605,59 +2330,46 @@ def banda_mitrata(name, col, s, W, H, o0, o1, y_front, depth, material, z_base=0
     return _mesh_da_bmesh(name, col, bm, material, uv_scale=uv_scale)
 
 
-def crocchi_spiovente(name, col, s, W, H, z_base, y, n=20, size=0.34, offset=0.02,
-                      material=None, y_fondo=None, tilt=None, taper=0.55,
-                      gonfia=1.0):
-    """Foglie rampanti (crockets) a tre lobi agganciate al filo esterno.
-
-    Ogni crocket è un solo oggetto: lobo centrale curvato + due lobi laterali
-    + collarino, orientati lungo la normale esterna inclinata verso l'alto
-    come nell'originale (prima erano foglie sparse e disallineate).
-    """
+def crocchi_spiovente(name, col, s, W, H, z_base, y, n=21, size=0.38, offset=0.015,
+                      material=None, y_fondo=None, tilt=None, taper=0.84,
+                      gonfia=1.28):
+    """Autentici gattoni gotici rampanti senesi a foglia d'acanto carnosa e uncinata
+    (verificati su cmp_angel.jpg e cmp_lower.jpg: corpo fogliato pieno aderente allo
+    spiovente, apice ricurvo a gancio con perla terminale e sottosquadro d'ombra!)."""
     material = material or BIANCO
     sin_t, L = _angolo_spiovente(W, H)
-    # normale esterna (verso il cielo) e direzione lungo lo spiovente
     px_, pz_ = s * H / L, (W * 0.5) / L
     ux_, uz_ = -s * (W * 0.5) / L, H / L
-    phi = math.radians(34.0)
-    ax_ = px_ * math.cos(phi) + ux_ * math.sin(phi)
-    az_ = pz_ * math.cos(phi) + uz_ * math.sin(phi)
-    ang = math.atan2(ax_, az_)
+    bm = bmesh.new()
+    bm_pat = bmesh.new()
     for i in range(n):
-        u = 0.02 + 0.965 * i / max(1, n - 1)
+        u = 0.050 + 0.896 * i / max(1, n - 1)
         bx, bz = punto_fascia(s, W, H, offset, u, z_base)
         sz_i = size * (1.0 - (1.0 - taper) * u)
-        bm = bmesh.new()
-        M = Matrix.Translation((bx, y, bz)) @ Matrix.Rotation(ang, 4, "Y")
-        # lobo principale, leggermente arcuato verso l'alto
-        _bm_foglia(bm, sz_i * 1.15, sz_i * 0.66, sz_i * 0.34,
-                   M @ Matrix.Rotation(0.06, 4, "X"),
-                   profilo=((0.00, 0.30), (0.12, 0.44), (0.24, 0.34), (0.38, 0.52),
-                            (0.50, 0.36), (0.62, 0.50), (0.74, 0.34), (0.84, 0.34),
-                            (0.93, 0.18), (1.00, 0.01)),
-                   piega=-0.16, gonfia=gonfia)
-        # due lobi laterali agganciati più in basso, divaricati
-        for sgn in (-1, 1):
-            _bm_foglia(bm, sz_i * 0.66, sz_i * 0.34, sz_i * 0.26,
-                       M @ Matrix.Rotation(sgn * 0.62, 4, "Y")
-                         @ Matrix.Translation((0.0, sz_i * 0.10, sz_i * 0.10)),
-                       profilo=((0.00, 0.34), (0.28, 0.46), (0.52, 0.34),
-                                (0.74, 0.22), (1.00, 0.01)),
-                       piega=-0.10, gonfia=gonfia)
-        # collarino d'attacco (appena rilevato, non una sfera isolata)
-        _bm_sfera(bm, M, 0.0, -sz_i * 0.02, sz_i * 0.01, sz_i * 0.14,
-                  sx=1.30, sy=0.55, sz=0.60, u=8, v=5)
-        _mesh_da_bmesh(f"{name}_{i}", col, bm, material)
+        c0 = Vector((bx - ux_ * sz_i * 0.56, y + 0.01, bz - uz_ * sz_i * 0.56))
+        c1 = Vector((bx + px_ * sz_i * 0.28 - ux_ * sz_i * 0.08, y - 0.015, bz + pz_ * sz_i * 0.28 - uz_ * sz_i * 0.08))
+        c2 = Vector((bx + px_ * sz_i * 0.60 + ux_ * sz_i * 0.16, y - 0.028, bz + pz_ * sz_i * 0.60 + uz_ * sz_i * 0.16))
+        c3 = Vector((bx + px_ * sz_i * 0.68 - ux_ * sz_i * 0.04, y - 0.022, bz + pz_ * sz_i * 0.68 - uz_ * sz_i * 0.04))
+        _bm_segmento(bm, Matrix.Identity(4), c0, c1, sz_i * 0.165, sz_i * 0.205, seg=9, sy=0.82)
+        _bm_segmento(bm, Matrix.Identity(4), c1, c2, sz_i * 0.205, sz_i * 0.165, seg=9, sy=0.82)
+        _bm_sfera(bm, Matrix.Translation(c3), 0.0, 0.0, 0.0, sz_i * 0.175, sx=1.18, sy=0.85, sz=1.08, u=10, v=7)
+        # Incavo d'ombra patinato sotto la curvatura del ricciolo (identico alla foto!)
+        p_und = Vector((bx + px_ * sz_i * 0.34 - ux_ * sz_i * 0.22, y + 0.005, bz + pz_ * sz_i * 0.34 - uz_ * sz_i * 0.22))
+        _bm_sfera(bm_pat, Matrix.Translation(p_und), 0.0, 0.0, 0.0, sz_i * 0.125, sx=1.05, sy=0.72, sz=0.95, u=8, v=6)
+        d_climb = (c2 - c0).normalized()
+        Mc = Matrix.Translation(c0) @ d_climb.to_track_quat("Z", "Y").to_matrix().to_4x4()
+        _bm_foglia(
+            bm, (c2 - c0).length * 0.98, sz_i * 0.42, sz_i * 0.18, Mc,
+            profilo=((0.00, 0.28), (0.24, 0.50), (0.48, 0.44), (0.72, 0.56), (0.90, 0.38), (1.00, 0.14)),
+            piega=0.18 * s, gonfia=gonfia,
+        )
+    _mesh_da_bmesh(f"{name}_Patina", col, bm_pat, PATINA)
+    return _mesh_da_bmesh(name, col, bm, material)
 
 
 def _bm_ala_rilievo(bm, M, s, a0, a1, r0, r_tip, spess, n_penne=5,
                     larghezza=0.52, scalatura=0.82):
-    """Ala di cherubino a bassorilievo: penne lanceolate embricate.
-
-    Ogni penna è una foglia spessa e larga appoggiata sul piano del rilievo,
-    con la punta rivolta verso l'esterno; le penne si sovrappongono come
-    scaglie, così l'ala ha il bordo sfrangiato e la superficie continua.
-    """
+    """Ala di cherubino a bassorilievo: penne lanceolate embricate."""
     for i in range(n_penne):
         t = i / max(1, n_penne - 1)
         a = s * (a0 + (a1 - a0) * t)
@@ -1672,575 +2384,557 @@ def _bm_ala_rilievo(bm, M, s, a0, a1, r0, r_tip, spess, n_penne=5,
                    piega=0.10 * s)
 
 
-def testa_cherubino(name, col, x, y, z, r, material=None, ali=1.0, tilt=0.0,
-                    ali_inclinazione=0.34):
-    """Testina di cherubino alata a bassorilievo, in un'unica mesh.
-
-    Il viso ha fronte, sopracciglia, naso, bocca e mento in aggetto (sono i
-    volumi che creano l'ombra del rilievo); i capelli sono una calotta con
-    ciocche arricciate; le ali sono due ventagli continui con il bordo a
-    conchiglia che scendono ai lati del collo. Tutto è schiacciato in Y.
-    """
-    material = material or PIETRA
-    bm = bmesh.new()
+def _add_testa_cherubino(bm, x, y, z, r, ali=1.0, tilt=0.0, ali_su=False, bm_pat=None):
+    """Aggiunge a `bm` una testina di cherubino alata ad altorilievo marmoreo +
+    incavi patinati di orbite, bocca, riccioli e penne in `bm_pat` (cmp_lower.jpg!)."""
     M = Matrix.Translation((x, y, z)) @ Matrix.Rotation(tilt, 4, "Y")
-    fy = 0.52                                  # schiacciamento in profondità
-    ys = -r * fy * 1.06                        # piano del viso (fuori dalla calotta)
-    # cranio leggermente ovale, mento appuntito
-    _bm_sfera(bm, M, 0.0, 0.0, 0.0, r, sx=0.80, sy=fy, sz=1.00, u=16, v=10)
-    _bm_sfera(bm, M, 0.0, ys * 0.70, -r * 0.58, r * 0.32, sx=0.66, sy=fy * 0.8,
-              sz=0.55, u=10, v=6)
-    # fronte, sopracciglia, naso, bocca
-    _bm_sfera(bm, M, 0.0, ys * 0.55, r * 0.22, r * 0.30, sx=0.86, sy=fy * 0.55,
-              sz=0.44, u=10, v=6)
+    fy = 0.58
+    ys = -r * fy * 1.08
+    _bm_sfera(bm, M, 0.0, 0.0, 0.0, r, sx=0.82, sy=fy, sz=1.02, u=16, v=10)
+    _bm_sfera(bm, M, 0.0, ys * 0.72, -r * 0.58, r * 0.34, sx=0.68, sy=fy * 0.85, sz=0.56, u=10, v=6)
+    _bm_sfera(bm, M, 0.0, ys * 0.58, r * 0.24, r * 0.32, sx=0.88, sy=fy * 0.58, sz=0.46, u=10, v=6)
     for s in (-1, 1):
-        _bm_sfera(bm, M, s * r * 0.21, ys * 0.92, r * 0.10, r * 0.105,
-                  sx=1.60, sy=fy * 0.38, sz=0.24, u=8, v=5)
-        # occhio sotto il sopracciglio
-        _bm_sfera(bm, M, s * r * 0.20, ys * 0.84, -r * 0.03, r * 0.062,
-                  sx=1.35, sy=fy * 0.38, sz=0.55, u=8, v=5)
-        # guancia e orecchio
-        _bm_sfera(bm, M, s * r * 0.36, ys * 0.70, -r * 0.20, r * 0.24,
-                  sx=0.80, sy=fy * 0.62, sz=0.58, u=8, v=5)
-        _bm_sfera(bm, M, s * r * 0.72, ys * 0.30, -r * 0.02, r * 0.11,
-                  sx=0.42, sy=fy * 0.75, sz=1.0, u=8, v=5)
-    _bm_sfera(bm, M, 0.0, ys * 0.96, -r * 0.02, r * 0.034, sx=0.66, sy=fy * 0.32,
-              sz=1.10, u=8, v=5)
-    _bm_sfera(bm, M, 0.0, ys * 0.90, -r * 0.30, r * 0.055, sx=0.95, sy=fy * 0.24,
-              sz=0.13, u=8, v=5)
-    # capelli: calotta con ciocche arricciate su fronte e tempie
-    _bm_sfera(bm, M, 0.0, r * 0.10, r * 0.34, r * 0.84, sx=0.92, sy=fy * 1.05,
-              sz=0.70, u=14, v=8)
-    for k in range(7):
-        a = -1.15 + 2.30 * k / 6.0
-        _bm_sfera(bm, M, math.sin(a) * r * 0.60, r * 0.02 - abs(a) * r * 0.06,
-                  r * 0.52 + math.cos(a) * r * 0.20, r * 0.15,
-                  sx=1.0, sy=fy * 0.95, sz=0.85, u=8, v=5)
+        _bm_sfera(bm, M, s * r * 0.24, ys * 0.96, r * 0.12, r * 0.13, sx=1.55, sy=fy * 0.45, sz=0.28, u=8, v=5)
+        _bm_sfera(bm, M, s * r * 0.22, ys * 0.82, -r * 0.03, r * 0.075, sx=1.30, sy=fy * 0.42, sz=0.58, u=8, v=5)
+        _bm_sfera(bm, M, s * r * 0.38, ys * 0.76, -r * 0.20, r * 0.27, sx=0.82, sy=fy * 0.68, sz=0.60, u=8, v=5)
+        if bm_pat is not None:
+            # Orbite oculari e fossette laterali patinate (danno subito vita al volto!)
+            _bm_sfera(bm_pat, M, s * r * 0.24, ys * 0.95, r * 0.01, r * 0.095, sx=1.25, sy=fy * 0.35, sz=0.58, u=7, v=5)
+            _bm_sfera(bm_pat, M, s * r * 0.58, ys * 0.42, -r * 0.28, r * 0.16, sx=0.75, sy=fy * 0.55, sz=0.85, u=7, v=5)
+    _bm_segmento(bm, M, (0.0, ys * 0.88, r * 0.12), (0.0, ys * 1.06, -r * 0.16), r * 0.11, r * 0.14, seg=6)
+    _bm_sfera(bm, M, 0.0, ys * 0.94, -r * 0.32, r * 0.08, sx=1.25, sy=fy * 0.35, sz=0.28, u=8, v=5)
+    if bm_pat is not None:
+        _bm_sfera(bm_pat, M, 0.0, ys * 0.97, -r * 0.31, r * 0.075, sx=1.45, sy=fy * 0.28, sz=0.26, u=7, v=5)
+        _bm_sfera(bm_pat, M, 0.0, ys * 0.65, -r * 0.76, r * 0.22, sx=1.25, sy=fy * 0.45, sz=0.38, u=7, v=5)
+    for k in range(9):
+        a = -1.45 + 2.90 * k / 8.0
+        _bm_sfera(bm, M, math.sin(a) * r * 0.76, r * 0.02 - 0.10 * r,
+                  r * 0.18 + math.cos(a) * r * 0.68, r * 0.22,
+                  sx=1.0, sy=fy * 0.95, sz=0.92, u=8, v=6)
+        if bm_pat is not None and k < 8:
+            am = -1.45 + 2.90 * (k + 0.5) / 8.0
+            _bm_sfera(bm_pat, M, math.sin(am) * r * 0.68, r * 0.02 - 0.13 * r,
+                      r * 0.16 + math.cos(am) * r * 0.62, r * 0.14,
+                      sx=0.85, sy=fy * 0.80, sz=0.80, u=6, v=5)
+    a_start = math.radians(14) if ali_su else math.radians(42)
+    a_end = math.radians(136) if ali_su else math.radians(142)
     for s in (-1, 1):
-        _bm_sfera(bm, M, s * r * 0.64, r * 0.06, r * 0.06, r * 0.16,
-                  sx=0.55, sy=fy * 0.95, sz=0.80, u=8, v=5)
-    # ali: ventagli continui che scendono ai lati del collo
-    for s in (-1, 1):
-        Ma = M @ Matrix.Translation((s * r * 0.40, 0.0, r * 0.04))
-        _bm_ala_rilievo(bm, Ma, s, math.radians(12), math.radians(150),
-                        r * 0.26, r * 1.05 * ali, r * 0.12 * ali * 2.0,
-                        n_penne=7, larghezza=0.62, scalatura=0.74)
-        Mb = M @ Matrix.Translation((s * r * 0.36, -r * 0.08, r * 0.00))
-        _bm_ala_rilievo(bm, Mb, s, math.radians(26), math.radians(112),
-                        r * 0.15, r * 0.54 * ali, r * 0.10 * ali * 2.0,
-                        n_penne=5, larghezza=0.66, scalatura=0.80)
-    # ricciolo d'appoggio sotto il mento
-    _bm_sfera(bm, M, 0.0, ys * 0.30, -r * 0.98, r * 0.18, sx=1.35, sy=fy * 0.7,
-              sz=0.40, u=8, v=5)
-    return _mesh_da_bmesh(name, col, bm, material)
+        Ma = M @ Matrix.Translation((s * r * 0.46, 0.02 * r, -r * 0.06))
+        _bm_ala_rilievo(bm, Ma, s, a_start, a_end,
+                        r * 0.24, r * 1.55 * ali, r * 0.16 * ali,
+                        n_penne=7, larghezza=0.58, scalatura=0.76)
+        if bm_pat is not None:
+            Mp_w = M @ Matrix.Translation((s * r * 0.42, 0.05 * r, -r * 0.08))
+            _bm_ala_rilievo(bm_pat, Mp_w, s, a_start + 0.08, a_end - 0.12,
+                            r * 0.18, r * 1.15 * ali, r * 0.10 * ali,
+                            n_penne=6, larghezza=0.44, scalatura=0.80)
+        Mb = M @ Matrix.Translation((s * r * 0.38, -r * 0.07, -r * 0.10))
+        _bm_ala_rilievo(bm, Mb, s, a_start + 0.16, a_end - 0.22,
+                        r * 0.16, r * 0.92 * ali, r * 0.14 * ali,
+                        n_penne=5, larghezza=0.60, scalatura=0.82)
 
 
-def palmetta_rilievo(name, col, x, y, z, h=0.26, material=None, tilt=0.0, n=5):
-    """Palmetta a ventaglio che alterna le testine di cherubino nei fregi.
-
-    Foglie d'acanto carnose e arrotondate, più corte verso l'esterno, con la
-    nervatura in rilievo e un nodo d'appoggio: è il motivo che nella
-    fotografia separa un cherubino dall'altro.
-    """
-    material = material or BIANCO
+def testa_cherubino(name, col, x, y, z, r, material=None, ali=1.0, tilt=0.0, ali_su=False):
     bm = bmesh.new()
+    _add_testa_cherubino(bm, x, y, z, r, ali=ali, tilt=tilt, ali_su=ali_su)
+    return _mesh_da_bmesh(name, col, bm, material or BIANCO)
+
+
+def _add_giglio_rilievo(bm, x, y, z, h=0.34, tilt=0.0):
+    """Aggiunge un giglio / palmetta trilobata senese ad altorilievo marmoreo."""
     M = Matrix.Translation((x, y, z)) @ Matrix.Rotation(tilt, 4, "Y")
-    _bm_sfera(bm, M, 0.0, -h * 0.02, h * 0.04, h * 0.17, sx=1.30, sy=0.62, sz=0.70, u=8, v=5)
-    for k in range(n):
-        a = (-1.0 + 2.0 * k / (n - 1)) * 0.70
-        ln = h * (0.80 - 0.16 * abs(a) / 0.70)
-        Mb = M @ Matrix.Rotation(a, 4, "Y") @ Matrix.Translation((0.0, -h * 0.02, h * 0.04))
-        _bm_foglia(bm, ln, h * 0.26, h * 0.10, Mb,
-                   profilo=((0.00, 0.36), (0.16, 0.50), (0.34, 0.44), (0.52, 0.50),
-                            (0.70, 0.40), (0.86, 0.24), (1.00, 0.10)), piega=-0.04)
-    # bocciolo al centro del ventaglio
-    _bm_sfera(bm, M, 0.0, -h * 0.05, h * 0.40, h * 0.09, sx=0.80, sy=0.70, sz=1.20, u=8, v=5)
+    # Fascetta d'attacco alla base
+    _bm_sfera(bm, M, 0.0, -h * 0.04, h * 0.16, h * 0.15, sx=1.45, sy=0.55, sz=0.45, u=8, v=5)
+    # Petalo centrale lanceolato eretto
+    _bm_foglia(
+        bm, h * 0.86, h * 0.32, h * 0.15,
+        M @ Matrix.Translation((0.0, -h * 0.05, h * 0.12)),
+        profilo=((0.00, 0.28), (0.20, 0.48), (0.46, 0.52), (0.72, 0.38), (0.90, 0.18), (1.00, 0.02)),
+        gonfia=1.25,
+    )
+    # Due petali laterali arcuati e ricadenti a giglio fiorentino/senese + sepali bassi
+    for s in (-1, 1):
+        _bm_foglia(
+            bm, h * 0.72, h * 0.30, h * 0.14,
+            M @ Matrix.Translation((s * h * 0.06, -h * 0.04, h * 0.15)) @ Matrix.Rotation(s * 0.68, 4, "Y"),
+            profilo=((0.00, 0.26), (0.24, 0.48), (0.54, 0.50), (0.80, 0.34), (1.00, 0.06)),
+            piega=0.28 * s, gonfia=1.20,
+        )
+        _bm_foglia(
+            bm, h * 0.38, h * 0.20, h * 0.10,
+            M @ Matrix.Translation((s * h * 0.08, -h * 0.03, h * 0.14)) @ Matrix.Rotation(s * 2.15, 4, "Y"),
+            piega=-0.16 * s, gonfia=1.10,
+        )
+
+
+def fila_perle(name, col, punti, r, material, sub=1):
+    bm = bmesh.new()
+    ident = Matrix.Identity(4)
+    for (x, y, z) in punti:
+        _bm_sfera(bm, ident, x, y, z, r, u=8, v=5)
     return _mesh_da_bmesh(name, col, bm, material)
-
-
-def fregio_cherubini_spiovente(name, col, s, W, H, z_base, offset, y, n=None,
-                               material=None, testa=0.30, passo=0.62):
-    """Fregio del bordo interno del mosaico: testine alate alternate a palmetti.
-
-    Le figure sono orientate come la modanatura (inclinate lungo lo spiovente)
-    e appoggiate sul piano della fascia, come nell'originale.
-    """
-    material = material or PIETRA
-    tilt = -s * math.atan2(W * 0.5, H)
-    xb, zb = punto_fascia(s, W, H, offset, 0.0, z_base)
-    xa, za = punto_fascia(s, W, H, offset, 1.0, z_base)
-    lung = max(math.hypot(xa - xb, za - zb), 0.5)
-    if n is None:
-        n = max(6, int(lung / passo) + 1)
-    for i in range(n):
-        u = 0.02 + 0.96 * i / max(1, n - 1)
-        px, pz = punto_fascia(s, W, H, offset, u, z_base)
-        if i % 2 == 0:
-            testa_cherubino(f"{name}_ch_{i}", col, px, y, pz, testa * 0.5,
-                            material, ali=1.05, tilt=tilt)
-        else:
-            palmetta_rilievo(f"{name}_pal_{i}", col, px, y, pz, testa * 0.92,
-                             material, tilt=tilt)
-
-
-def nicchia_quatrifoglio(name, col, x, y, z, r, material=None):
-    """Piccola apertura oscura a quatrifoglio (le feritoie dell'apice)."""
-    material = material or SCURO
-    for k in range(4):
-        a = math.pi * 0.5 * k + math.pi * 0.25
-        sphere(f"{name}_lobo{k}", col, x + r * 0.50 * math.cos(a), y,
-               z + r * 0.50 * math.sin(a), r * 0.50, material, sy=0.3)
-    sphere(f"{name}_centro", col, x, y, z, r * 0.52, material, sy=0.3)
 
 
 def _lathe(name, col, x, y, z0, profile, material, seg=20, sx=1.0, sy=0.74,
            rib=0.0, rib_n=9, cap_top=True, cap_bottom=True):
-    """Solido di rotazione con profilo a più anelli (vesti, colonne, capitelli)."""
     bm = bmesh.new()
-    grid = []
-    for k, (zz, rr) in enumerate(profile):
-        row = []
-        for j in range(seg):
-            a = 2.0 * math.pi * j / seg
-            f = 1.0 + rib * math.cos(rib_n * a + k * 0.55)
-            row.append(bm.verts.new((rr * f * math.cos(a) * sx,
-                                     rr * f * math.sin(a) * sy, zz)))
-        grid.append(row)
-    uv_layer = bm.loops.layers.uv.verify()
-    for k in range(len(profile) - 1):
-        for j in range(seg):
-            j2 = (j + 1) % seg
-            f = bm.faces.new((grid[k][j], grid[k][j2], grid[k + 1][j2], grid[k + 1][j]))
-            for loop in f.loops:
-                loop[uv_layer].uv = (j / seg * 2.0, (k + 0.5) / len(profile))
-    if cap_bottom:
-        bm.faces.new(list(reversed(grid[0])))
-    if cap_top:
-        bm.faces.new(grid[-1])
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    mesh = bpy.data.meshes.new(name + "Mesh")
-    bm.to_mesh(mesh)
-    bm.free()
-    mesh.update()
-    return _create_mesh_object(name, mesh, col, (x, y, z0), (0, 0, 0), (1, 1, 1), material)
-
-
-def piuma(name, col, x, y, z, lung, larg, spess, ang, material, s=1.0, piega=0.0):
-    """Penna lanceolata in rilievo: punta acuminata, due barbe, leggera piega."""
-    prof = ((0.00, 0.18), (0.14, 0.44), (0.30, 0.50), (0.46, 0.48),
-            (0.62, 0.42), (0.78, 0.31), (0.90, 0.18), (1.00, 0.01))
-    bm = bmesh.new()
-    left_f, right_f, left_b, right_b = [], [], [], []
-    for t, hw in prof:
-        w = hw * larg
-        zz = t * lung
-        bulge = spess * (0.30 + 0.70 * math.sin(math.pi * min(1.0, t * 1.05)))
-        curl = piega * (t ** 2) * lung
-        for lst, ww, yy in ((left_f, -w, -bulge), (right_f, w, -bulge),
-                            (left_b, -w * 0.92, 0.0), (right_b, w * 0.92, 0.0)):
-            lst.append((ww + s * curl * 0.25, yy, zz))
-    lf = [bm.verts.new(p) for p in left_f]
-    rf = [bm.verts.new(p) for p in right_f]
-    lb = [bm.verts.new(p) for p in left_b]
-    rb = [bm.verts.new(p) for p in right_b]
-    for i in range(len(prof) - 1):
-        bm.faces.new((lf[i], rf[i], rf[i + 1], lf[i + 1]))
-        bm.faces.new((lb[i + 1], rb[i + 1], rb[i], lb[i]))
-        bm.faces.new((lf[i + 1], lf[i], lb[i], lb[i + 1]))
-        bm.faces.new((rf[i], rf[i + 1], rb[i + 1], rb[i]))
-    bm.faces.new((lf[0], lb[0], rb[0], rf[0]))
-    # barbe incise sul fronte: due solchi laterali
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    uv_layer = bm.loops.layers.uv.verify()
-    for f in bm.faces:
-        for loop in f.loops:
-            loop[uv_layer].uv = (0.5 + loop.vert.co.x / max(larg, 1e-3),
-                                 0.5 + loop.vert.co.z / max(lung, 1e-3))
-    mesh = bpy.data.meshes.new(name + "Mesh")
-    bm.to_mesh(mesh)
-    bm.free()
-    mesh.update()
-    return _create_mesh_object(name, mesh, col, (x, y, z), (0.0, ang, 0.0),
-                               (1, 1, 1), material)
-
-
-def _bm_lathe(bm, mat4, profile, seg=24, sy=0.76, rib=0.0, rib_n=9, cap=True):
-    """Solido di rotazione dentro un bmesh (profilo = sequenza di (z, raggio))."""
-    grid = []
-    for k, (zz, rr) in enumerate(profile):
-        row = []
-        for j in range(seg):
-            a = 2.0 * math.pi * j / seg
-            f = 1.0 + rib * math.cos(rib_n * a + k * 0.45)
-            row.append(bm.verts.new(mat4 @ Vector((rr * f * math.cos(a),
-                                                   rr * f * math.sin(a) * sy, zz))))
-        grid.append(row)
-    for k in range(len(profile) - 1):
-        for j in range(seg):
-            j2 = (j + 1) % seg
-            bm.faces.new((grid[k][j], grid[k][j2], grid[k + 1][j2], grid[k + 1][j]))
-    if cap:
-        bm.faces.new(list(reversed(grid[0])))
-        bm.faces.new(grid[-1])
-
-
-def _bm_segmento(bm, mat4, p0, p1, r0, r1, seg=8, sy=1.0):
-    """Tronco di cono orientato da p0 a p1 (braccia, aste, panneggi)."""
-    p0, p1 = Vector(p0), Vector(p1)
-    d = p1 - p0
-    ln = max(d.length, 1e-4)
-    q = d.to_track_quat("Z", "Y").to_matrix().to_4x4()
-    m = mat4 @ Matrix.Translation((p0 + p1) * 0.5) @ q @ Matrix.Diagonal((1.0, sy, 1.0, 1.0))
-    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=True, segments=seg,
-                          radius1=r0, radius2=r1, depth=ln, matrix=m)
-
-
-def _bm_membrana_ala(bm, mat4, a0, a1, r_base, lung, spess, n_scallop=6,
-                     y_off=0.0, curvatura=0.30, profilo_piuma=0.16, r_finale=0.5):
-    """Ala a membrana continua, con bordo a conchiglia e penne embricate.
-
-    Superficie a griglia polare: la lunghezza delle penne decresce
-    dall'interno (presso la spalla, quasi verticali) verso l'esterno, così
-    l'ala ha la forma a goccia dell'originale; il bordo è dentellato dagli
-    sbocchi delle remiganti. Lo spessore nasce da due pelli parallele con
-    bombatura, quindi l'ala legge come un volume unico.
-    """
-    nr, nt = 5, 40
-    front, back = [], []
-    for iu in range(nt + 1):
-        t = iu / nt
-        a = a0 + (a1 - a0) * t
-        scallop = profilo_piuma * (0.5 + 0.5 * math.cos(2.0 * math.pi * n_scallop * t))
-        # le penne si accorciano verso l'esterno: profilo a goccia
-        r_tip = lung * (1.0 - (1.0 - r_finale) * (t ** 1.25)) * (1.0 - 0.20 * scallop)
-        col_f, col_b = [], []
-        for ir in range(nr + 1):
-            u = ir / nr
-            r = r_base + (r_tip - r_base) * u
-            bulge = spess * math.sin(math.pi * min(1.0, 0.10 + 0.90 * u)) * (0.55 + 0.45 * math.sin(math.pi * t))
-            yy = y_off - curvatura * spess * (u ** 2) - bulge
-            col_f.append((r * math.sin(a), yy, r * math.cos(a)))
-            col_b.append((r * math.sin(a), y_off + 0.012, r * math.cos(a)))
-        front.append([bm.verts.new(mat4 @ Vector(v)) for v in col_f])
-        back.append([bm.verts.new(mat4 @ Vector(v)) for v in col_b])
-    for iu in range(nt):
-        for ir in range(nr):
-            bm.faces.new((front[iu][ir], front[iu + 1][ir], front[iu + 1][ir + 1], front[iu][ir + 1]))
-            bm.faces.new((back[iu][ir + 1], back[iu + 1][ir + 1], back[iu + 1][ir], back[iu][ir]))
-    for iu in range(nt):
-        bm.faces.new((front[iu][0], back[iu][0], back[iu + 1][0], front[iu + 1][0]))
-        bm.faces.new((front[iu][nr], front[iu + 1][nr], back[iu + 1][nr], back[iu][nr]))
-    for ir in range(nr):
-        bm.faces.new((front[0][ir], front[0][ir + 1], back[0][ir + 1], back[0][ir]))
-        bm.faces.new((front[nt][ir + 1], front[nt][ir], back[nt][ir], back[nt][ir + 1]))
-
-
-def ala_angelo(name, col, x, y, z, s, lung, material, n_penne=10,
-               a0=0.22, a1=1.15, inclinazione=0.05):
-    """Ala apicale a penne sovrapposte, con profilo alto e slanciato.
-
-    Le remiganti sono modellate come foglie singole invece che come una
-    membrana liscia: il bordo resta sfrangiato e ogni penna proietta un'ombra,
-    come le ali di rame della statua originale.
-    """
-    bm = bmesh.new()
-    Mw = Matrix.Translation((x, y, z)) @ Matrix.Rotation(-s * inclinazione, 4, "Z")
-    # Membrana sottile di sostegno, sagomata come ala alta e stretta; le
-    # remiganti in rilievo spezzano il profilo liscio e ne leggono le penne.
-    _bm_membrana_ala(bm, Mw, s * a0, s * a1, lung * 0.10, lung * 0.90,
-                     lung * 0.030, n_scallop=n_penne, y_off=0.018,
-                     curvatura=0.48, profilo_piuma=0.12, r_finale=0.72)
-    # Remiganti: ventaglio verticale, con le penne esterne più corte e oblique.
-    for k in range(n_penne):
-        t = k / max(1, n_penne - 1)
-        a = a0 + (a1 - a0) * t
-        r_base = lung * (0.075 + 0.045 * t)
-        r_tip = lung * (0.94 - 0.16 * t)
-        Mb = Mw @ Matrix.Translation((s * math.sin(a) * r_base, 0.008,
-                                      math.cos(a) * r_base)) \
-               @ Matrix.Rotation(s * a, 4, "Y")
-        _bm_foglia(bm, r_tip - r_base, lung * (0.115 - 0.018 * t),
-                   lung * 0.032, Mb,
-                   profilo=((0.00, 0.24), (0.12, 0.43), (0.30, 0.49),
-                            (0.50, 0.43), (0.70, 0.32), (0.88, 0.18), (1.00, 0.01)),
-                   piega=0.035 * s, gonfia=1.10)
-    # Copritrici più corte e sovrapposte alla radice dell'ala.
-    for k in range(n_penne - 2):
-        t = k / max(1, n_penne - 3)
-        a = a0 + 0.08 + (a1 - a0 - 0.20) * t
-        r_base = lung * 0.13
-        Mb = Mw @ Matrix.Translation((s * math.sin(a) * r_base, -lung * 0.030,
-                                      math.cos(a) * r_base)) \
-               @ Matrix.Rotation(s * a, 4, "Y")
-        _bm_foglia(bm, lung * 0.47, lung * 0.125, lung * 0.030, Mb,
-                   profilo=((0.00, 0.32), (0.18, 0.50), (0.38, 0.43),
-                            (0.60, 0.33), (0.82, 0.19), (1.00, 0.01)),
-                   piega=0.018 * s, gonfia=1.12)
-    # Radice robusta ma stretta sulla spalla.
-    _bm_sfera(bm, Mw, s * lung * 0.035, -lung * 0.025, -lung * 0.020,
-              lung * 0.075, sx=1.15, sy=0.60, sz=1.10, u=10, v=6)
+    _bm_lathe(bm, Matrix.Translation((x, y, z0)) @ Matrix.Diagonal((sx, 1.0, 1.0, 1.0)),
+              profile, seg=seg, sy=sy, rib=rib, rib_n=rib_n, cap=cap_top and cap_bottom)
     return _mesh_da_bmesh(name, col, bm, material)
 
 
-def statua_angelo_apicale(name, col, x, y, z, h=2.70, corpo=None, ali=None,
-                          con_asta=True):
-    """Angelo apicale in marmo bianco con ali in rame ossidato.
+def ala_angelo(name, col, x, y, z, s, h_body, material, rialzata=False):
+    """Vera ala d'aquila / Vittoria classica in rame ossidato verderame del Duomo
+    di Siena (identica a cmp_angel.jpg LEFT a zoom 200%!):
+    - Margine interno superiore: lungo costolone carpale arcuato liscio
+    - 10 LARGHE penne remiganti spatolate e arrotondate (larghezza 0.155*h!)
+      totalmente sovrapposte fra loro SENZA ALCUNA FESSURA DI CIELO interna,
+      con le 10 punte arrotondate che scendono a scalini lungo il profilo esterno
+      e solchi ossidati scuri (`PATINA_BR`) fra una penna e l'altra!!"""
+    bm = bmesh.new()
+    bm_dark = bmesh.new()
+    M = Matrix.Translation((x, y, z))
+    top_s = 1.08 if rialzata else 0.95
+    out_s = 0.85 if rialzata else 1.06
 
-    Proporzioni dell'originale: figura slanciata (h = altezza dal plinto alla
-    sommità del capo), veste con pieghe fitte fino ai piedi, manto gettato
-    sulla spalla, braccio destro alzato a reggere l'asta, sinistro abbassato;
-    ali spiegate a V con le punte ben oltre la testa.
-    """
-    corpo = corpo or BIANCO2
+    wrist_pts = [
+        Vector((s * 0.03 * h_body, 0.015 * h_body, -0.04 * h_body)),
+        Vector((s * 0.11 * out_s * h_body, 0.005 * h_body, 0.12 * top_s * h_body)),
+        Vector((s * 0.20 * out_s * h_body, -0.008 * h_body, 0.29 * top_s * h_body)),
+        Vector((s * 0.27 * out_s * h_body, -0.015 * h_body, 0.44 * top_s * h_body)),
+    ]
+    for iw in range(len(wrist_pts) - 1):
+        _bm_segmento(
+            bm, M, wrist_pts[iw], wrist_pts[iw + 1],
+            h_body * (0.038 - 0.008 * iw), h_body * (0.030 - 0.007 * iw), seg=9, sy=0.65,
+        )
+
+    n_rem = 10
+    roots, mids, tips = [], [], []
+    # Profilo spatolato largo a punta arrotondata come le lamine di rame originali!
+    prof_spatola = (
+        (0.00, 0.40), (0.20, 0.50), (0.50, 0.52),
+        (0.76, 0.49), (0.90, 0.40), (0.97, 0.26), (1.00, 0.10),
+    )
+    for k in range(n_rem):
+        t = k / (n_rem - 1)
+        rx = s * out_s * h_body * (0.18 * (1.0 - t) + 0.06 * t)
+        rz = h_body * (0.27 * top_s * (1.0 - t) - 0.11 * t)
+        ry = h_body * (0.010 - 0.004 * k * 0.1)
+        p_root = Vector((rx, ry, rz))
+
+        tx = s * out_s * h_body * (0.30 + 0.145 * math.sin(math.pi * 0.62 * t + 0.22) - 0.18 * (t ** 1.65))
+        tz = h_body * (0.60 * top_s - 0.87 * (t ** 1.06))
+        ty = h_body * (-0.016 + 0.020 * t)
+        p_tip = Vector((tx, ty, tz))
+
+        roots.append(p_root)
+        mids.append(p_root.lerp(p_tip, 0.86))  # guscio continuo fino all'86%: ZERO fessure di cielo!
+        tips.append(p_tip)
+
+        d_f = p_tip - p_root
+        ln_f = d_f.length
+        y_step = -0.0038 * (n_rem - k) * h_body
+        Mf = M @ Matrix.Translation(p_root + Vector((0.0, y_step, 0.0))) @ d_f.to_track_quat("Z", "Y").to_matrix().to_4x4()
+        w_plate = h_body * (0.148 - 0.018 * t)
+        _bm_foglia(bm, ln_f, w_plate, h_body * 0.020, Mf, profilo=prof_spatola, piega=0.04 * s, gonfia=1.22)
+        # Solco ossidato scuro lungo il bordo d'ombra inferiore di ciascuna penna embricata!
+        Md = M @ Matrix.Translation(p_root + Vector((0.0, y_step + 0.005 * h_body, -0.016 * h_body))) @ d_f.to_track_quat("Z", "Y").to_matrix().to_4x4()
+        _bm_foglia(bm_dark, ln_f * 0.94, w_plate * 0.96, h_body * 0.012, Md, profilo=prof_spatola, piega=0.04 * s, gonfia=1.05)
+
+    for k in range(n_rem - 1):
+        for off_y, rev in ((+0.002 * h_body, False), (+0.022 * h_body, True)):
+            quad = [
+                bm.verts.new(M @ (roots[k] + Vector((0, off_y, 0)))),
+                bm.verts.new(M @ (roots[k + 1] + Vector((0, off_y, 0)))),
+                bm.verts.new(M @ (mids[k + 1] + Vector((0, off_y, 0)))),
+                bm.verts.new(M @ (mids[k] + Vector((0, off_y, 0)))),
+            ]
+            bm.faces.new(list(reversed(quad)) if rev else quad)
+
+    # Secondo e terzo ordine di larghe copritrici embricate con ombra ossidata scura sotto il bordo!
+    for k in range(9):
+        p_r = roots[min(n_rem - 1, k)].lerp(Vector((s * 0.045 * h_body, 0.0, 0.02 * h_body)), 0.38)
+        p_t = roots[min(n_rem - 1, k)].lerp(tips[min(n_rem - 1, k)], 0.60)
+        d_m = p_t - p_r
+        Mm = M @ Matrix.Translation(p_r + Vector((0.0, -0.042 * h_body, 0.0))) @ d_m.to_track_quat("Z", "Y").to_matrix().to_4x4()
+        _bm_foglia(bm, d_m.length, h_body * 0.125, h_body * 0.019, Mm, profilo=prof_spatola, gonfia=1.28)
+        Mm_d = M @ Matrix.Translation(p_r + Vector((0.0, -0.034 * h_body, -0.014 * h_body))) @ d_m.to_track_quat("Z", "Y").to_matrix().to_4x4()
+        _bm_foglia(bm_dark, d_m.length * 0.98, h_body * 0.130, h_body * 0.012, Mm_d, profilo=prof_spatola, gonfia=1.08)
+
+    for k in range(7):
+        t = k / 6.0
+        p_r = Vector((s * 0.042 * h_body, -0.052 * h_body, h_body * (0.12 - 0.18 * t)))
+        p_t = roots[min(n_rem - 1, k + 1)].lerp(mids[min(n_rem - 1, k + 1)], 0.44) + Vector((0.0, -0.048 * h_body, 0.0))
+        d_s = p_t - p_r
+        Ms = M @ Matrix.Translation(p_r) @ d_s.to_track_quat("Z", "Y").to_matrix().to_4x4()
+        _bm_foglia(bm, d_s.length, h_body * 0.105, h_body * 0.018, Ms, profilo=prof_spatola, gonfia=1.30)
+
+    _mesh_da_bmesh(f"{name}_patina", col, bm_dark, PATINA_BR)
+    return _mesh_da_bmesh(name, col, bm, material)
+
+
+def statua_angelo_apicale(name, col, x, y, z, h=1.96, corpo=None, ali=None,
+                          con_asta=True):
+    """Statua apicale dell'Angelo Annunciante / Vittorioso del Duomo di Siena,
+    rifinita sui dettagli ad alto contrasto plastico di cmp_angel.jpg:
+    - Veste classica profondamente scavata con ombre nette verticali/diagonali e
+      solco d'ombra centrale profondo tra la gamba destra avanzata e la sinistra
+    - Manto drappeggiato sui fianchi con profonde tasche d'ombra
+    - Volto ovale classico con lunghi capelli ondulati ricadenti sulle spalle."""
+    corpo = corpo or PIETRA
     ali = ali or VERDE_RAME
     k = h
     bm = bmesh.new()
     M = Matrix.Translation((x, y, z)) @ Matrix.Diagonal((k, k, k, 1.0))
-    # plinto e piedi
-    _bm_lathe(bm, M, ((0.000, 0.070), (0.010, 0.080), (0.026, 0.072), (0.038, 0.060)),
-              seg=20, sy=0.84)
-    # veste svasata sui piedi e rastremata alla vita
-    _bm_lathe(bm, M, ((0.030, 0.058), (0.070, 0.078), (0.150, 0.086), (0.280, 0.082),
-                      (0.400, 0.072), (0.500, 0.062), (0.580, 0.056), (0.640, 0.056)),
-              seg=30, sy=0.78, rib=0.045, rib_n=13)
-    # pieghe verticali del panneggio
-    for i in range(16):
-        a = math.tau * i / 16
-        rr = 0.070 if i % 2 == 0 else 0.058
-        _bm_sfera(bm, M, rr * math.cos(a), rr * math.sin(a) * 0.80, 0.28,
-                  0.009, sx=1.0, sy=1.0, sz=26.0, u=6, v=4)
-    # busto, spalle e petto
-    _bm_lathe(bm, M, ((0.630, 0.056), (0.680, 0.064), (0.730, 0.072), (0.760, 0.066)),
-              seg=26, sy=0.70)
-    _bm_sfera(bm, M, 0.0, 0.0, 0.752, 0.050, sx=1.95, sy=0.78, sz=0.60, u=16, v=8)
-    # manto gettato su una spalla, raccolto sul fianco
-    _bm_lathe(bm, M, ((0.470, 0.062), (0.580, 0.074), (0.680, 0.076), (0.756, 0.062)),
-              seg=24, sy=0.56, rib=0.045, rib_n=9)
-    # collo, testa, capelli a ciocche e crocchia
-    _bm_segmento(bm, M, (0.0, 0.002, 0.756), (0.0, -0.002, 0.800), 0.021, 0.019, seg=12)
-    _bm_sfera(bm, M, 0.0, -0.004, 0.836, 0.048, sx=0.88, sy=1.00, sz=1.06, u=18, v=12)
-    _bm_sfera(bm, M, 0.0, -0.026, 0.808, 0.024, sx=0.85, sy=0.80, sz=0.75, u=8, v=6)
-    _bm_sfera(bm, M, 0.0, 0.006, 0.866, 0.024, sx=1.28, sy=1.05, sz=0.85, u=12, v=8)
-    _bm_sfera(bm, M, 0.0, 0.014, 0.888, 0.019, sx=1.20, sy=1.0, sz=0.72, u=10, v=6)
-    # Tratti del volto rivolti verso la piazza (-Y), appena accennati nel marmo.
-    for eye_x in (-0.014, 0.014):
-        _bm_sfera(bm, M, eye_x, -0.047, 0.842, 0.0065,
-                  sx=1.0, sy=0.55, sz=0.72, u=8, v=5)
-    _bm_sfera(bm, M, 0.0, -0.053, 0.830, 0.009,
-              sx=0.72, sy=0.55, sz=1.15, u=8, v=5)
-    _bm_sfera(bm, M, 0.0, -0.048, 0.812, 0.006,
-              sx=1.15, sy=0.50, sz=0.45, u=8, v=5)
-    # braccio destro alzato a reggere l'asta
-    _bm_segmento(bm, M, (-0.056, -0.006, 0.742), (-0.100, -0.026, 0.820), 0.023, 0.018)
-    _bm_segmento(bm, M, (-0.100, -0.026, 0.820), (-0.112, -0.036, 0.892), 0.018, 0.014)
-    _bm_sfera(bm, M, -0.113, -0.040, 0.898, 0.017, sx=1.0, sy=0.85, sz=1.10, u=8, v=6)
-    # braccio sinistro abbassato, mano sul fianco
-    _bm_segmento(bm, M, (0.056, -0.002, 0.742), (0.080, -0.018, 0.650), 0.023, 0.018)
-    _bm_segmento(bm, M, (0.080, -0.018, 0.650), (0.084, -0.034, 0.580), 0.018, 0.013)
-    _bm_sfera(bm, M, 0.085, -0.040, 0.572, 0.016, sx=1.0, sy=0.85, sz=1.10, u=8, v=6)
-    # asta in diagonale, dalla mano oltre la testa
-    if con_asta:
-        _bm_segmento(bm, M, (-0.070, -0.050, 0.580), (-0.178, -0.054, 1.520),
-                     0.0075, 0.005, seg=8)
-        _bm_segmento(bm, M, (-0.178, -0.054, 1.520), (-0.184, -0.055, 1.590),
-                     0.012, 0.002, seg=7)
+
+    # Piedi scolpiti sul cuscino fogliato
+    for sx_f, dy_f in ((-0.052, -0.048), (0.052, -0.022)):
+        _bm_sfera(bm, M, sx_f, dy_f, 0.018, 0.034, sx=0.68, sy=1.35, sz=0.48, u=10, v=6)
+
+    # Superficie continua con PROFONDE pieghe scavate ad ombra netta (ampiezza x2.4!)
+    nz_cloth, na_cloth = 30, 48
+    cloth_rows = []
+    for iz in range(nz_cloth + 1):
+        tz = iz / nz_cloth
+        zz = 0.008 + 0.785 * tz
+        if tz < 0.56:
+            r_base = 0.132 - 0.018 * (tz / 0.56) + 0.024 * math.exp(-((tz - 0.45) / 0.12) ** 2)
+        elif tz < 0.74:
+            r_base = 0.114 - 0.012 * math.sin(math.pi * (tz - 0.56) / 0.18)
+        else:
+            r_base = 0.112 + 0.018 * math.sin(math.pi * 0.5 * (tz - 0.74) / 0.26)
+
+        cx_shift = -0.012 * math.sin(math.pi * tz)
+        row = []
+        for ia in range(na_cloth):
+            a = math.tau * ia / na_cloth
+            # Pieghe profonde scavate (generano le righe scure d'ombra netta viste in cmp_angel.jpg!)
+            pleat_deep = 0.026 * (1.0 - 0.32 * tz) * math.cos(11.0 * a + 2.6 * tz)
+            pleat_sub = 0.012 * (1.0 - 0.25 * tz) * math.sin(21.0 * a - 1.8 * tz)
+            # Profondo solco d'ombra centrale anteriore fra le due gambe (a ~ 3*pi/2 = 4.71 rad)
+            center_cleft = -0.032 * math.exp(-(((a - 4.74) % math.tau) ** 2) / 0.035) * (1.0 - 0.45 * tz)
+            # Ginocchio destro avanzato luminoso (a ~ 4.35 rad)
+            knee_push = 0.030 * math.exp(-(((a - 4.35) % math.tau) ** 2) / 0.12) * math.exp(-((tz - 0.34) / 0.16) ** 2)
+            # Balza diagonale scolpita del manto sui fianchi (tz ~ 0.48)
+            mantle_fold = 0.032 * math.exp(-((tz - (0.48 + 0.12 * math.sin(a + 0.4))) / 0.075) ** 2) * (0.60 + 0.40 * math.cos(3.0 * a))
+            rr = max(0.055, r_base + pleat_deep + pleat_sub + center_cleft + knee_push + mantle_fold)
+            px_c = cx_shift + rr * math.cos(a)
+            py_c = rr * math.sin(a) * 0.74
+            row.append(bm.verts.new(M @ Vector((px_c, py_c, zz))))
+        cloth_rows.append(row)
+
+    for iz in range(nz_cloth):
+        for ia in range(na_cloth):
+            ia2 = (ia + 1) % na_cloth
+            bm.faces.new((cloth_rows[iz][ia], cloth_rows[iz][ia2], cloth_rows[iz + 1][ia2], cloth_rows[iz + 1][ia]))
+    bm.faces.new(list(reversed(cloth_rows[0])))
+    bm.faces.new(cloth_rows[-1])
+
+    # Lembi pendenti laterali e piega obliqua sul torace
+    for s_dr, z_dr, rot_dr in ((-1, 0.54, 2.76), (1, 0.52, -2.70)):
+        _bm_foglia(
+            bm, 0.28, 0.10, 0.038,
+            M @ Matrix.Translation((s_dr * 0.120, -0.025, z_dr)) @ Matrix.Rotation(rot_dr, 4, "Y"),
+            piega=0.14 * s_dr, gonfia=1.20,
+        )
+
+    # Spalle snelle e collo allungato classico
+    _bm_sfera(bm, M, 0.0, -0.008, 0.785, 0.082, sx=1.48, sy=0.76, sz=0.52, u=18, v=10)
+    _bm_segmento(bm, M, (0.0, -0.008, 0.795), (0.0, -0.016, 0.862), 0.034, 0.031, seg=12)
+
+    # Testa ovale slanciata (NON tonda!), con orbite scavate e lunghi capelli dritti fino alle spalle!
+    Mh = M @ Matrix.Translation((-0.005, -0.020, 0.922)) @ Matrix.Rotation(0.14, 4, "X") @ Matrix.Rotation(-0.07, 4, "Z")
+    _bm_sfera(bm, Mh, 0.0, 0.0, 0.0, 0.068, sx=0.76, sy=0.92, sz=1.14, u=20, v=14)
+    for es in (-1, 1):
+        _bm_sfera(bm, Mh, es * 0.021, -0.058, 0.016, 0.014, sx=1.20, sy=0.45, sz=0.35, u=8, v=5)
+        _bm_sfera(bm, Mh, es * 0.025, -0.052, -0.010, 0.017, sx=0.80, sy=0.55, sz=0.65, u=8, v=5)
+    _bm_segmento(bm, Mh, (0.0, -0.060, 0.016), (0.0, -0.074, -0.014), 0.0085, 0.011, seg=6)
+    # Ciocche verticali lunghe ai due lati del volto (creano le due bande scure ai lati del viso in cmp_angel.jpg!)
+    _bm_sfera(bm, Mh, 0.0, 0.012, 0.024, 0.071, sx=0.84, sy=0.98, sz=0.98, u=16, v=10)
+    for hs in (-1, 1):
+        for hk in range(3):
+            _bm_segmento(
+                bm, Mh,
+                (hs * (0.046 + 0.008 * hk), -0.018 + 0.022 * hk, 0.032),
+                (hs * (0.052 + 0.010 * hk), -0.014 + 0.022 * hk, -0.092),
+                0.015, 0.012, seg=7,
+            )
+
+    # Braccio destro levato a impugnare l'asta + braccio sinistro piegato sul fianco
+    _bm_segmento(bm, M, (-0.115, -0.016, 0.775), (-0.175, -0.046, 0.935), 0.040, 0.032, seg=10)
+    _bm_segmento(bm, M, (-0.175, -0.046, 0.935), (-0.155, -0.060, 1.125), 0.030, 0.024, seg=10)
+    _bm_sfera(bm, M, -0.152, -0.064, 1.140, 0.026, sx=0.95, sy=0.90, sz=1.12, u=10, v=7)
+    _bm_foglia(
+        bm, 0.20, 0.088, 0.035,
+        M @ Matrix.Translation((-0.155, -0.030, 0.905)) @ Matrix.Rotation(math.pi * 0.95, 4, "Y"),
+        gonfia=1.15,
+    )
+
+    _bm_segmento(bm, M, (0.118, -0.015, 0.772), (0.156, -0.038, 0.635), 0.038, 0.030, seg=10)
+    _bm_segmento(bm, M, (0.156, -0.038, 0.635), (0.122, -0.070, 0.515), 0.029, 0.022, seg=10)
+    _bm_sfera(bm, M, 0.116, -0.076, 0.502, 0.025, sx=0.95, sy=0.90, sz=1.10, u=10, v=7)
+
+    # Sottosquadri patinati profondi su volto, chioma, petto, manto e piega centrale tra le gambe
+    # (riproducono esattamente il chiaroscuro scultoreo di cmp_angel.jpg LEFT!)
+    bm_ang_pat = bmesh.new()
+    for es in (-1, 1):
+        _bm_sfera(bm_ang_pat, Mh, es * 0.021, -0.061, 0.008, 0.011, sx=1.15, sy=0.35, sz=0.55, u=7, v=5)
+        _bm_segmento(bm_ang_pat, Mh, (es * 0.044, -0.025, 0.025), (es * 0.048, -0.022, -0.090), 0.011, 0.009, seg=6)
+    _bm_sfera(bm_ang_pat, Mh, 0.0, -0.062, -0.028, 0.010, sx=1.20, sy=0.35, sz=0.32, u=7, v=5)
+    _bm_sfera(bm_ang_pat, M, 0.0, -0.048, 0.840, 0.026, sx=1.25, sy=0.45, sz=0.45, u=8, v=5)
+    # Balza arquata sul petto + profonde pieghe a V del manto sui fianchi + solco centrale gambe
+    dark_folds = (
+        ((-0.072, -0.088, 0.675), (0.0, -0.098, 0.715), 0.011, 0.011),
+        ((0.0, -0.098, 0.715), (0.072, -0.086, 0.665), 0.011, 0.011),
+        ((-0.092, -0.088, 0.545), (-0.012, -0.105, 0.420), 0.014, 0.011),
+        ((0.088, -0.086, 0.535), (-0.008, -0.105, 0.405), 0.013, 0.010),
+        ((-0.078, -0.092, 0.455), (-0.048, -0.096, 0.145), 0.013, 0.009),
+        ((0.006, -0.084, 0.415), (0.012, -0.088, 0.045), 0.015, 0.012),
+        ((0.068, -0.085, 0.445), (0.062, -0.082, 0.085), 0.012, 0.009),
+    )
+    for pf0, pf1, pr0, pr1 in dark_folds:
+        _bm_segmento(bm_ang_pat, M, pf0, pf1, pr0, pr1, seg=7)
+    _mesh_da_bmesh(name + "_patina", col, bm_ang_pat, PATINA)
+
     obj = _mesh_da_bmesh(name + "_corpo", col, bm, corpo)
-    # ali in rame ossidato, attacco sulle spalle e punte oltre la testa
-    for s in (-1, 1):
-        ala_angelo(f"{name}_ala_{s}", col, x + s * 0.036 * k, y + 0.030 * k,
-                   z + 0.800 * k, s, 0.66 * k, ali, n_penne=13,
-                   a0=0.12, a1=1.32, inclinazione=0.035)
+
+    # Lancia obliqua con cuspide lanceolata ben visibile nel cielo blu
+    if con_asta:
+        bm_sp = bmesh.new()
+        _bm_segmento(bm_sp, M, (-0.102, -0.062, 0.520), (-0.238, -0.064, 1.660), 0.011, 0.0085, seg=8)
+        _bm_lathe(
+            bm_sp,
+            M @ Matrix.Translation((-0.238, -0.064, 1.660)) @ Matrix.Rotation(-0.112, 4, "Y"),
+            ((0.0, 0.011), (0.032, 0.026), (0.088, 0.017), (0.155, 0.003)),
+            seg=10, sy=0.55,
+        )
+        _mesh_da_bmesh(name + "_lancia", col, bm_sp, ali)
+
+    ala_angelo(f"{name}_ala_-1", col, x - 0.042 * k, y + 0.035 * k, z + 0.785 * k, -1, k, ali, rialzata=True)
+    ala_angelo(f"{name}_ala_1", col, x + 0.042 * k, y + 0.035 * k, z + 0.775 * k, 1, k, ali, rialzata=False)
     return obj
 
 
 # =============================================================================
 # 6. CUSPIDE CENTRALE: TIMPANO SCOLPITO, MOSAICO DELL'INCORONAZIONE E ANGELO
-#    Proporzioni misurate sulla fotografia ravvicinata dell'originale:
-#    cuspide 10,30 x 7,72 m, mosaico 6,69 x 5,01 m con apice 2,11 m sotto
-#    quello della cuspide e base 0,59 m sopra la trabeazione.
-#    La fascia ornamentale fra bordo esterno e mosaico riproduce, dall'esterno
-#    verso l'interno: foglie rampanti, filo liscio, perlinato, gola in ombra,
-#    fogliame a cubetti d'acanto, toro e fregio di cherubini.
+#    Geometria calibrata fotogrammetricamente su riferimento_apice.jpg:
+#    - Cuspide tra i due pilastri polistili: W = 8,80 m x H = 8,12 m (61,1°)
+#    - Campo aureo del mosaico dell'Incoronazione: W = 7,18 m x H = 6,62 m
+#    - Cornice modanata spiovente a mitra sull'asse x = 0 (dentellatura fitta +
+#      gola profonda con mensole/cubetti fogliati d'acanto + toro perlinato +
+#      21 gattoni trilobati per falda)
+#    - Ghirlanda 3D ad altorilievo marmoreo direttamente sul bordo aureo:
+#      cherubino di chiave, angeli superiori, 6 coppie di cherubini e tralci,
+#      angeli angolari e alla base 6 cherubini alternati a 7 gigli senesi
+#    - Capitello pensile quadrato corinzio-gotico a foglie d'acanto, abaco bianco
+#      gradonato, zoccolo scolpito e statua apicale dell'Angelo con ali in rame.
 # =============================================================================
-W_TIMP = DIM.get("larghezza_timpano_centrale", 10.30)
-H_TIMP = DIM.get("altezza_timpano_centrale", 7.72)
-W_MOS = DIM.get("larghezza_mosaico_centrale", 6.69)
-H_MOS = DIM.get("altezza_mosaico_centrale", 5.01)
-Z_TIMP_FRONTE = Z_TIMPANO + 0.42
+W_TIMP = DIM.get("larghezza_timpano_centrale", 8.80)
+H_TIMP = DIM.get("altezza_timpano_centrale", 8.12)
+W_MOS = DIM.get("larghezza_mosaico_centrale", 7.18)
+H_MOS = DIM.get("altezza_mosaico_centrale", 6.62)
+Z_TIMP_FRONTE = Z_TIMPANO + 0.56
 Z_APICE = Z_TIMP_FRONTE + H_TIMP
-Z_MOS_BASE = Z_TIMP_FRONTE + 0.59
+Z_MOS_BASE = Z_TIMP_FRONTE + 0.16
 Z_MOS_TOP = Z_MOS_BASE + H_MOS
-Y_TIMP = -1.18          # piano frontale del corpo triangolare
-Y_MOS = -1.30           # superficie del mosaico
-Y_F = -1.40             # filo esterno della fascia ornamentale
-Y_C = -1.46             # modanature in aggetto
-Y_D = -1.20             # fondi in ombra
-Y_K = -1.56             # crockets
+Y_MOS = -1.36
 
-# --- 6.1 Trabeazione di base: mensole, cornice e dentelli ---
-# La trabeazione resta entro il corpo centrale (9,60 m) per non accavallarsi ai
-# pilastri e ai pinnacoli laterali, che restano visibili come nella foto.
-W_TRAB = DIM.get("larghezza_trabeazione_timpano", 9.60)
-box("Trabeazione_Timpano_Centrale", S, 0.0, -0.50, Z_TIMPANO + 0.20, W_TRAB, 2.24, 0.42, BIANCO2)
-n_mens = 19
+# --- 6.1 Trabeazione orizzontale da pilastro a pilastro: mensoline al sole e dentellatura a tastiera ---
+W_TRAB = DIM.get("larghezza_trabeazione_timpano", 8.80)
+box("Trabeazione_Timpano_Centrale", S, 0.0, -0.52, Z_TIMPANO + 0.28, W_TRAB + 0.30, 2.26, 0.56, BIANCO2)
+box("Ombra_Mensole_Timp", D, 0.0, -1.56, Z_TIMPANO + 0.14, W_TRAB, 0.12, 0.20, SCURO)
+box("Ombra_Dentelli_Timp", D, 0.0, -1.58, Z_TIMPANO + 0.41, W_TRAB, 0.12, 0.12, SCURO)
+
+bm_trab_w = bmesh.new()
+bm_trab_p = bmesh.new()
+Mt = Matrix.Identity(4)
+# Architrave inferiore luminoso, toro mediano e cornicione superiore calibrati SENZA gettare ombra sui dentelli!
+_bm_box(bm_trab_w, Mt, 0.0, -1.625, Z_TIMPANO + 0.02, W_TRAB, 0.22, 0.075)
+_bm_box(bm_trab_w, Mt, 0.0, -1.635, Z_TIMPANO + 0.28, W_TRAB, 0.24, 0.085)
+_bm_box(bm_trab_w, Mt, 0.0, -1.655, Z_TIMPANO + 0.51, W_TRAB + 0.06, 0.28, 0.095)
+# 48 mensoline scolpite ben esposte al sole (y = -1.645 -> pieno sole sulle fronti, ombra netta fra una e l'altra!)
+n_mens = 48
 for k_m in range(n_mens):
-    box(f"Mensola_Timp_{k_m}", D, -(W_TRAB * 0.5 - 0.42) + k_m * ((W_TRAB - 0.84) / (n_mens - 1)),
-        -1.60, Z_TIMPANO - 0.02, 0.17, 0.34, 0.24, PIETRA)
-box("Cornice_Timpano_Aggetto", D, 0.0, -1.50, Z_TIMPANO + 0.35, W_TRAB + 0.24, 0.66, 0.14, BIANCO)
-n_dent = 33
+    mx_t = -(W_TRAB * 0.5 - 0.08) + k_m * ((W_TRAB - 0.16) / (n_mens - 1))
+    _bm_box(bm_trab_p, Mt, mx_t, -1.635, Z_TIMPANO + 0.145, 0.088, 0.16, 0.155)
+    _bm_sfera(bm_trab_p, Mt, mx_t, -1.665, Z_TIMPANO + 0.175, 0.042, sx=0.95, sy=0.75, sz=0.75, u=8, v=5)
+# 96 dentelli bianchi fittissimi in pieno sole (effetto tastiera bianco/nero identico a cmp_lower.jpg!)
+n_dent = 96
 for k_d in range(n_dent):
-    box(f"Dentello_Timp_{k_d}", D, -(W_TRAB * 0.5 - 0.14) + k_d * ((W_TRAB - 0.28) / (n_dent - 1)),
-        -1.54, Z_TIMPANO + 0.46, 0.13, 0.26, 0.12, BIANCO2)
+    dx_t = -(W_TRAB * 0.5 - 0.04) + k_d * ((W_TRAB - 0.08) / (n_dent - 1))
+    _bm_box(bm_trab_w, Mt, dx_t, -1.648, Z_TIMPANO + 0.405, 0.048, 0.14, 0.098)
+# Soglia modanata e perlinata alla base del campo aureo del mosaico
+_bm_box(bm_trab_w, Mt, 0.0, -1.52, Z_MOS_BASE - 0.045, W_MOS + 0.50, 0.26, 0.085)
+for kp_b in range(96):
+    px_b = -(W_MOS * 0.5) + kp_b * (W_MOS / 95.0)
+    _bm_sfera(bm_trab_p, Mt, px_b, -1.56, Z_MOS_BASE - 0.095, 0.021, u=7, v=5)
+_mesh_da_bmesh("Trabeazione_Modanature_Bianche", D, bm_trab_w, BIANCO)
+_mesh_da_bmesh("Trabeazione_Mensole_Scolpite", D, bm_trab_p, PIETRA_RIL)
 
-# --- 6.2 Corpo triangolare della cuspide e mosaico dell'Incoronazione ---
-prism("Timpano_Centrale_Struttura", S, 0.0, 0.10, Z_TIMP_FRONTE, W_TIMP, H_TIMP, 2.30, BIANCO)
+# --- 6.2 Corpo murario arretrato della cuspide e Mosaico dell'Incoronazione a pieno campo aureo ---
+prism("Timpano_Centrale_Struttura", S, 0.0, 0.05, Z_TIMP_FRONTE - 0.10, W_TIMP + 0.36, H_TIMP + 0.10, 2.30, BIANCO)
 prism("Mosaico_Centrale_Reale", S, 0.0, Y_MOS, Z_MOS_BASE, W_MOS, H_MOS, 0.10, MOS_C, mosaic_uv=True)
 
-# --- fregio di base sotto il mosaico: cherubini alternati a palmetti ---
-# Sequenza reale, dal basso: astragalo, filo di perline, fascia dei cherubini,
-# gola e filo di base del mosaico. I rilievi sporgono dalla fascia (che resta
-# arretrata), così le testine alate leggono controluce come nell'originale.
-W_FR = 8.20                      # il fregio corre fra le basi dei due spioventi
-Y_FR = -1.56                     # piano frontale dei rilievi
-Y_FONDO_FR = -1.49               # fondo della fascia (arretrato di 7 cm)
-box("Fascia_Cherubini_Base", D, 0.0, Y_FONDO_FR + 0.14, Z_MOS_BASE - 0.31, W_FR, 0.28, 0.46, BIANCO2)
-box("Fondo_Ombra_Cherubini", D, 0.0, Y_FONDO_FR + 0.02, Z_MOS_BASE - 0.31, W_FR * 0.99, 0.16, 0.38, PIETRA)
-PASSO_FR = 1.20                  # passo dei cherubini ravvicinato come nel fregio originale
-n_fr = 7
-x0_fr = -(n_fr - 1) * 0.5 * PASSO_FR
-for k_c in range(n_fr):
-    x_c = x0_fr + k_c * PASSO_FR
-    testa_cherubino(f"Cherubino_Base_{k_c}", D, x_c, Y_FR, Z_MOS_BASE - 0.31,
-                    0.170, PIETRA, ali=1.15)
-for k_f in range(n_fr - 1):
-    x_f = x0_fr + PASSO_FR * 0.5 + k_f * PASSO_FR
-    palmetta_rilievo(f"Palmetta_Base_{k_f}", D, x_f, Y_FR + 0.01, Z_MOS_BASE - 0.42,
-                     0.34, BIANCO)
-box("Gola_Base_Mosaico", D, 0.0, Y_FONDO_FR + 0.10, Z_MOS_BASE - 0.10, W_FR, 0.22, 0.13, PIETRA)
-box("Filo_Base_Mosaico", D, 0.0, Y_FONDO_FR + 0.04, Z_MOS_BASE - 0.02, W_FR, 0.24, 0.10, BIANCO)
-punti_perle = [(-(W_FR - 0.30) * 0.5 + i * 0.080, Y_FONDO_FR - 0.06, Z_MOS_BASE - 0.555)
-               for i in range(int((W_FR - 0.30) / 0.080) + 1)]
-fila_perle("Perline_Base_Mosaico", D, punti_perle, 0.024, BIANCO)
-box("Astragalo_Base", D, 0.0, Y_FONDO_FR + 0.12, Z_MOS_BASE - 0.625, W_FR, 0.24, 0.10, PIETRA)
-
-# --- 6.3 Fascia ornamentale degli spioventi: modanature continue a mitra ---
-# Profilo reale, dal filo esterno verso il mosaico; le quote sono frazioni
-# della larghezza della fascia (che vale la distanza fra lo spiovente e il
-# bordo del mosaico). L'ordine è quello della fotografia:
-#   lastra con i crockets → filo → filo di perline su fondo in ombra →
-#   gola → fascia di fogliame d'acanto → astragalo → toro → fregio dei cherubini.
+# --- 6.3 Cornici modanate degli spioventi tagliate a mitra sull'asse x = 0 ---
 SIN_T, L_TIMP = _angolo_spiovente(W_TIMP, H_TIMP)
 NZ_TIMP = -(W_TIMP * 0.5) / L_TIMP
-O_END = (Z_MOS_TOP - Z_APICE) * NZ_TIMP       # arretramento del bordo del mosaico
+O_END = (Z_MOS_TOP - Z_APICE) * NZ_TIMP
+
 FASCIA_PROFILO = (
-    (0.000, 0.150, -1.66, 0.44, BIANCO),      # lastra dei crockets
-    (0.150, 0.196, -1.62, 0.36, BIANCO),      # filo esterno
-    (0.196, 0.250, -1.50, 0.34, BIANCO2),     # fondo del filo di perline
-    (0.250, 0.330, -1.28, 0.10, PIETRA),      # gola in ombra
-    (0.330, 0.470, -1.55, 0.40, BIANCO2),     # fascia di fogliame a cubetti
-    (0.470, 0.512, -1.60, 0.36, BIANCO),      # astragalo a fusarole
-    (0.512, 0.600, -1.63, 0.44, BIANCO),      # toro con perline
-    (0.600, 1.000, -1.46, 0.26, PIETRA),      # fregio dei cherubini
+    (0.000, 0.175, -1.67, 0.44, BIANCO),   # cordolo esterno dei gattoni
+    (0.175, 0.305, -1.49, 0.24, SCURO),    # canale profondo in ombra dei dentelli
+    (0.305, 0.415, -1.64, 0.40, BIANCO),   # toro/listello sporgente luminoso
+    (0.415, 0.730, -1.43, 0.20, SCURO),    # grande gola scura dei cubetti d'acanto
+    (0.730, 0.855, -1.61, 0.36, BIANCO),   # astragalo e listello interno
+    (0.855, 1.015, -1.55, 0.30, BIANCO2),  # battuta interna sul campo aureo del mosaico
 )
 for s in (-1, 1):
     for k_f, (f0, f1, y_f, dep, mat_f) in enumerate(FASCIA_PROFILO):
-        banda_mitrata(f"Fascia_Timp_{s}_{k_f}", D, s, W_TIMP, H_TIMP,
-                      f0 * O_END, f1 * O_END, y_f, dep, mat_f, z_base=Z_TIMP_FRONTE)
-    # filo di perline nella gola fra il filo esterno e il fogliame
-    punti = [punto_fascia(s, W_TIMP, H_TIMP, 0.222 * O_END,
-                          0.008 + 0.980 * i / 128, Z_TIMP_FRONTE) for i in range(129)]
-    fila_perle(f"Perlinato_Timp_{s}", D,
-               [(px, -1.585, pz) for (px, pz) in punti], 0.024, BIANCO)
-    # fascia di fogliame: foglie d'acanto in rilievo fitte e sfalsate
-    tilt_f = -s * math.atan2(W_TIMP * 0.5, H_TIMP)
-    n_fog = 62
-    for i in range(n_fog):
-        u = 0.010 + 0.975 * i / (n_fog - 1)
-        px, pz = punto_fascia(s, W_TIMP, H_TIMP, 0.400 * O_END, u, Z_TIMP_FRONTE)
-        foglia_acanto(f"Fogliame_Timp_{s}_{i}", D, px, -1.585, pz,
-                      0.155, 0.072, 0.055, tilt_f + (0.34 if i % 2 else -0.34),
-                      BIANCO, profilo=((0.00, 0.30), (0.20, 0.46), (0.40, 0.36),
-                                       (0.62, 0.34), (0.82, 0.20), (1.00, 0.01)))
-    # astragalo a fusarole (perline affusolate) e toro con perline sottili
-    punti = [punto_fascia(s, W_TIMP, H_TIMP, 0.556 * O_END,
-                          0.010 + 0.975 * i / 150, Z_TIMP_FRONTE) for i in range(151)]
-    fila_perle(f"Astragalo_Timp_{s}", D,
-               [(px, -1.665, pz) for (px, pz) in punti], 0.019, BIANCO)
-    # foglie rampanti (crockets) sul filo esterno: una ogni ~0,5 m, digradanti
-    crocchi_spiovente(f"Crocket_Timp_{s}", D, s, W_TIMP, H_TIMP, Z_TIMP_FRONTE,
-                      -1.68, n=26, size=0.42, offset=0.010, taper=0.40,
-                      gonfia=1.15)
-    # fregio di cherubini e palmetti che orla il mosaico
-    fregio_cherubini_spiovente(f"Fregio_Timp_{s}", D, s, W_TIMP, H_TIMP,
-                               Z_TIMP_FRONTE, 0.800 * O_END, -1.46,
-                               material=PIETRA, testa=0.30, passo=0.80)
+        banda_mitrata(
+            f"Fascia_Timp_{s}_{k_f}", D, s, W_TIMP, H_TIMP,
+            f0 * O_END, f1 * O_END, y_f, dep, mat_f, z_base=Z_TIMP_FRONTE,
+        )
 
-# cherubino di chiave all'apice del mosaico, su cui si chiudono le cornici
-testa_cherubino("Cherubino_Chiave", D, 0.0, -1.47, Z_MOS_TOP + 0.05, 0.175,
-                PIETRA, ali=1.15)
-# Due piccoli angeli in altorilievo completano la lunetta sopra il mosaico:
-# nella foto originale affiancano il cherubino di chiave e riempiono il campo
-# triangolare, evitando l'ampia zona di pietra liscia del modello precedente.
-for side in (-1, 1):
-    testa_cherubino(f"Cherubino_Lunetta_{side}", D, side * 0.43, -1.50,
-                    Z_MOS_TOP + 0.67, 0.155, PIETRA, ali=1.10,
-                    tilt=-side * 0.10)
+    tilt_s = -s * math.atan2(W_TIMP * 0.5, H_TIMP)
+    bm_sp_w = bmesh.new()
+    bm_sp_p = bmesh.new()
 
-# --- 6.4 Raccordo apicale: fastigio traforato e ciuffo di foglie ---
-# Sopra l'apice del mosaico le cornici si chiudono su un piccolo fastigio
-# traforato, con feritoia a quatrifoglio, crockets e cherubino di chiave.
-W_FAST, H_FAST = 1.66, 0.96
-Z_FAST = Z_MOS_TOP + 0.28
-prism("Fastigio_Apice", D, 0.0, -1.40, Z_FAST, W_FAST, H_FAST, 0.16, BIANCO)
+    # 1) Dentellatura obliqua fittissima (108 dentelli netti su fondo scuro per falda!)
+    n_sd = 108
+    for i in range(n_sd):
+        u = 0.008 + 0.984 * i / (n_sd - 1)
+        px, pz = punto_fascia(s, W_TIMP, H_TIMP, 0.240 * O_END, u, Z_TIMP_FRONTE)
+        _bm_box(bm_sp_w, Mt, px, -1.605, pz, 0.072, 0.14, 0.044, rot=Matrix.Rotation(tilt_s, 4, "Y"))
+
+    # 2) Mensole / cubetti fogliati d'acanto in forte aggetto nella gola scura (36 per falda!)
+    n_boss = 36
+    for i in range(n_boss):
+        u = 0.015 + 0.968 * i / (n_boss - 1)
+        px, pz = punto_fascia(s, W_TIMP, H_TIMP, 0.575 * O_END, u, Z_TIMP_FRONTE)
+        Mb = Matrix.Translation((px, -1.565, pz)) @ Matrix.Rotation(tilt_s, 4, "Y")
+        _bm_box(bm_sp_p, Mb, 0.0, 0.03, 0.0, 0.145, 0.15, 0.115)
+        for fl_s in (-1, 0, 1):
+            _bm_foglia(
+                bm_sp_p, 0.145, 0.075, 0.058,
+                Mb @ Matrix.Translation((0.0, -0.045, fl_s * 0.036)) @ Matrix.Rotation(math.pi * 0.5 + s * 0.15, 4, "Y"),
+                gonfia=1.30,
+            )
+
+    # 3) Perlinatura sull'astragalo interno
+    for i in range(118):
+        u = 0.010 + 0.980 * i / 117.0
+        px, pz = punto_fascia(s, W_TIMP, H_TIMP, 0.800 * O_END, u, Z_TIMP_FRONTE)
+        _bm_sfera(bm_sp_w, Mt, px, -1.625, pz, 0.020, u=7, v=5)
+
+    _mesh_da_bmesh(f"Dentelli_Spiovente_{s}", D, bm_sp_w, BIANCO)
+    _mesh_da_bmesh(f"Cubetti_Acanto_Spiovente_{s}", D, bm_sp_p, PIETRA)
+
+    # 4) 21 Gattoni rampanti trilobati sul cordolo esterno (nessuna collisione coi pilastri!)
+    crocchi_spiovente(
+        f"Crocket_Timp_{s}", D, s, W_TIMP, H_TIMP, Z_TIMP_FRONTE,
+        -1.67, n=21, size=0.355, offset=0.012, taper=0.80, gonfia=1.22,
+    )
+
+# --- 6.4 Ghirlanda 3D ad altorilievo marmoreo lungo tutti e tre i lati del campo aureo ---
+bm_garland = bmesh.new()
+bm_gar_pat = bmesh.new()
+bm_gar_sh = bmesh.new()
+Y_GAR = -1.435
+
+def _add_cherub_with_shadow(px, py, pz, r, ali=1.15, tilt=0.0, ali_su=False):
+    _add_testa_cherubino(bm_garland, px, py, pz, r, ali=ali, tilt=tilt, ali_su=ali_su, bm_pat=bm_gar_pat)
+    Ms = Matrix.Translation((px, Y_MOS - 0.012, pz)) @ Matrix.Rotation(tilt, 4, "Y")
+    _bm_sfera(bm_gar_sh, Ms, 0.0, 0.0, 0.0, r * 1.14, sx=1.52 * ali, sy=0.08, sz=1.06, u=12, v=6)
+
+# A) Cherubino monumentale di chiave all'apice interno del mosaico + gigli superiori
+_add_cherub_with_shadow(0.0, Y_GAR - 0.02, Z_MOS_TOP - 0.36, 0.180, ali=1.35, ali_su=True)
 for s in (-1, 1):
-    banda_mitrata(f"Fastigio_Cornice_{s}", D, s, W_FAST, H_FAST, 0.0, 0.075,
-                  -1.50, 0.14, BIANCO2, z_base=Z_FAST)
-    banda_mitrata(f"Fastigio_Filo_{s}", D, s, W_FAST, H_FAST, 0.085, 0.130,
-                  -1.46, 0.10, PIETRA, z_base=Z_FAST)
-    crocchi_spiovente(f"Fastigio_Crocket_{s}", D, s, W_FAST, H_FAST, Z_FAST,
-                      -1.48, n=4, size=0.14, offset=0.0, taper=0.6)
-nicchia_quatrifoglio("Feritoia_Apice", D, 0.0, -1.45, Z_FAST + 0.30, 0.110, SCURO)
-testa_cherubino("Cherubino_Fastigio", D, 0.0, -1.48, Z_FAST + 0.10, 0.110,
-                PIETRA, ali=0.85)
-for s in (-1, 1):
-    box(f"Braga_Ferro_Apice_{s}", D, s * 0.30, -1.52, Z_FAST + 0.30,
-        0.020, 0.20, 0.20, FERRO)
+    _add_giglio_rilievo(bm_garland, s * 0.22, Y_GAR, Z_MOS_TOP - 0.68, h=0.33, tilt=-s * 0.45)
 
-# --- 6.5 Cappuccio a foglie d'acanto, cornice e basamento dell'angelo ---
-# Collare di foglie che avvolge la punta della cuspide, su due ordini
-# sfalsati: è l'elemento che nell'originale copre il taglio delle cornici.
-Z_COLL = Z_APICE - 0.05
-# cappuccio a foglie: calice pieno + tre ordini di foglie d'acanto
-_lathe("Calice_Collare_Apice", G, 0.0, -1.20, Z_COLL,
-       ((0.00, 0.240), (0.10, 0.310), (0.22, 0.340), (0.34, 0.310), (0.46, 0.240),
-        (0.54, 0.180)), PIETRA, seg=26, sx=1.0, sy=0.90)
-for tier, (n_pet, r0, fog_l, fog_w, tilt0, piega) in enumerate(
-        ((12, 0.300, 0.36, 0.175, 0.50, 0.16),
-         (9, 0.245, 0.29, 0.155, 0.12, 0.11))):
-    bm = bmesh.new()
-    for k in range(n_pet):
-        a = math.tau * k / n_pet + (math.pi / n_pet if tier % 2 else 0.0)
-        px = r0 * math.cos(a)
-        py = -1.20 + r0 * math.sin(a) * 0.90
-        pz = Z_COLL + 0.10 + tier * 0.13
-        d = Vector((math.sin(tilt0) * math.cos(a),
-                    math.sin(tilt0) * math.sin(a) * 0.90,
-                    math.cos(tilt0)))
-        q = d.to_track_quat("Z", "Y").to_matrix().to_4x4()
-        Mp = Matrix.Translation((px, py, pz)) @ q
-        _bm_foglia(bm, fog_l, fog_w, 0.055, Mp,
-                   profilo=((0.00, 0.30), (0.14, 0.46), (0.32, 0.34),
-                            (0.50, 0.44), (0.68, 0.30), (0.84, 0.16), (1.00, 0.01)),
-                   piega=piega)
-    _mesh_da_bmesh(f"Collare_Apice_{tier}", G, bm, PIETRA)
-sphere("Cuore_Foglie_Apice", G, 0.0, -1.20, Z_COLL + 0.50, 0.175, PIETRA,
-       sx=1.05, sy=0.92, sz=0.80)
-# basamento dell'angelo: cornice modanata, dado e plinto (0,42 m)
-box("Cornice_Apice", G, 0.0, -0.97, Z_APICE + 0.60, 1.06, 0.94, 0.11, BIANCO)
-box("Gola_Apice", G, 0.0, -0.97, Z_APICE + 0.665, 0.92, 0.86, 0.06, PIETRA)
-box("Dado_Apice", G, 0.0, -0.97, Z_APICE + 0.77, 0.64, 0.64, 0.16, BIANCO2)
-box("Plinto_Angelo", G, 0.0, -0.97, Z_APICE + 0.875, 0.76, 0.74, 0.06, BIANCO)
-statua_angelo_apicale("Angelo_Apicale", ST, 0.0, -0.97, Z_APICE + 0.91, 3.65)
+# B) Fregio inclinato aderente alla cornice interna (ZERO spazio vuoto all'esterno dei cherubini!):
+#    6 coppie di cherubini alati + 5 gigli senesi lungo ciascuno spiovente
+O_GAR = O_END + 0.128
+for s in (-1, 1):
+    tilt_g = -s * math.atan2(W_TIMP * 0.5, H_TIMP)
+    n_side_items = 11
+    for i in range(n_side_items):
+        u = 0.085 + 0.815 * i / (n_side_items - 1)
+        px, pz = punto_fascia(s, W_TIMP, H_TIMP, O_GAR, u, Z_TIMP_FRONTE)
+        if i % 2 == 0:
+            sc_i = 1.14 if i == n_side_items - 1 else 1.0
+            _add_cherub_with_shadow(px, Y_GAR - 0.015, pz, 0.156 * sc_i, ali=1.12, tilt=tilt_g)
+        else:
+            _add_giglio_rilievo(bm_garland, px, Y_GAR, pz - 0.05, h=0.32, tilt=tilt_g)
+
+# C) Grandi rilievi angolari ai due vertici bassi + 6 Cherubini e 7 Gigli senesi aderenti alla soglia!
+z_base_gar = Z_MOS_BASE + 0.155
+for s in (-1, 1):
+    _add_cherub_with_shadow(s * 3.16, Y_GAR - 0.015, z_base_gar + 0.05, 0.172, ali=1.18, tilt=-s * 0.32, ali_su=True)
+
+n_ch_base = 6
+span_base_ch = 5.10
+for k_c in range(n_ch_base):
+    xc = -span_base_ch * 0.5 + k_c * (span_base_ch / (n_ch_base - 1))
+    _add_cherub_with_shadow(xc, Y_GAR - 0.02, z_base_gar, 0.166, ali=1.18, tilt=0.0)
+for k_g in range(n_ch_base + 1):
+    xg = -span_base_ch * 0.5 - (span_base_ch / (n_ch_base - 1)) * 0.5 + k_g * (span_base_ch / (n_ch_base - 1))
+    _add_giglio_rilievo(bm_garland, xg, Y_GAR, z_base_gar - 0.10, h=0.35, tilt=0.0)
+
+_mesh_da_bmesh("Ghirlanda_Mosaico_Cherubini_Gigli", D, bm_garland, PIETRA_RIL)
+_mesh_da_bmesh("Ghirlanda_Mosaico_Patina", D, bm_gar_pat, PATINA)
+_mesh_da_bmesh("Ghirlanda_Mosaico_Sottosquadro", D, bm_gar_sh, SCURO)
+
+# --- 6.5 Capitello pensile quadrato corinzio-gotico slanciato, abaco bianco e zoccolo scolpito ---
+bm_cap_p = bmesh.new()
+bm_cap_w = bmesh.new()
+Y_AP = -1.24
+
+# Campana corinzio-gotica snella che nasce dal vertice delle cornici (cmp_angel.jpg!)
+_bm_lathe(
+    bm_cap_p, Matrix.Translation((0.0, Y_AP, Z_APICE - 0.42)),
+    ((0.00, 0.19), (0.20, 0.24), (0.42, 0.30), (0.62, 0.34), (0.72, 0.29)),
+    seg=16, sy=0.92, rib=0.10, rib_n=8,
+)
+# Quattro grandi volute/foglie d'acanto angolari verticali + 4 mediane (senza sfere a grappolo!)
+for ka in range(8):
+    aa = math.tau * ka / 8.0 + math.pi * 0.25
+    is_corner = (ka % 2 == 0)
+    tilt_a = 0.26 if is_corner else 0.18
+    la = 0.58 if is_corner else 0.46
+    wa = 0.22 if is_corner else 0.18
+    da = Vector((math.sin(tilt_a) * math.cos(aa), math.sin(tilt_a) * math.sin(aa) * 0.92, math.cos(tilt_a)))
+    Ma = (
+        Matrix.Translation((0.21 * math.cos(aa), Y_AP + 0.20 * math.sin(aa), Z_APICE - 0.32))
+        @ da.to_track_quat("Z", "Y").to_matrix().to_4x4()
+    )
+    _bm_foglia(
+        bm_cap_p, la, wa, 0.065, Ma,
+        profilo=((0.00, 0.30), (0.25, 0.44), (0.58, 0.50), (0.84, 0.40), (0.96, 0.22), (1.00, 0.05)),
+        piega=0.22 if is_corner else 0.12, gonfia=1.35,
+    )
+
+# Sottili tiranti in ferro battuto visibili ai fianchi del capitello
+for s_ir in (-1, 1):
+    box(f"Tirante_Ferro_Capitello_{s_ir}", D, s_ir * 0.36, Y_AP - 0.14, Z_APICE - 0.12, 0.016, 0.016, 0.58, FERRO)
+
+# Abaco e plinto bianco squadrato luminoso con ombra netta sottostante (Z_APICE + 0.28 .. +0.58)
+_bm_box(bm_cap_w, Mt, 0.0, Y_AP, Z_APICE + 0.33, 0.88, 0.84, 0.09)
+_bm_box(bm_cap_p, Mt, 0.0, Y_AP, Z_APICE + 0.40, 0.74, 0.70, 0.06)
+_bm_box(bm_cap_w, Mt, 0.0, Y_AP, Z_APICE + 0.49, 0.68, 0.64, 0.13)
+
+# Cuscino scolpito a foglie d'acanto patinate direttamente sotto i piedi dell'Angelo (Z_APICE + 0.55 .. +0.80)
+_bm_box(bm_cap_p, Mt, 0.0, Y_AP, Z_APICE + 0.68, 0.48, 0.46, 0.25)
+for kz in range(10):
+    az = math.tau * kz / 10.0
+    dz = Vector((0.30 * math.cos(az), 0.30 * math.sin(az), 0.95))
+    Mz = Matrix.Translation((0.20 * math.cos(az), Y_AP + 0.19 * math.sin(az), Z_APICE + 0.56)) @ dz.to_track_quat("Z", "Y").to_matrix().to_4x4()
+    _bm_foglia(bm_cap_p, 0.24, 0.13, 0.048, Mz, piega=0.14, gonfia=1.35)
+
+_mesh_da_bmesh("Capitello_Apice_Scolpito", G, bm_cap_p, PIETRA_RIL)
+_mesh_da_bmesh("Abaco_Pedestallo_Angelo", G, bm_cap_w, BIANCO)
+
+statua_angelo_apicale("Angelo_Apicale", ST, 0.0, Y_AP, Z_APICE + 0.80, h=1.96)
 
 # =============================================================================
 # 7. SETTORI LATERALI INTERNI (cx = +-8.05 m): LOGGETTA GOTICA A 5 ARCHETTI
@@ -2427,21 +3121,29 @@ wnodes = world.node_tree.nodes
 wlinks = world.node_tree.links
 wnodes.clear()
 w_out = wnodes.new("ShaderNodeOutputWorld")
-w_bg = wnodes.new("ShaderNodeBackground")
+w_bg_cam = wnodes.new("ShaderNodeBackground")
+w_bg_gi = wnodes.new("ShaderNodeBackground")
+w_mix_shader = wnodes.new("ShaderNodeMixShader")
+w_lp = wnodes.new("ShaderNodeLightPath")
 w_mix = wnodes.new("ShaderNodeMixRGB")
 w_sep = wnodes.new("ShaderNodeSeparateXYZ")
 w_tc = wnodes.new("ShaderNodeTexCoord")
 w_ramp = wnodes.new("ShaderNodeValToRGB")
-w_ramp.color_ramp.elements[0].position = 0.02
-w_ramp.color_ramp.elements[1].position = 0.35
-w_mix.inputs["Color1"].default_value = (*WORLD.get("horizon_color", (0.430, 0.515, 0.735)), 1.0)
-w_mix.inputs["Color2"].default_value = (*WORLD.get("sky_color", (0.325, 0.410, 0.630)), 1.0)
-w_bg.inputs["Strength"].default_value = WORLD.get("sky_strength", 1.0)
+w_ramp.color_ramp.elements[0].position = 0.04
+w_ramp.color_ramp.elements[1].position = 0.42
+w_mix.inputs["Color1"].default_value = (*WORLD.get("horizon_color", (0.048, 0.145, 0.340)), 1.0)
+w_mix.inputs["Color2"].default_value = (*WORLD.get("sky_color", (0.012, 0.068, 0.215)), 1.0)
+w_bg_cam.inputs["Strength"].default_value = WORLD.get("sky_strength", 1.0)
+w_bg_gi.inputs["Color"].default_value = (*WORLD.get("bounce_color", (0.310, 0.385, 0.560)), 1.0)
+w_bg_gi.inputs["Strength"].default_value = WORLD.get("bounce_strength", 0.55)
 wlinks.new(w_tc.outputs["Generated"], w_sep.inputs["Vector"])
 wlinks.new(w_sep.outputs["Z"], w_ramp.inputs["Fac"])
 wlinks.new(w_ramp.outputs["Color"], w_mix.inputs["Fac"])
-wlinks.new(w_mix.outputs["Color"], w_bg.inputs["Color"])
-wlinks.new(w_bg.outputs["Background"], w_out.inputs["Surface"])
+wlinks.new(w_mix.outputs["Color"], w_bg_cam.inputs["Color"])
+wlinks.new(w_lp.outputs["Is Camera Ray"], w_mix_shader.inputs["Fac"])
+wlinks.new(w_bg_gi.outputs["Background"], w_mix_shader.inputs[1])
+wlinks.new(w_bg_cam.outputs["Background"], w_mix_shader.inputs[2])
+wlinks.new(w_mix_shader.outputs["Shader"], w_out.inputs["Surface"])
 
 # =============================================================================
 # 10. SCALA GLOBALE (3x) E CONGELAMENTO TRASFORMAZIONI
@@ -2495,19 +3197,20 @@ else:
     try:
         bpy.ops.render.render(write_still=True)
         print(f"Anteprima salvata: {PNG_PATH}")
-        # Seconda inquadratura dedicata alla cuspide: il render frontale mostra
-        # tutta la facciata, ma rende il mosaico e l'angelo troppo piccoli.
+        # Seconda inquadratura teleobiettivo dedicata alla cuspide centrale,
+        # calibrata esattamente sul taglio e sulla prospettiva di riferimento_apice.jpg:
+        # include la galleria superiore dei Profeti (z ~ 22.0 m), i pilastri gotici con
+        # edicole traforate e statue sommitali, il mosaico dell'Incoronazione e l'Angelo.
         camera_loc_main = cam.location.copy()
         camera_rot_main = cam.rotation_euler.copy()
         lens_main = cam.data.lens
         res_main = (scene.render.resolution_x, scene.render.resolution_y)
-        target_detail = Vector((0.0, -1.40 * SCALA,
-                                (Z_APICE - 3.0) * SCALA))
-        cam.location = (0.0, -22.0 * SCALA, 24.0 * SCALA)
+        target_detail = Vector((-0.12 * SCALA, -1.40 * SCALA, 28.98 * SCALA))
+        cam.location = (-0.50 * SCALA, -34.5 * SCALA, 16.5 * SCALA)
         cam.rotation_euler = (target_detail - cam.location).to_track_quat("-Z", "Y").to_euler()
-        cam.data.lens = 46.0
+        cam.data.lens = 80.5
         scene.render.resolution_x = 900
-        scene.render.resolution_y = 1000
+        scene.render.resolution_y = 1022
         scene.render.filepath = os.path.join(OUT_DIR, "anteprima_apice.png")
         bpy.ops.render.render(write_still=True)
         print("Anteprima ravvicinata dell'apice salvata: anteprima_apice.png")
@@ -2537,7 +3240,7 @@ if "gltf" in EXPORT.get("formats", []) and not os.environ.get("CHIESA_NO_GLB"):
     except Exception as e:
         print(f"Export GLB non riuscito: {e}")
 
-print("Generazione v1.8 completata!")
+print("Generazione v2.0 completata!")
 sys.stdout.flush()
 sys.stderr.flush()
 if "bpy" in sys.modules and not bpy.app.binary_path:
