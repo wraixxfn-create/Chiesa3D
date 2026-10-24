@@ -551,14 +551,15 @@ def _dist_punto_retta(px, py, a, b):
 
 def _extract_mosaic_laterale_v30(name, topdown_rgb, p_bl, p_br, p_top,
                                   size=1536, riscalda_bianchi=False):
-    """Rettifica il mosaico laterale dal dettaglio fotografico frontale (v3.0).
+    """Rettifica il mosaico laterale dal dettaglio fotografico frontale (v3.1).
 
-    I tre punti sono sul filo interno del campo musivo.  Rispetto alla v2.9:
-    de-velatura del fondo aureo bruciato (la Presentazione a sinistra
-    tornava bianca e le figure scomparivano), saturazione e contrasto da
-    cartone musivo vero, albedo scurito quanto basta perche' il sole
-    diretto di Cycles (4,45) non lo sbiadisca una seconda volta, e grana
-    delle tessere incorporata nel colore oltre che nel bump.
+    I tre punti sono sul filo interno esatto del campo musivo.  Rispetto
+    alla v3.0: preserva l'equilibrio cromatico RGB delle vesti (il blu
+    oltremare del manto della Vergine, il cremisi, il verde smeraldo e il
+    viola-indaco del sacerdote non vengono piu' ingialliti dal gain B=0.50),
+    compensa la sottile ombra portata della cornice lungo lo spiovente
+    destro e restituisce l'oro caldo senese sul fondo bruciato della
+    Presentazione mantenendo il velo bianco di Anna e le figure ben staccate.
     """
     v_lin = np.linspace(0.0, 1.0, size, dtype=np.float32)
     vv, uu = np.meshgrid(v_lin, v_lin, indexing="ij")
@@ -567,64 +568,68 @@ def _extract_mosaic_laterale_v30(name, topdown_rgb, p_bl, p_br, p_top,
     py = (1.0 - vv) * ((1.0 - s) * p_bl[1] + s * p_br[1]) + vv * p_top[1]
     sampled = _bilinear_sample(topdown_rgb, px, py)
 
-    # De-velatura: solleva i neri velati e riapre i bianchi bruciati,
-    # poi micro-contrasto a due scale (figure + tessere).
-    merged = np.clip((sampled - 0.035) / 0.93, 0.0, 1.0)
+    # Schiarisce delicatamente il bordo destro dove nella foto cade l'ombra
+    # della cornice lapidea, cosi' l'ombra 3D di Cycles non si raddoppia.
+    dist_dx = (1.0 - s) * (1.0 - vv)
+    ombra_bordo = np.clip((0.055 - dist_dx) / 0.055, 0.0, 1.0)[:, :, None] * np.clip((vv - 0.18) / 0.25, 0.0, 1.0)[:, :, None]
+    sampled = np.clip(sampled * (1.0 + 0.22 * ombra_bordo), 0.0, 1.0)
+
+    # De-velatura e nitidezza locale (figure, volti, aureole e gradini).
+    merged = np.clip((sampled - 0.028) / 0.945, 0.0, 1.0)
     acc = np.zeros_like(merged)
     for dy in (-1, 0, 1):
         for dx in (-1, 0, 1):
             acc += np.roll(np.roll(merged, dy, axis=0), dx, axis=1)
     acc /= 9.0
-    merged = np.clip(merged * 1.62 - acc * 0.62, 0.0, 1.0)
-    merged = np.clip((merged - 0.5) * 1.13 + 0.5, 0.0, 1.0)
+    merged = np.clip(merged * 1.52 - acc * 0.52, 0.0, 1.0)
+    merged = np.clip((merged - 0.5) * 1.10 + 0.5, 0.0, 1.0)
 
-    # Il fondo aureo poco saturo e luminoso torna oro musivo (caldo, non
-    # bianco): si spingono verso l'ambra solo i pixel chiari quasi neutri,
-    # le vesti colorate e le carnagioni non vengono toccate.
     lum0 = merged.mean(axis=2, keepdims=True)
     sat0 = (merged.max(axis=2, keepdims=True) - merged.min(axis=2, keepdims=True))
-    oro_mask = np.clip((lum0 - 0.52) / 0.30, 0.0, 1.0) * np.clip((0.30 - sat0) / 0.22, 0.0, 1.0)
     if riscalda_bianchi:
-        # Presentazione: in foto il fondo e' bianco-oro abbagliante; una
-        # spinta ambrata debole basta, altrimenti le figure annegano
-        # nel giallo e il sacerdote scuro perde il suo nero-blu.
-        oro_col = np.array((1.00, 0.90, 0.66), dtype=np.float32)[None, None, :] \
-            * (0.78 + 0.30 * lum0)
-        merged = merged * (1.0 - oro_mask * 0.34) + oro_col * (oro_mask * 0.34)
+        # Protegge il velo/aureola bianca di Anna (s ~ 0.67, vv ~ 0.47) e la
+        # veste chiara di Maria bambina (s ~ 0.36, vv ~ 0.46).
+        anna_mask = np.exp(-(((s - 0.67) / 0.11) ** 2 + ((vv - 0.47) / 0.09) ** 2))[:, :, None]
+        maria_mask = np.exp(-(((s - 0.36) / 0.08) ** 2 + ((vv - 0.46) / 0.11) ** 2))[:, :, None]
+        prot = np.clip(anna_mask + 0.65 * maria_mask, 0.0, 1.0)
+        oro_mask = (np.clip((lum0 - 0.60) / 0.24, 0.0, 1.0)
+                    * np.clip((0.35 - sat0) / 0.25, 0.0, 1.0)
+                    * (1.0 - 0.80 * prot))
+        oro_col = np.array((0.97, 0.81, 0.46), dtype=np.float32)[None, None, :] \
+            * (0.76 + 0.26 * lum0)
+        merged = merged * (1.0 - oro_mask * 0.72) + oro_col * (oro_mask * 0.72)
     else:
-        # Nativita': fondo d'oro pieno e saturo.
-        oro_col = np.array((0.99, 0.80, 0.42), dtype=np.float32)[None, None, :] \
-            * (0.72 + 0.38 * lum0)
-        merged = merged * (1.0 - oro_mask * 0.62) + oro_col * (oro_mask * 0.62)
+        oro_mask = (np.clip((lum0 - 0.55) / 0.26, 0.0, 1.0)
+                    * np.clip((0.36 - sat0) / 0.24, 0.0, 1.0))
+        oro_col = np.array((0.98, 0.81, 0.44), dtype=np.float32)[None, None, :] \
+            * (0.75 + 0.27 * lum0)
+        merged = merged * (1.0 - oro_mask * 0.58) + oro_col * (oro_mask * 0.58)
 
-    # Saturazione e gamma da cartone musivo: blu, rossi e verdi delle vesti
-    # devono tenere testa all'oro anche dopo Filmic.
+    # Saturazione vivida da cartone musivo ottocentesco.
     lum = merged.mean(axis=2, keepdims=True)
-    merged = np.clip(lum + (merged - lum) * (1.24 if riscalda_bianchi else 1.34), 0.0, 1.0)
-    merged = np.clip(merged, 0.0, 1.0) ** 1.12
+    merged = np.clip(lum + (merged - lum) * (1.28 if riscalda_bianchi else 1.32), 0.0, 1.0)
+    merged = np.clip(merged, 0.0, 1.0) ** 1.06
 
-    # Grana delle tessere nel colore: celle sfalsate con fughe appena piu'
-    # scure e tono proprio per tessera (la stessa griglia del bump).
+    # Grana fine delle tessere musive nel colore.
     rng = np.random.default_rng(300 if riscalda_bianchi else 301)
-    cells = 176
+    cells = 184
     yy, xx = np.meshgrid(np.arange(size), np.arange(size), indexing="ij")
     row = np.floor(yy * cells / size).astype(np.int32)
     shift = (row % 2) * 0.5
     fx = (xx * cells / size + shift) % 1.0
     fy = (yy * cells / size) % 1.0
     bordo = np.minimum(np.minimum(fx, 1.0 - fx), np.minimum(fy, 1.0 - fy))
-    fuga = np.clip(bordo / 0.10, 0.0, 1.0)[:, :, None]
+    fuga = np.clip(bordo / 0.09, 0.0, 1.0)[:, :, None]
     cell_x = np.floor(xx * cells / size + shift).astype(np.int32)
-    tono = rng.uniform(-0.055, 0.055, (cells + 2, cells + 2)).astype(np.float32)
-    merged *= (0.90 + 0.10 * fuga) * (1.0 + tono[row % (cells + 2), cell_x % (cells + 2)][:, :, None])
+    tono = rng.uniform(-0.042, 0.042, (cells + 2, cells + 2)).astype(np.float32)
+    merged *= (0.93 + 0.07 * fuga) * (1.0 + tono[row % (cells + 2), cell_x % (cells + 2)][:, :, None])
 
-    # Albedo fotometrico per il sole diretto: senza questo scurimento il
-    # render tornava slavato anche con la fotografia perfetta (v2.9).
-    if riscalda_bianchi:
-        gain = np.array((0.700, 0.640, 0.500), dtype=np.float32)
-    else:
-        gain = np.array((0.720, 0.655, 0.505), dtype=np.float32)
-    merged = np.clip(merged * gain[None, None, :], 0.0, 1.0)
+    # Calibrazione fotometrica bilanciata: conserva i blu e i rossi delle vesti
+    # e scalda solo la componente aurea sotto il sole diretto di Cycles.
+    gain_fig = np.array((0.775, 0.745, 0.705), dtype=np.float32)[None, None, :]
+    gain_oro = np.array((0.790, 0.720, 0.560), dtype=np.float32)[None, None, :]
+    gain = gain_fig * (1.0 - oro_mask) + gain_oro * oro_mask
+    merged = np.clip(merged * gain, 0.0, 1.0)
     return _save_packed_image(name, merged)
 
 
@@ -898,13 +903,13 @@ def build_all_textures():
         mos_size = int(CFG.get("texture_reali", {}).get("dimensione_mosaici_laterali_px", 1536))
         tex["mosaico_sx"] = _extract_mosaic_laterale_v30(
             "Tex_Mosaico_Presentazione", cusp_top,
-            (114.0 * csx, 908.0 * csy), (552.0 * csx, 908.0 * csy),
-            (337.0 * csx, 500.0 * csy), size=mos_size, riscalda_bianchi=True,
+            (114.0 * csx, 906.0 * csy), (566.0 * csx, 906.0 * csy),
+            (341.0 * csx, 506.0 * csy), size=mos_size, riscalda_bianchi=True,
         )
         tex["mosaico_dx"] = _extract_mosaic_laterale_v30(
             "Tex_Mosaico_Nativita", cusp_top,
-            (2565.0 * csx, 887.0 * csy), (2984.0 * csx, 888.0 * csy),
-            (2765.0 * csx, 491.0 * csy), size=mos_size,
+            (2554.0 * csx, 901.0 * csy), (2998.0 * csx, 901.0 * csy),
+            (2764.0 * csx, 498.0 * csy), size=mos_size,
         )
     tex["mosaico_tessere"] = _make_tessere_mosaico_tex("Tex_Rilievo_Tessere_Mosaico")
 
@@ -3281,14 +3286,14 @@ RX_OCULO = DIM.get("raggio_oculo_x", 3.08)
 RZ_OCULO = DIM.get("raggio_oculo_z", 2.66)
 HALF_SQ = DIM.get("semilato_quadrato_oculo", 4.45)
 Z_TIMPANO = DIM.get("quota_base_timpano_centrale", 24.45)
-X_PIL_C = DIM.get("x_pilastri_centrali", 5.0)
-W_PIL_C = DIM.get("larghezza_pilastro_centrale", 1.15)
-Z_PIL_TOP = DIM.get("colmo_pilastro_centrale", 27.0)
-X_LAT = DIM.get("x_settori_laterali", 8.05)
-Z_CUSP_LAT = DIM.get("base_cuspidi_laterali", 19.75)
-H_CUSP_LAT = DIM.get("altezza_cuspidi_laterali", 4.6)
-X_TORRI = DIM.get("x_torrioni_angolari", 12.7)
-SCALA = float(DIM.get("scala_globale", 3.0))
+X_PIL_C = DIM.get("x_pilastri_centrali", DIM.get("interasse_pilastri_centrali", 5.20))
+W_PIL_C = DIM.get("larghezza_pilastro_centrale", 1.36)
+Z_PIL_TOP = DIM.get("colmo_pilastro_centrale", 28.42)
+X_LAT = DIM.get("x_settori_laterali", DIM.get("interasse_settori_laterali", 8.01))
+Z_CUSP_LAT = DIM.get("base_cuspidi_laterali", DIM.get("quota_cuspidi_laterali", 18.77))
+H_CUSP_LAT = DIM.get("altezza_cuspidi_laterali", 3.53)
+X_TORRI = DIM.get("x_torrioni_angolari", DIM.get("interasse_torri_esterne", 12.7))
+SCALA = float(DIM.get("scala_globale", DIM.get("scala_finale", 3.0)))
 
 # =============================================================================
 # 1. GRADINATA DEL SAGRATO E BASAMENTO ORIZZONTALE
@@ -3310,10 +3315,11 @@ box("Corpo_Inferiore", S, 0.0, 0.12, 8.55, 29.6, THICK - 0.24, 13.30, BIANCO)
 # lastra nera continua dietro le ghimberghe: il fondo e' marmo chiaro senese)
 box("Specchiatura_Fondo_Prato", S, 0.0, -1.25, 12.80, 21.4, 0.14, 4.55, ROSA_C)
 # Corpo superiore centrale arretrato (faccia anteriore a Y = -0.55, dietro la vetrata dell'oculo!)
-box("Corpo_Superiore_Centrale", S, 0.0, 0.38, 19.60, 10.8, 1.85, 8.95, BIANCO)
-# Muri di spalla dietro le loggette laterali
+box("Corpo_Superiore_Centrale", S, 0.0, 0.38, 19.60, 12.10, 1.85, 8.95, BIANCO)
+# Muri di spalla continui dietro le loggette e le cuspidi laterali: saldati al
+# corpo centrale e ai torrioni esterni fino al retro piatto (Y = +1.30)
 for side in (-1, 1):
-    box(f"Corpo_Settore_Lat_{side}", S, side * X_LAT, 0.35, 16.95, 5.2, 1.90, 3.75, BIANCO2)
+    box(f"Corpo_Settore_Lat_{side}", S, side * 7.85, 0.20, 17.15, 5.70, 2.20, 4.20, BIANCO2)
 
 # =============================================================================
 # 3. ORDINE INFERIORE DI GIOVANNI PISANO: CONTRAFFORTI BICROMI, 4 PILONI A
@@ -4752,53 +4758,144 @@ def _statua_santa_guglia(name, col, x, y, z, h=1.18, turn=0.14, material=None):
 
 
 def pilastro_centrale_completo(side):
-    cx = side * X_PIL_C
+    # Il fusto visibile del pilastro polistilo corre da |x| = 4.68 m (subito
+    # fuori dal fregio di quatrifogli) fino a |x| = 6.02 m (dove si innesta
+    # senza alcuno stacco lo spigolo interno del frontone laterale dei mosaici),
+    # mentre una spalla interna a |x| = 4.42..4.70 m raccorda la cuspide
+    # centrale sopra la trabeazione.
+    cx_vis = side * 5.35
+    w_vis = 1.34
+    cx = side * 5.18
     tag = "Sx" if side < 0 else "Dx"
     h_shaft = Z_PIL_TOP - Z_GALLERIA
     z_mid = Z_GALLERIA + h_shaft * 0.5
 
-    # Nucleo del contrafforte polistilo in marmo senese
-    box(f"Pilastro_Centrale_{tag}", G, cx, -0.62, z_mid, W_PIL_C, 1.86, h_shaft, BIANCO)
+    # Nucleo strutturale pieno fino al retro (nessuna fessura col corpo centrale o laterale)
+    box(f"Pilastro_Centrale_{tag}", G, side * 5.22, -0.15, z_mid, 1.60, 2.80, h_shaft, BIANCO)
 
-    # Specchiature verticali in marmo rosa senese e bianco caldo (pieno marmo luminoso come in cmp_pier.jpg, ZERO fessure nere!)
+    # Edicola d'angolo alla fine della Galleria dei Profeti (|x| = 4.45..4.70 m,
+    # sopra il fregio di quatrifogli, ben visibile in riferimento_cuspidi.jpg).
+    z_gal0 = Z_PAN + PAN_HH + 0.10
+    h_gal0 = Z_TIMPANO - z_gal0 - 0.13
+    edicola_galleria_profeta(
+        f"Nicchia_Angolo_Profeti_{tag}", R, side * 4.56, -1.555,
+        z_gal0, 0.28, h_gal0, variant=0 if side < 0 else 14,
+    )
+
+    # Specchiature verticali in marmo rosa senese e 5 costoloni bianchi polistili
+    # interamente scoperti fuori dal fregio di quatrifogli (|x| = 4.68..6.02 m).
     for s2 in (-0.31, 0.31):
-        box(f"Specchio_Rosa_Pil_{tag}_{s2:+.2f}", G, cx + s2, -1.565, z_mid, 0.30, 0.08, h_shaft - 0.20, ROSA_C)
-    for s2 in (-0.58, -0.22, 0.0, 0.22, 0.58):
+        box(f"Specchio_Rosa_Pil_{tag}_{s2:+.2f}", G, cx_vis + s2, -1.555, z_mid, 0.32, 0.10, h_shaft - 0.16, ROSA_C)
+    for s2 in (-0.59, -0.23, 0.0, 0.23, 0.59):
         w_rib = 0.135 if abs(s2) > 0.5 else (0.115 if s2 == 0 else 0.095)
-        y_rib = -1.625 if abs(s2) in (0.0, 0.58) else -1.59
+        y_rib = -1.615 if abs(s2) in (0.0, 0.59) else -1.585
         mat_rib = BIANCO if abs(s2) > 0.1 else BIANCO2
-        box(f"Costolone_Pil_{tag}_{s2:+.2f}", G, cx + s2, y_rib, z_mid, w_rib, 0.20, h_shaft, mat_rib)
+        box(f"Costolone_Pil_{tag}_{s2:+.2f}", G, cx_vis + s2, y_rib, z_mid, w_rib, 0.22, h_shaft, mat_rib)
+    # Costolone di raccordo interno sopra la galleria dei profeti (z = 24.3..28.4 m)
+    box(f"Costolone_Raccordo_Int_{tag}", G, side * 4.54, -1.58, 26.35, 0.26, 0.22, 4.15, BIANCO)
 
-    # Statue inferiori nei tabernacoli del registro dell'oculo
+    # Statue inferiori alla base del pilastro (z = 15.65 m)
     for s2 in (-1, 1):
-        sx_st = cx + s2 * 0.30
-        statue(f"Statua_PilCent_{tag}_{s2}", ST, sx_st, -1.68, Z_GALLERIA + 0.30, 1.65, PIETRA)
-        spioventi_modanati(f"Ghim_PilBase_{tag}_{s2}", G, sx_st, -1.68, Z_GALLERIA + 2.35, 0.58, 0.72, 0.07, 0.26, BIANCO)
+        sx_st = cx_vis + s2 * 0.32
+        statue(f"Statua_PilCent_{tag}_{s2}", ST, sx_st, -1.68, Z_GALLERIA + 0.22, 1.55, PIETRA)
 
-    # Costruzione gotica scolpita ad alta definizione del registro alto + guglia (bmesh consolidati)
+    # Costruzione gotica scolpita ad alta definizione del registro della loggia,
+    # del fusto mediano e della guglia sommitale (bmesh consolidati)
     bm_w = bmesh.new()   # elementi in Marmo_Bianco
     bm_p = bmesh.new()   # elementi scolpiti / gattoni / capitelli in Pietra_Statue
+    bm_pat_pil = bmesh.new()
     Mi = Matrix.Identity(4)
 
-    # 1) Doppie arcate ogivali cieche strombate + ghimberghe acute + doppie cornici marcapiano patinate (cmp_pier.jpg!)
-    bm_pat_pil = bmesh.new()
-    for z_band in (22.36, 23.02, 24.48, 25.92, 26.52, Z_PIL_TOP):
+    # 1) Registro gotico scolpito all'imposta delle cuspidi laterali (z = 17.46..19.48 m):
+    #    due alte ghimberghe acute con triplice archetto, 3 pinnacolini con edicola
+    #    fogliata e grande cornicione poligonale aggettante a z = 19.38 m che
+    #    ammorsa direttamente lo spigolo interno del frontone laterale dei mosaici!
+    z_gh_low = 17.50
+    h_gh_low = 1.08
+    for s2 in (-1, 1):
+        gx_l = cx_vis + s2 * 0.31
+        gw_l = 0.62
+        for ord_k, (sp_k, rs_k, y_k, min_k) in enumerate((
+            (gw_l * 0.88, h_gh_low * 0.62, -1.65, 0.032),
+            (gw_l * 0.68, h_gh_low * 0.50, -1.62, 0.026),
+            (gw_l * 0.48, h_gh_low * 0.38, -1.59, 0.020),
+        )):
+            _bm_arco_acuto(bm_w if ord_k % 2 == 0 else bm_p, Mi, gx_l, y_k, z_gh_low - 0.18, sp_k, rs_k, min_k, seg_u=14, seg_v=6)
+        ang_l = math.atan2(h_gh_low, gw_l * 0.5)
+        sl_l = math.hypot(gw_l * 0.5, h_gh_low) + 0.05
+        for gs in (-1, 1):
+            _bm_box(
+                bm_w, Mi, gx_l + gs * gw_l * 0.25, -1.67, z_gh_low + h_gh_low * 0.5,
+                sl_l, 0.18, 0.068, rot=Matrix.Rotation(gs * ang_l, 4, "Y"),
+            )
+            for kc in range(4):
+                tc = 0.16 + 0.70 * kc / 3.0
+                _bm_foglia(
+                    bm_p, 0.14, 0.078, 0.045,
+                    Matrix.Translation((gx_l + gs * gw_l * 0.5 * (1.0 - tc), -1.69, z_gh_low + h_gh_low * tc + 0.03))
+                    @ Matrix.Rotation(gs * 0.44, 4, "Y"),
+                    piega=-0.15 * gs,
+                )
+        # Fiorone a cesto fogliato sulla punta di ciascuna ghimberga
+        _bm_lathe(
+            bm_p, Matrix.Translation((gx_l, -1.68, z_gh_low + h_gh_low)),
+            ((0.0, 0.050), (0.10, 0.072), (0.24, 0.024)), seg=8, sy=0.88,
+        )
+        # Archetti ciechi superiori fra le punte delle ghimberghe e il cornicione (z = 18.60..19.32 m)
+        _bm_arco_acuto(bm_w, Mi, gx_l, -1.62, 18.88, gw_l * 0.72, 0.36, 0.026, seg_u=12, seg_v=6)
+
+    # 3 lesene/pinnacolini verticali con fiorone scolpito (sulle 3 nervature principali del registro basso)
+    for s3 in (-0.59, 0.0, 0.59):
+        px_l = cx_vis + s3
+        _bm_box(bm_w, Mi, px_l, -1.65, 18.38, 0.13, 0.22, 1.85)
+        _bm_lathe(
+            bm_p, Matrix.Translation((px_l, -1.69, 18.62)),
+            ((0.0, 0.055), (0.11, 0.078), (0.25, 0.028)), seg=8, sy=0.88,
+        )
+    # Cornicione poligonale sagomato a z = 19.36..19.50 m (corona il registro
+    # inferiore del pilastro e si salda allo spigolo interno della cuspide laterale!)
+    _bm_box(bm_w, Mi, cx_vis, -0.64, 19.38, w_vis + 0.18, 2.08, 0.11)
+    _bm_box(bm_p, Mi, cx_vis, -0.66, 19.47, w_vis + 0.22, 2.12, 0.085)
+    _bm_box(bm_pat_pil, Mi, cx_vis, -0.65, 19.30, w_vis + 0.14, 2.04, 0.050)
+    for s_cr in (-0.59, -0.23, 0.0, 0.23, 0.59):
+        _bm_box(bm_w, Mi, cx_vis + s_cr, -1.66, 19.42, 0.19, 0.26, 0.17)
+        _bm_box(bm_pat_pil, Mi, cx_vis + s_cr, -1.65, 19.31, 0.17, 0.24, 0.048)
+
+    # Doccioni zoomorfi alla base delle ghimberghe del pilastro (z = 17.52 m, ben visibili in foto!)
+    gargolla(f"Gargolla_Pil_Loggia_{tag}_Est", D, cx_vis + side * 0.62, -1.58, 17.52, side, 0.52, 0.078, PIETRA, pitch_deg=-10.0)
+    gargolla(f"Gargolla_Pil_Loggia_{tag}_Cen", D, cx_vis, -1.62, 17.48, side, 0.44, 0.072, PIETRA, pitch_deg=-12.0)
+
+    # 2) Marcapiani poligonali sagomati lungo il fusto alto (z = 20.88, 23.12, 24.10, 25.92, 26.52, Z_PIL_TOP)
+    for z_band in (20.88, 23.12, 24.10):
+        _bm_box(bm_w, Mi, cx_vis, -0.64, z_band, w_vis + 0.14, 1.98, 0.095)
+        _bm_box(bm_pat_pil, Mi, cx_vis, -0.65, z_band - 0.062, w_vis + 0.10, 1.95, 0.045)
+        for s_cr in (-0.59, -0.23, 0.0, 0.23, 0.59):
+            _bm_box(bm_w, Mi, cx_vis + s_cr, -1.64, z_band, 0.17, 0.22, 0.11)
+    # Piccoli mensoloni/colonnine pensili a metà fusto (z = 20.88..21.45 m, visibili in riferimento_cuspidi.jpg)
+    for s_col in (-0.23, 0.23):
+        _bm_box(bm_w, Mi, cx_vis + s_col, -1.635, 21.18, 0.085, 0.18, 0.52)
+        _bm_sfera(bm_p, Mi, cx_vis + s_col, -1.655, 21.46, 0.048, sx=0.9, sy=0.7, sz=0.7, u=8, v=6)
+
+    for z_band in (25.92, 26.52, Z_PIL_TOP):
         _bm_box(bm_w, Mi, cx, -0.64, z_band, W_PIL_C + 0.15, 1.96, 0.10)
         _bm_box(bm_pat_pil, Mi, cx, -0.65, z_band - 0.068, W_PIL_C + 0.11, 1.93, 0.048)
     _mesh_da_bmesh(f"Patina_Marcapiani_Pil_{tag}", G, bm_pat_pil, PATINA)
 
-    for z_gable, h_gable, has_lancet in ((22.98, 1.38, True), (27.06, 1.30, True)):
+    # Ghimberghe acute superiori: registro della trabeazione (z = 24.12 m, sopra
+    # la Galleria dei Profeti come in riferimento_cuspidi.jpg e riferimento_apice.jpg!)
+    # e registro sommitale sotto il tabernacolo (z = 27.06 m).
+    for z_gable, h_gable, cx_g, gw0 in (
+        (24.12, 1.34, cx_vis, 0.62),
+        (27.06, 1.30, cx, 0.60),
+    ):
         for s2 in (-1, 1):
-            gx0 = cx + s2 * 0.305
-            gw0 = 0.60
-            # Triplo ordine di archetti acuti concentrici incassati (come nella foto 3_left_pinnacle.jpg!)
-            if has_lancet:
-                for ord_k, (sp_k, rs_k, y_k, min_k) in enumerate((
-                    (gw0 * 0.88, h_gable * 0.64, -1.63, 0.030),
-                    (gw0 * 0.68, h_gable * 0.52, -1.60, 0.025),
-                    (gw0 * 0.48, h_gable * 0.40, -1.57, 0.020),
-                )):
-                    _bm_arco_acuto(bm_w if ord_k % 2 == 0 else bm_p, Mi, gx0, y_k, z_gable - 0.32, sp_k, rs_k, min_k, seg_u=14, seg_v=6)
+            gx0 = cx_g + s2 * (gw0 * 0.505)
+            for ord_k, (sp_k, rs_k, y_k, min_k) in enumerate((
+                (gw0 * 0.88, h_gable * 0.64, -1.63, 0.030),
+                (gw0 * 0.68, h_gable * 0.52, -1.60, 0.025),
+                (gw0 * 0.48, h_gable * 0.40, -1.57, 0.020),
+            )):
+                _bm_arco_acuto(bm_w if ord_k % 2 == 0 else bm_p, Mi, gx0, y_k, z_gable - 0.32, sp_k, rs_k, min_k, seg_u=14, seg_v=6)
             ang_g = math.atan2(h_gable, gw0 * 0.5)
             sl_g = math.hypot(gw0 * 0.5, h_gable) + 0.06
             for gs in (-1, 1):

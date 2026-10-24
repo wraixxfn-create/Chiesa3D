@@ -2,7 +2,7 @@
   "meta": {
     "opera": "Facciata Monumentale del Duomo di Siena — Cattedrale Metropolitana di Santa Maria Assunta",
     "autori_storici": "Giovanni Pisano (ordine inferiore, 1284-1297) — Giovanni di Cecco (ordine superiore, dal 1376) — Mosaici dell'apice 1878",
-    "versione": "3.0",
+    "versione": "3.1",
     "scala_finale": 3.0,
     "unita": "metri"
   },
@@ -17,13 +17,13 @@
     "raggio_oculo_interno": 2.85,
     "raggio_oculo_esterno": 3.95,
     "semilato_quadrato_oculo": 4.45,
-    "larghezza_pilastro_centrale": 1.24,
+    "larghezza_pilastro_centrale": 1.36,
     "colmo_pilastro_centrale": 28.42,
-    "interasse_pilastri_centrali": 5.0,
-    "interasse_settori_laterali": 8.05,
+    "interasse_pilastri_centrali": 5.20,
+    "interasse_settori_laterali": 8.01,
     "interasse_torri_esterne": 12.7,
-    "quota_cuspidi_laterali": 18.6,
-    "altezza_cuspidi_laterali": 3.9,
+    "quota_cuspidi_laterali": 18.77,
+    "altezza_cuspidi_laterali": 3.53,
     "larghezza_timpano_centrale": 8.8,
     "altezza_timpano_centrale": 8.12,
     "larghezza_mosaico_centrale": 7.18,
@@ -32,8 +32,8 @@
     "raggio_oculo_x": 2.88,
     "raggio_oculo_z": 2.88,
     "altezza_centro_oculo": 19.75,
-    "larghezza_cuspidi_mosaico": 3.85,
-    "altezza_cuspidi_mosaico": 3.58
+    "larghezza_cuspidi_mosaico": 4.02,
+    "altezza_cuspidi_mosaico": 3.53
   },
   "texture_reali": {
     "facciata": "riferimento_facciata.jpg",
@@ -145,25 +145,25 @@
     },
     "Mosaico_Sx_Mat": {
       "color": [
-        0.84,
-        0.7,
-        0.35
+        0.9,
+        0.78,
+        0.48
       ],
       "tex": "mosaico_sx",
-      "roughness": 0.52,
-      "metallic": 0.02,
-      "emission_strength": 0.0
+      "roughness": 0.36,
+      "metallic": 0.08,
+      "emission_strength": 0.06
     },
     "Mosaico_Dx_Mat": {
       "color": [
-        0.84,
-        0.7,
-        0.35
+        0.9,
+        0.78,
+        0.48
       ],
       "tex": "mosaico_dx",
-      "roughness": 0.52,
-      "metallic": 0.02,
-      "emission_strength": 0.0
+      "roughness": 0.36,
+      "metallic": 0.08,
+      "emission_strength": 0.06
     },
     "Mosaico_Oro": {
       "color": [
@@ -370,26 +370,26 @@
     },
     "Pietra_Cuspidi_Rilievi": {
       "color": [
-        0.81,
-        0.765,
-        0.685
+        0.83,
+        0.785,
+        0.705
       ],
       "tex": "pietra_statue",
-      "roughness": 0.52,
+      "roughness": 0.48,
       "bump": 0.22,
-      "ao_strength": 0.62,
+      "ao_strength": 0.52,
       "emission_strength": 0.0
     },
     "Marmo_Cuspidi_Chiaro": {
       "color": [
-        0.86,
-        0.825,
-        0.755
+        0.875,
+        0.84,
+        0.77
       ],
       "tex": "marmo_caldo",
-      "roughness": 0.48,
+      "roughness": 0.45,
       "bump": 0.16,
-      "ao_strength": 0.48,
+      "ao_strength": 0.4,
       "emission_strength": 0.0
     }
   },

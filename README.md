@@ -29,6 +29,40 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
 
+## Versione 3.1 — i due triangoli dei mosaici staccati dal corpo centrale
+
+Quarto passaggio sui **due triangoli laterali con i mosaici**, nato dalla
+segnalazione che nella v3.0 erano **staccati dalla parte centrale
+dell'edificio**: fra il frontone e il pilastro polistilo restava cielo.
+
+- **Triangoli attaccati alla muratura.** Il muro di spalla laterale
+  (`Corpo_Settore_Lat`) è più largo (5,70 m) e più alto, e arriva fino al
+  retro piatto; il frontone (`larghezza_cuspidi_mosaico` 4,02 m,
+  `altezza_cuspidi_mosaico` 3,53 m) siede sul suo interasse ±8,01 m.
+- **Pilastri polistili ricostruiti.** Il fusto visibile del pilastro centrale
+  va da |x| ≈ 4,7 m a 6,0 m, con costoloni bianchi scoperti, il registro di
+  ghimberghe e archetti acuti sotto la cuspide, marcapiani sagomati e il
+  cornicione poligonale che si salda allo spigolo interno del frontone.
+- **Edicola d'angolo della galleria dei Profeti** tra il fregio di quatrifogli e
+  il pilastro, come nella fotografia.
+- **Mosaici ricampionati** sui nuovi punti di riferimento misurati su
+  `riferimento_cuspidi.jpg` (filo interno del campo aureo). La Presentazione
+  conserva il velo bianco di Anna e le figure staccate; la Natività recupera
+  l'oro pieno. Colori delle vesti più saturi, meno ingiallimento dal gain sul blu.
+- **Materiali**: mosaici con roughness 0,36 e metallic 0,08; marmo delle
+  cuspidi più chiaro (`Marmo_Cuspidi_Chiaro`, AO 0,40).
+- `config_facciata.json` passa alla versione **3.1** con le nuove dimensioni.
+- Bugfix: lo script cercava le chiavi `x_pilastri_centrali`, `x_settori_laterali`
+  e `base_cuspidi_laterali`, che nel JSON non esistevano, quindi i valori
+  `interasse_*` e `quota_*` del file di configurazione venivano ignorati.
+  Ora lo script legge le chiavi del JSON, con fallback coerenti.
+
+**Limiti noti:** `anteprima_cuspidi.png` è stata rigenerata con
+`CHIESA_SOLO_CUSPIDI=1` (64 campioni). Le altre anteprime
+(`anteprima_facciata.png`, `anteprima_apice.png`, `anteprima_galleria.png`,
+`anteprima_rosone.png`) e i `confronto_*.png` non sono state rigenerate e
+riflettono ancora la v3.0: per allinearle eseguire `genera_facciata.py` completo.
+
 ## Versione 3.0 — i due triangoli dei mosaici, terzo passaggio
 
 Terzo intervento dedicato ai **due triangoli laterali con i mosaici**
