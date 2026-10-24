@@ -2,7 +2,7 @@
   "meta": {
     "opera": "Facciata Monumentale del Duomo di Siena — Cattedrale Metropolitana di Santa Maria Assunta",
     "autori_storici": "Giovanni Pisano (ordine inferiore, 1284-1297) — Giovanni di Cecco (ordine superiore, dal 1376) — Mosaici dell'apice 1878",
-    "versione": "2.9",
+    "versione": "3.0",
     "scala_finale": 3.0,
     "unita": "metri"
   },
@@ -150,9 +150,9 @@
         0.35
       ],
       "tex": "mosaico_sx",
-      "roughness": 0.4,
-      "metallic": 0.12,
-      "emission_strength": 0.18
+      "roughness": 0.52,
+      "metallic": 0.02,
+      "emission_strength": 0.0
     },
     "Mosaico_Dx_Mat": {
       "color": [
@@ -161,9 +161,9 @@
         0.35
       ],
       "tex": "mosaico_dx",
-      "roughness": 0.4,
-      "metallic": 0.12,
-      "emission_strength": 0.18
+      "roughness": 0.52,
+      "metallic": 0.02,
+      "emission_strength": 0.0
     },
     "Mosaico_Oro": {
       "color": [
@@ -377,8 +377,8 @@
       "tex": "pietra_statue",
       "roughness": 0.52,
       "bump": 0.22,
-      "ao_strength": 0.0,
-      "emission_strength": 0.05
+      "ao_strength": 0.62,
+      "emission_strength": 0.0
     },
     "Marmo_Cuspidi_Chiaro": {
       "color": [
@@ -389,8 +389,8 @@
       "tex": "marmo_caldo",
       "roughness": 0.48,
       "bump": 0.16,
-      "ao_strength": 0.0,
-      "emission_strength": 0.05
+      "ao_strength": 0.48,
+      "emission_strength": 0.0
     }
   },
   "camera": {

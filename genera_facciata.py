@@ -151,6 +151,30 @@ AGGIORNAMENTO v2.9 — I DUE FRONTONI DEI MOSAICI, SECONDO PASSAGGIO:
   7. `CHIESA_SOLO_CUSPIDI=1` per la prova rapida e inquadratura panoramica
      1800x660 calibrata sullo stesso taglio del riferimento.
 
+AGGIORNAMENTO v3.0 — I DUE TRIANGOLI DEI MOSAICI, TERZO PASSAGGIO:
+
+  1. Mosaici riletti con `_extract_mosaic_laterale_v30`: de-velatura della
+     Presentazione (il fondo aureo bruciato dal sole torna oro), contrasto
+     e saturazione veri da cartone musivo, albedo scurito per il sole
+     diretto di Cycles e grana da tessere incorporata nel colore.  Via
+     l'emissione che slavava entrambe le scene: ora la luce e' solo quella
+     del sole, come nella fotografia.
+  2. Gattoni rifatti come gigli senesi (`_bm_giglio_cuspide`): petalo
+     centrale alto, due petali laterali arcuati, sepali ricadenti e
+     bottone alla base — otto per falda, grandi come in fotografia.
+     Non piu' le piccole «colombe» bianche della v2.9.
+  3. Cornice con gole d'ombra vere (materiale di patina fra i fili),
+     banda a ovoli e dardi scolpita lungo gli spioventi e perlinatura
+     piu' grande e fitta sul campo aureo; i marmi delle cuspidi hanno
+     di nuovo AO e pointiness, quindi le modanature si leggono in
+     pieno sole invece di restare piatti bianchi.
+  4. Apice senza il dado a torretta: lastra bassa, capitello di foglie
+     e statue femminili piu' alte e snelle (1,52 m), mano al petto a
+     sinistra e mano alzata a destra, come le due figure della foto.
+  5. Base con fregio a ovoli e dardi a tutto tondo, fila di perle e
+     fascia di serpentino scuro sotto la cornice; via il grande
+     pannello rosa piatto sotto i frontoni.
+
 """
 
 import bpy
@@ -215,7 +239,7 @@ scene = bpy.context.scene
 scene.unit_settings.system = "METRIC"
 scene.unit_settings.scale_length = 1.0
 scene["titolo"] = "Duomo di Siena — solo facciata ovest"
-scene["nota"] = "Modello procedurale v2.9: frontoni laterali dei mosaici ricostruiti sul nuovo dettaglio frontale, con cornici a mitra, gattoni trilobati, texture 1536 px e coronamenti apicali integrati; retro piatto."
+scene["nota"] = "Modello procedurale v3.0: i due triangoli laterali dei mosaici con gattoni a giglio, cornici con gole d'ombra e ovoli, mosaici de-velati e saturi, apici con statue femminili su capitello di foglie; retro piatto."
 
 
 # -----------------------------------------------------------------------------
@@ -525,14 +549,16 @@ def _dist_punto_retta(px, py, a, b):
     return np.abs((px - ax) * nx + (py - ay) * ny)
 
 
-def _extract_mosaic_laterale_v29(name, topdown_rgb, p_bl, p_br, p_top,
+def _extract_mosaic_laterale_v30(name, topdown_rgb, p_bl, p_br, p_top,
                                   size=1536, riscalda_bianchi=False):
-    """Rettifica il mosaico laterale dal nuovo dettaglio fotografico frontale.
+    """Rettifica il mosaico laterale dal dettaglio fotografico frontale (v3.0).
 
-    I tre punti sono gia' sul filo interno del campo musivo: non serve quindi
-    inventare una cornice dorata sopra la fotografia.  La correzione colore e'
-    volutamente contenuta, senza stiramento per canale o bilanciamento sulla
-    mediana (cause delle bande e delle vesti falsate nella v2.8).
+    I tre punti sono sul filo interno del campo musivo.  Rispetto alla v2.9:
+    de-velatura del fondo aureo bruciato (la Presentazione a sinistra
+    tornava bianca e le figure scomparivano), saturazione e contrasto da
+    cartone musivo vero, albedo scurito quanto basta perche' il sole
+    diretto di Cycles (4,45) non lo sbiadisca una seconda volta, e grana
+    delle tessere incorporata nel colore oltre che nel bump.
     """
     v_lin = np.linspace(0.0, 1.0, size, dtype=np.float32)
     vv, uu = np.meshgrid(v_lin, v_lin, indexing="ij")
@@ -541,27 +567,63 @@ def _extract_mosaic_laterale_v29(name, topdown_rgb, p_bl, p_br, p_top,
     py = (1.0 - vv) * ((1.0 - s) * p_bl[1] + s * p_br[1]) + vv * p_top[1]
     sampled = _bilinear_sample(topdown_rgb, px, py)
 
-    # Nitidezza locale e saturazione leggere: la fotografia contiene gia' le
-    # vere tessere, per cui non vengono disegnati motivi sopra le figure.
-    acc = np.zeros_like(sampled)
+    # De-velatura: solleva i neri velati e riapre i bianchi bruciati,
+    # poi micro-contrasto a due scale (figure + tessere).
+    merged = np.clip((sampled - 0.035) / 0.93, 0.0, 1.0)
+    acc = np.zeros_like(merged)
     for dy in (-1, 0, 1):
         for dx in (-1, 0, 1):
-            acc += np.roll(np.roll(sampled, dy, axis=0), dx, axis=1)
+            acc += np.roll(np.roll(merged, dy, axis=0), dx, axis=1)
     acc /= 9.0
-    merged = np.clip(sampled * 1.38 - acc * 0.38, 0.0, 1.0)
-    lum = merged.mean(axis=2, keepdims=True)
-    merged = np.clip(lum + (merged - lum) * 1.13, 0.0, 1.0)
-    merged = np.clip((merged - 0.5) * 1.045 + 0.5, 0.0, 1.0)
+    merged = np.clip(merged * 1.62 - acc * 0.62, 0.0, 1.0)
+    merged = np.clip((merged - 0.5) * 1.13 + 0.5, 0.0, 1.0)
 
-    # Albedo fotometrico per il sole diretto di Cycles.  A sinistra i bianchi
-    # del fondo sono bruciati dal sole: una dominante ambrata molto lieve li
-    # ricondue all'oro chiaro senza coprire i particolari delle figure.
+    # Il fondo aureo poco saturo e luminoso torna oro musivo (caldo, non
+    # bianco): si spingono verso l'ambra solo i pixel chiari quasi neutri,
+    # le vesti colorate e le carnagioni non vengono toccate.
+    lum0 = merged.mean(axis=2, keepdims=True)
+    sat0 = (merged.max(axis=2, keepdims=True) - merged.min(axis=2, keepdims=True))
+    oro_mask = np.clip((lum0 - 0.52) / 0.30, 0.0, 1.0) * np.clip((0.30 - sat0) / 0.22, 0.0, 1.0)
     if riscalda_bianchi:
-        merged = np.clip(merged, 0.0, 1.0) ** 1.035
-        gain = np.array((0.980, 0.940, 0.820), dtype=np.float32)
+        # Presentazione: in foto il fondo e' bianco-oro abbagliante; una
+        # spinta ambrata debole basta, altrimenti le figure annegano
+        # nel giallo e il sacerdote scuro perde il suo nero-blu.
+        oro_col = np.array((1.00, 0.90, 0.66), dtype=np.float32)[None, None, :] \
+            * (0.78 + 0.30 * lum0)
+        merged = merged * (1.0 - oro_mask * 0.34) + oro_col * (oro_mask * 0.34)
     else:
-        merged = np.clip(merged, 0.0, 1.0) ** 1.000
-        gain = np.array((0.980, 0.910, 0.750), dtype=np.float32)
+        # Nativita': fondo d'oro pieno e saturo.
+        oro_col = np.array((0.99, 0.80, 0.42), dtype=np.float32)[None, None, :] \
+            * (0.72 + 0.38 * lum0)
+        merged = merged * (1.0 - oro_mask * 0.62) + oro_col * (oro_mask * 0.62)
+
+    # Saturazione e gamma da cartone musivo: blu, rossi e verdi delle vesti
+    # devono tenere testa all'oro anche dopo Filmic.
+    lum = merged.mean(axis=2, keepdims=True)
+    merged = np.clip(lum + (merged - lum) * (1.24 if riscalda_bianchi else 1.34), 0.0, 1.0)
+    merged = np.clip(merged, 0.0, 1.0) ** 1.12
+
+    # Grana delle tessere nel colore: celle sfalsate con fughe appena piu'
+    # scure e tono proprio per tessera (la stessa griglia del bump).
+    rng = np.random.default_rng(300 if riscalda_bianchi else 301)
+    cells = 176
+    yy, xx = np.meshgrid(np.arange(size), np.arange(size), indexing="ij")
+    row = np.floor(yy * cells / size).astype(np.int32)
+    shift = (row % 2) * 0.5
+    fx = (xx * cells / size + shift) % 1.0
+    fy = (yy * cells / size) % 1.0
+    bordo = np.minimum(np.minimum(fx, 1.0 - fx), np.minimum(fy, 1.0 - fy))
+    fuga = np.clip(bordo / 0.10, 0.0, 1.0)[:, :, None]
+    cell_x = np.floor(xx * cells / size + shift).astype(np.int32)
+    tono = rng.uniform(-0.055, 0.055, (cells + 2, cells + 2)).astype(np.float32)
+    merged *= (0.90 + 0.10 * fuga) * (1.0 + tono[row % (cells + 2), cell_x % (cells + 2)][:, :, None])
+
+    # Albedo fotometrico per il sole diretto: senza questo scurimento il
+    # render tornava slavato anche con la fotografia perfetta (v2.9).
+    if riscalda_bianchi:
+        gain = np.array((0.700, 0.640, 0.500), dtype=np.float32)
+    else:
+        gain = np.array((0.720, 0.655, 0.505), dtype=np.float32)
     merged = np.clip(merged * gain[None, None, :], 0.0, 1.0)
     return _save_packed_image(name, merged)
 
@@ -803,12 +865,12 @@ def build_all_textures():
         # Fallback dalla fotografia d'insieme soltanto se manca il dettaglio
         # v2.9 delle due cuspidi.
         if not os.path.exists(CUSPIDI_REF_PATH):
-            tex["mosaico_sx"] = _extract_mosaic_laterale_v29(
+            tex["mosaico_sx"] = _extract_mosaic_laterale_v30(
                 "Tex_Mosaico_Presentazione", topdown,
                 (737.0 * sx, 1150.0 * sy), (944.0 * sx, 1146.0 * sy),
                 (829.0 * sx, 1012.0 * sy), size=1024, riscalda_bianchi=True,
             )
-            tex["mosaico_dx"] = _extract_mosaic_laterale_v29(
+            tex["mosaico_dx"] = _extract_mosaic_laterale_v30(
                 "Tex_Mosaico_Nativita", topdown,
                 (1795.0 * sx, 1121.0 * sy), (1993.0 * sx, 1117.0 * sy),
                 (1882.0 * sx, 973.0 * sy), size=1024,
@@ -834,12 +896,12 @@ def build_all_textures():
         cusp_top = cbuf.reshape((ch, cw, 4))[::-1, :, :3].copy()
         csx, csy = cw / 3120.0, ch / 1146.0
         mos_size = int(CFG.get("texture_reali", {}).get("dimensione_mosaici_laterali_px", 1536))
-        tex["mosaico_sx"] = _extract_mosaic_laterale_v29(
+        tex["mosaico_sx"] = _extract_mosaic_laterale_v30(
             "Tex_Mosaico_Presentazione", cusp_top,
             (114.0 * csx, 908.0 * csy), (552.0 * csx, 908.0 * csy),
             (337.0 * csx, 500.0 * csy), size=mos_size, riscalda_bianchi=True,
         )
-        tex["mosaico_dx"] = _extract_mosaic_laterale_v29(
+        tex["mosaico_dx"] = _extract_mosaic_laterale_v30(
             "Tex_Mosaico_Nativita", cusp_top,
             (2565.0 * csx, 887.0 * csy), (2984.0 * csx, 888.0 * csy),
             (2765.0 * csx, 491.0 * csy), size=mos_size,
@@ -961,8 +1023,8 @@ def mat_from_cfg(name, cfg):
         tess_node.image = TEXTURES["mosaico_tessere"]
         micro = nodes.new("ShaderNodeBump")
         micro.location = (-30, -120)
-        micro.inputs["Strength"].default_value = 0.18
-        micro.inputs["Distance"].default_value = 0.006
+        micro.inputs["Strength"].default_value = 0.42
+        micro.inputs["Distance"].default_value = 0.014
         links.new(tess_node.outputs["Color"], micro.inputs["Height"])
         links.new(micro.outputs["Normal"], bsdf.inputs["Normal"])
 
@@ -5741,11 +5803,11 @@ _mesh_da_bmesh("Abaco_Pedestallo_Angelo", G, bm_cap_w, BIANCO)
 statua_angelo_apicale("Angelo_Apicale", ST, 0.0, Y_AP, Z_APICE + 0.80, h=1.96)
 
 # =============================================================================
-# 6.6 — LE DUE CUSPIDI LATERALI DEI MOSAICI (v2.9)
-#    Presentazione al tempio (sinistra) e Natività (destra).  Il nuovo
-#    dettaglio frontale corregge la v2.8: H/W ~ 0,93, otto modanature a
-#    mitra, gattoni trilobati, base a ovoli e apice con volute.  Le texture
-#    1536 px sono lette sul filo interno dei due mosaici reali.
+# 6.6 — LE DUE CUSPIDI LATERALI DEI MOSAICI (v3.0)
+#    Presentazione al tempio (sinistra) e Natività (destra).  v3.0:
+#    gattoni a giglio, cornice a mitra con gole d'ombra e banda a ovoli,
+#    mosaici 1536 px de-velati, base a ovoli con fascia di serpentino e
+#    statue apicali femminili su capitello di foglie.
 # =============================================================================
 def _apertura_cuspide(W, H, o):
     """Apertura interna di una cuspide arretrata di `o` (distanza
@@ -5768,64 +5830,73 @@ def _apertura_cuspide(W, H, o):
 # mosaico): frazioni dello spessore totale O_CUSPIDE_LAT, y del fronte,
 # profondità e materiale.  Lo spessore è calibrato sulla fotografia: il
 # triangolo dorato occupa circa l'80% della larghezza esterna.
-O_CUSPIDE_LAT = 0.375
+O_CUSPIDE_LAT = 0.345
 PROFILO_CUSPIDE_LAT = (
-    (0.000, 0.052, -1.410, 0.60, CUSPIDE_BIANCO),    # filo esterno sottile e luminoso
-    (0.052, 0.100, -1.372, 0.22, CUSPIDE_BIANCO),   # prima gola modanata
-    (0.100, 0.151, -1.350, 0.20, CUSPIDE_PIETRA),# canalino dei dentelli
-    (0.151, 0.213, -1.440, 0.62, CUSPIDE_BIANCO),    # toro esterno aggettante
-    (0.213, 0.248, -1.352, 0.18, CUSPIDE_PIETRA),    # gola stretta, mai nera
-    (0.248, 0.326, -1.405, 0.58, CUSPIDE_BIANCO),   # nastro del fregio a foglie e dardi
-    (0.326, 0.357, -1.435, 0.60, CUSPIDE_BIANCO),    # toro interno perlinato
-    (0.357, 0.375, -1.390, 0.56, CUSPIDE_BIANCO),   # battuta sul campo aureo
+    (0.000, 0.038, -1.415, 0.60, CUSPIDE_BIANCO),    # filo esterno sottile e luminoso
+    (0.038, 0.058, -1.368, 0.18, PATINA_ROS),        # gola d'ombra (v3.0)
+    (0.058, 0.104, -1.398, 0.34, CUSPIDE_BIANCO),    # listello sotto i gattoni
+    (0.104, 0.128, -1.362, 0.16, PATINA_ROS),        # canalino d'ombra
+    (0.128, 0.188, -1.445, 0.62, CUSPIDE_BIANCO),    # toro esterno aggettante
+    (0.188, 0.208, -1.358, 0.16, PATINA_ROS),        # gola stretta d'ombra
+    (0.208, 0.282, -1.412, 0.58, CUSPIDE_PIETRA),    # banda a ovoli e dardi
+    (0.282, 0.300, -1.366, 0.16, PATINA_ROS),        # filetto d'ombra
+    (0.300, 0.332, -1.440, 0.60, CUSPIDE_BIANCO),    # toro interno perlinato
+    (0.332, 0.345, -1.392, 0.56, CUSPIDE_BIANCO),    # battuta sul campo aureo
 )
 O_CUSPIDE_LAT = PROFILO_CUSPIDE_LAT[-1][1]
-O_DENT_CUSP_LAT = 0.126       # asse dei dentelli
-O_PERLE_CUSP_LAT = 0.343      # asse delle perline (accanto al campo aureo)
-O_FOGLIE_CUSP_LAT = 0.286     # asse del fregio fogliato
+O_DENT_CUSP_LAT = 0.158       # asse dei dentelli (sul toro esterno)
+O_PERLE_CUSP_LAT = 0.316      # asse delle perline (accanto al campo aureo)
+O_FOGLIE_CUSP_LAT = 0.245     # asse della banda a ovoli e dardi
 
 
 def _bm_gattone_cuspide(bm, base, u_dir, out_dir, size=0.12, piega=0.42):
-    """Gattone (crocket) gotico senese a foglia carnosa che si arriccia verso
-    l'esterno, appoggiato sul filo della cornice.
+    """Gattone (crocket) a giglio senese (v3.0), come quelli della foto.
 
-    A differenza dei "cilindri con sfera" delle versioni precedenti, qui la
-    foglia è una superficie lobata unica: la punta si piega in fuori grazie
-    alla curvatura progressiva del profilo, e una seconda fogliolina più
-    piccola alla base ne raddoppia il volume.
+    Nella fotografia i gattoni dei due frontoni non sono foglioline: sono
+    grandi fiori di giglio scolpiti, con petalo centrale alto e appuntito,
+    due petali laterali arcuati che ricadono in fuori, sepali bassi e un
+    bottone nodoso alla base.  `size` e' la larghezza complessiva del
+    fiore; il petalo centrale e' lungo circa 1,5 volte `size`.
     """
-    up = (u_dir * math.cos(0.20) + out_dir * math.sin(0.20)).normalized()
+    # Direzione del fiore: soprattutto in fuori dallo spiovente, inclinata
+    # verso la punta del frontone.
+    up = (out_dir * 0.80 + u_dir * 0.60).normalized()
     phi = math.atan2(up.x, up.z)
-    M = Matrix.Translation(base) @ Matrix.Rotation(phi, 4, "Y")
     profilo = ((0.00, 0.30), (0.15, 0.52), (0.30, 0.40), (0.46, 0.54),
                (0.62, 0.42), (0.78, 0.34), (0.91, 0.20), (1.00, 0.07))
-    ln = size * 1.18
-    _bm_foglia(bm, ln, size * 0.56, size * 0.34, M,
-               profilo=profilo, piega=piega, gonfia=1.36)
-    # perla terminale del ricciolo (la punta della foglia si piega in fuori)
-    tip = M @ Vector((piega * ln * 0.99, -size * 0.06, ln * 0.995))
-    _bm_sfera(bm, Matrix.Translation(tip), 0.0, 0.0, 0.0, size * 0.16,
-              sx=1.05, sy=0.85, sz=1.05, u=8, v=6)
-    # Due lobi laterali carnosi: la silhouette e' trilobata come il gattone
-    # senese, non una foglia appuntita su un piccolo gambo.
+    # Bottone nodoso alla base e corto gambo che lo stacca dalla cornice.
+    _bm_sfera(bm, Matrix.Translation(base), 0.0, 0.0, 0.0, size * 0.20,
+              sx=1.10, sy=0.80, sz=1.10, u=9, v=6)
+    base_f = base + up * size * 0.10
+    # Petalo centrale eretto, il piu' alto del giglio.
+    M = Matrix.Translation(base_f) @ Matrix.Rotation(phi, 4, "Y")
+    _bm_foglia(bm, size * 1.12, size * 0.74, size * 0.44, M,
+               profilo=profilo, piega=piega * 0.30, gonfia=1.45)
     for lato in (-1, 1):
-        M3 = (Matrix.Translation(base + up * size * 0.15 + out_dir * size * 0.025)
-              @ Matrix.Rotation(phi + lato * 0.62, 4, "Y"))
-        _bm_foglia(bm, size * 0.70, size * 0.34, size * 0.25, M3,
-                   profilo=profilo, piega=piega * 0.28 * lato, gonfia=1.32)
-    M2 = (Matrix.Translation(base + up * size * 0.06 + out_dir * size * 0.10)
-          @ Matrix.Rotation(phi + 0.40, 4, "Y"))
-    _bm_foglia(bm, size * 0.72, size * 0.34, size * 0.24, M2,
-               profilo=profilo, piega=piega * 0.9, gonfia=1.28)
+        # Petali laterali arcuati che si aprono e ricadono in fuori.
+        M3 = (Matrix.Translation(base_f + up * size * 0.08)
+              @ Matrix.Rotation(phi + lato * 0.92, 4, "Y"))
+        _bm_foglia(bm, size * 0.78, size * 0.50, size * 0.34, M3,
+                   profilo=profilo, piega=piega * 0.45, gonfia=1.38)
+        # Sepali bassi ricadenti contro la cornice.
+        M4 = (Matrix.Translation(base_f - up * size * 0.02)
+              @ Matrix.Rotation(phi + lato * 2.05, 4, "Y"))
+        _bm_foglia(bm, size * 0.45, size * 0.28, size * 0.20, M4,
+                   profilo=profilo, piega=-piega * 0.30 * lato, gonfia=1.22)
+    # Ricciolo dietro il petalo centrale: chiude il volume del fiore.
+    M2 = (Matrix.Translation(base_f + up * size * 0.05)
+          @ Matrix.Rotation(phi + 0.34, 4, "Y"))
+    _bm_foglia(bm, size * 0.62, size * 0.32, size * 0.24, M2,
+               profilo=profilo, piega=piega * 1.05, gonfia=1.32)
 
 
-def cuspide_laterale_mosaico_v29(tag, cx, side, z_base, w, h, mos_mat):
+def cuspide_laterale_mosaico_v30(tag, cx, side, z_base, w, h, mos_mat):
     """Frontone laterale del mosaico, riletto sul dettaglio fotografico frontale.
 
-    La v2.9 corregge insieme proporzioni, gerarchia delle modanature e
-    coronamento: il campo musivo occupa circa il 78% della larghezza esterna,
-    le cornici sono continue e luminose, i gattoni sono pochi ma carnosi e la
-    statua apicale poggia su un fiore/piedistallo integrato nell'apice.
+    Il campo musivo occupa circa l'80% della larghezza esterna, le
+    modanature hanno gole d'ombra vere fra un filo e l'altro, i gattoni
+    sono otto gigli senesi per falda e la statua apicale poggia su una
+    lastra bassa con capitello di foglie, come nella fotografia.
     """
     y_wall = -1.02
     y_mos = -1.325
@@ -5870,50 +5941,61 @@ def cuspide_laterale_mosaico_v29(tag, cx, side, z_base, w, h, mos_mat):
                     0.052, 0.100, 0.048, rot=Matrix.Rotation(tilt, 4, "Y"))
         _mesh_da_bmesh(f"Dentelli_CuspideLat_{tag}_{s}", D, bm_d, CUSPIDE_BIANCO)
 
-        # Perlinatura lapidea (non dorata) sul filo interno.
-        n_p = max(24, int(L_slope / 0.074))
+        # Perlinatura lapidea (non dorata) sul filo interno: perle piu'
+        # grandi e fitte della v2.9, si leggono anche da lontano.
+        n_p = max(24, int(L_slope / 0.082))
         punti = []
         for i in range(n_p):
             u = 0.014 + 0.972 * i / (n_p - 1)
             px, pz = punto_fascia(s, w, h, O_PERLE_CUSP_LAT, u, z_base)
-            punti.append((px, -1.468, pz))
-        fila_perle(f"Perle_CuspideLat_{tag}_{s}", D, punti, 0.0135, CUSPIDE_BIANCO)
+            punti.append((px, -1.472, pz))
+        fila_perle(f"Perle_CuspideLat_{tag}_{s}", D, punti, 0.0175, CUSPIDE_BIANCO)
 
-        # Nastro di foglie lanceolate e dardi: e' il fregio continuo che nella
-        # foto separa il toro esterno dalla perlinatura del campo aureo.
+        # Banda a ovoli e dardi (v3.0): e' l'ornato scolpito continuo che
+        # nella foto corre lungo tutto lo spiovente fra toro e perlinatura.
+        # Ovoli a guscio allungati lungo la falda, dardi appuntiti fra l'uno
+        # e l'altro, gusci d'ombra patinati dietro gli ovoli.
         bm_f = bmesh.new()
         bm_dart = bmesh.new()
-        n_f = max(22, int(L_slope / 0.125))
+        bm_ombra = bmesh.new()
+        n_f = max(22, int(L_slope / 0.115))
         d_slope = Vector((-s * w * 0.5, 0.0, h)).normalized()
         q_slope = d_slope.to_track_quat("Z", "Y").to_matrix().to_4x4()
         for i in range(n_f):
             u = 0.018 + 0.964 * i / (n_f - 1)
             px, pz = punto_fascia(s, w, h, O_FOGLIE_CUSP_LAT, u, z_base)
-            Mf = Matrix.Translation((px, -1.438, pz)) @ q_slope
-            _bm_foglia(bm_f, 0.118, 0.047, 0.025, Mf, gonfia=1.24)
+            Mo = Matrix.Translation((px, -1.452, pz)) @ q_slope
+            _bm_sfera(bm_f, Mo, 0.0, 0.0, 0.0, 0.030,
+                      sx=0.78, sy=0.62, sz=1.42, u=9, v=7)
+            _bm_sfera(bm_ombra, Matrix.Translation((px, -1.428, pz)) @ q_slope,
+                      0.0, 0.0, 0.0, 0.036, sx=0.95, sy=0.40, sz=1.55, u=8, v=6)
             if i < n_f - 1:
                 u2 = u + 0.482 / (n_f - 1)
                 xd, zd = punto_fascia(s, w, h, O_FOGLIE_CUSP_LAT, u2, z_base)
-                _bm_sfera(bm_dart, Matrix.Translation((xd, -1.449, zd)),
-                          0.0, 0.0, 0.0, 0.018, sx=0.72, sy=0.72, sz=1.30, u=7, v=5)
-        _mesh_da_bmesh(f"Foglie_Battuta_CuspLat_{tag}_{s}", D, bm_f, CUSPIDE_BIANCO)
+                Md = Matrix.Translation((xd, -1.455, zd)) @ q_slope
+                _bm_cono(bm_dart, Md, 0.0, 0.0, -0.030, 0.016, 0.002, 0.062, seg=7)
+                _bm_sfera(bm_dart, Md, 0.0, 0.0, 0.040, 0.013,
+                          sx=0.80, sy=0.70, sz=1.10, u=7, v=5)
+        _mesh_da_bmesh(f"Ovoli_Battuta_CuspLat_{tag}_{s}", D, bm_f, CUSPIDE_BIANCO)
         _mesh_da_bmesh(f"Dardi_Battuta_CuspLat_{tag}_{s}", D, bm_dart, CUSPIDE_PIETRA)
+        _mesh_da_bmesh(f"Gusci_Ovoli_CuspLat_{tag}_{s}", D, bm_ombra, CUSPIDE_PIETRA)
 
-        # Nove grandi gattoni fogliati per falda, senza il pesante gambo
-        # cilindrico e la patina nera della versione precedente.
+        # Otto gattoni a giglio per falda (v3.0), grandi come in fotografia:
+        # il petalo centrale misura circa 0,45 m e la silhouette a fiore si
+        # deve leggere gia' nell'inquadratura panoramica.
         bm_g = bmesh.new()
-        n_g = 9
+        n_g = 8
         u_g = Vector((-s * w * 0.5, 0.0, h)).normalized()
         out_g = Vector((u_g.z, 0.0, -u_g.x))
         if out_g.x * s < 0.0:
             out_g = -out_g
         out_g.normalize()
         for i in range(n_g):
-            u = 0.060 + 0.850 * i / (n_g - 1)
-            bx, bz = punto_fascia(s, w, h, 0.010, u, z_base)
+            u = 0.045 + 0.875 * i / (n_g - 1)
+            bx, bz = punto_fascia(s, w, h, 0.006, u, z_base)
             _bm_gattone_cuspide(
-                bm_g, Vector((bx, -1.445, bz)), u_g, out_g,
-                size=0.250 + 0.040 * (1.0 - u), piega=0.50,
+                bm_g, Vector((bx, -1.450, bz)), u_g, out_g,
+                size=0.270 - 0.022 * u, piega=0.50,
             )
         _mesh_da_bmesh(f"Gattoni_CuspideLat_{tag}_{s}", D, bm_g, CUSPIDE_BIANCO)
 
@@ -5922,10 +6004,14 @@ def cuspide_laterale_mosaico_v29(tag, cx, side, z_base, w, h, mos_mat):
 
     # Muratura di raccordo sotto il frontone; le vecchie quattro ghimberghe
     # duplicate sono eliminate: sotto la base resta la loggia reale.
+    # v3.0: niente piu' grande pannello rosa piatto (in foto sotto la base
+    # corre la fascia scura di serpentino e poi la muratura chiara rigata).
     box(f"Fondo_Sotto_CuspLat_{tag}", R, cx, -1.02,
         z_base - 1.16, w + 0.16, 0.30, 1.90, CUSPIDE_BIANCO)
     box(f"Fondo_Sotto_CuspLat_B_{tag}", R, cx, -1.06,
-        z_base - 0.68, w - 0.04, 0.24, 0.72, ROSA_C)
+        z_base - 0.86, w - 0.04, 0.24, 0.30, ROSA_C)
+    box(f"Fascia_Serpentino_SottoCusp_{tag}", D, cx, -1.24,
+        z_base - 0.475, w + 0.20, 0.30, 0.150, VERDE)
 
     # Base d'imposta: ovoli/foglie, perline e dentelli fra sottili fili di
     # cornice.  Tutti gli elementi sono allacciati alla soglia del mosaico.
@@ -5953,64 +6039,64 @@ def cuspide_laterale_mosaico_v29(tag, cx, side, z_base, w, h, mos_mat):
                 -1.474, z_base - 0.222) for i in range(n_bp)]
     fila_perle(f"Perle_Base_CuspLat_{tag}", D, punti_b, 0.014, CUSPIDE_BIANCO)
 
+    # Fregio di base a ovoli e dardi a tutto tondo (v3.0): nella foto e'
+    # l'elemento piu' leggibile della trabeazione sotto il mosaico.
     bm_base_f = bmesh.new()
-    n_bf = max(24, int((w + 0.12) / 0.120))
+    bm_base_d = bmesh.new()
+    n_bf = max(24, int((w + 0.12) / 0.115))
     for i in range(n_bf):
         xf = cx - (w + 0.12) * 0.5 + (i + 0.5) * ((w + 0.12) / n_bf)
-        Mf = Matrix.Translation((xf, -1.455, z_base - 0.178))
-        _bm_foglia(bm_base_f, 0.105, 0.048, 0.025, Mf, gonfia=1.18)
-    _mesh_da_bmesh(f"Ovoli_Foglie_Base_CuspLat_{tag}", D, bm_base_f, CUSPIDE_BIANCO)
+        _bm_sfera(bm_base_f, Matrix.Identity(4), xf, -1.462, z_base - 0.178,
+                  0.031, sx=0.80, sy=0.60, sz=1.30, u=9, v=7)
+        if i < n_bf - 1:
+            xd = xf + ((w + 0.12) / n_bf) * 0.5
+            _bm_cono(bm_base_d, Matrix.Identity(4), xd, -1.458, z_base - 0.208,
+                     0.015, 0.002, 0.058, rot=Matrix.Rotation(math.pi, 4, "X"), seg=7)
+    _mesh_da_bmesh(f"Ovoli_Base_CuspLat_{tag}", D, bm_base_f, CUSPIDE_BIANCO)
+    _mesh_da_bmesh(f"Dardi_Base_CuspLat_{tag}", D, bm_base_d, CUSPIDE_PIETRA)
 
-    # Apice: fiore fogliato e volute raccordano il piccolo dado alla punta.
-    # La statua non e' piu' una figurina su un alto parallelepipedo isolato.
+    # Apice (v3.0): niente piu' dado a torretta con specchiatura rosa.
+    # Nella foto la statua poggia i piedi su una lastra bassa, sotto la
+    # quale un capitello di foglie d'acanto abbraccia la punta del
+    # frontone: tutto il sostegno misura circa un quinto della statua.
     z_ap = z_base + h
     y_dado = -1.205
-    box(f"Dado_Cusp_{tag}_Radice", G, cx, y_dado, z_ap + 0.020,
-        0.38, 0.34, 0.050, CUSPIDE_BIANCO)
     bm_ap = bmesh.new()
     bm_ap_pat = bmesh.new()
     for s in (-1, 1):
         for j in range(3):
-            M = (Matrix.Translation((cx + s * (0.025 + j * 0.052),
-                                     y_dado - 0.205, z_ap + 0.018 + j * 0.030))
-                 @ Matrix.Rotation(s * (0.24 + j * 0.26), 4, "Y"))
-            _bm_foglia(bm_ap, 0.290 - j * 0.035, 0.105 - j * 0.010,
-                       0.047, M, gonfia=1.42)
+            M = (Matrix.Translation((cx + s * (0.020 + j * 0.048),
+                                     y_dado - 0.200, z_ap - 0.010 + j * 0.026))
+                 @ Matrix.Rotation(s * (0.22 + j * 0.24), 4, "Y"))
+            _bm_foglia(bm_ap, 0.205 - j * 0.024, 0.082 - j * 0.007,
+                       0.044, M, gonfia=1.42)
         _bm_gattone_cuspide(
-            bm_ap, Vector((cx + s * 0.085, y_dado - 0.185, z_ap + 0.015)),
+            bm_ap, Vector((cx + s * 0.080, y_dado - 0.180, z_ap - 0.005)),
             Vector((0.0, 0.0, 1.0)), Vector((float(s), 0.0, 0.10)).normalized(),
-            size=0.235, piega=0.54,
+            size=0.145, piega=0.54,
         )
-        torus(f"Voluta_Apice_Cusp_{tag}_{s}", G, cx + s * 0.120,
-              y_dado - 0.235, z_ap + 0.175, 0.052, 0.017, CUSPIDE_BIANCO)
-        _bm_sfera(bm_ap_pat, Matrix.Identity(4), cx + s * 0.120,
-                  y_dado - 0.218, z_ap + 0.175, 0.030,
+        _bm_sfera(bm_ap_pat, Matrix.Identity(4), cx + s * 0.105,
+                  y_dado - 0.205, z_ap + 0.055, 0.026,
                   sx=1.0, sy=0.45, sz=1.0, u=9, v=6)
-    _bm_sfera(bm_ap, Matrix.Identity(4), cx, y_dado - 0.205, z_ap + 0.295,
-              0.055, sx=0.90, sy=0.82, sz=1.25, u=10, v=7)
-    _mesh_da_bmesh(f"Fiore_Fogliato_Apice_Cusp_{tag}", G, bm_ap, CUSPIDE_BIANCO)
-    _mesh_da_bmesh(f"Occhi_Volute_Apice_Cusp_{tag}", G, bm_ap_pat, PATINA)
+    _bm_sfera(bm_ap, Matrix.Identity(4), cx, y_dado - 0.198, z_ap + 0.120,
+              0.050, sx=0.90, sy=0.82, sz=1.20, u=10, v=7)
+    _mesh_da_bmesh(f"Capitello_Foglie_Apice_Cusp_{tag}", G, bm_ap, CUSPIDE_BIANCO)
+    _mesh_da_bmesh(f"Occhi_Capitello_Apice_Cusp_{tag}", G, bm_ap_pat, PATINA)
 
-    # Dado basso e scanalato, con specchiatura rosa appena incassata.
-    box(f"Dado_Cusp_{tag}_Zoccolo", G, cx, y_dado, z_ap + 0.322,
-        0.42, 0.36, 0.050, CUSPIDE_BIANCO)
-    box(f"Dado_Cusp_{tag}_Corpo", G, cx, y_dado + 0.012, z_ap + 0.450,
-        0.32, 0.30, 0.250, CUSPIDE_PIETRA)
-    box(f"Dado_Cusp_{tag}_Specchio", D, cx, y_dado - 0.145, z_ap + 0.450,
-        0.205, 0.026, 0.170, ROSA_C)
-    for rx in (-0.125, 0.0, 0.125):
-        box(f"Dado_Cusp_{tag}_Costa_{rx:+.3f}", G, cx + rx, y_dado - 0.166,
-            z_ap + 0.450, 0.026, 0.034, 0.252, CUSPIDE_BIANCO)
-    box(f"Dado_Cusp_{tag}_Gola", G, cx, y_dado - 0.008, z_ap + 0.592,
-        0.40, 0.35, 0.045, CUSPIDE_BIANCO)
-    box(f"Dado_Cusp_{tag}_Cimasa", G, cx, y_dado, z_ap + 0.632,
-        0.46, 0.39, 0.045, CUSPIDE_BIANCO)
+    # Lastra d'appoggio bassa e cimasa appena modanata.
+    box(f"Lastra_Apice_Cusp_{tag}", G, cx, y_dado, z_ap + 0.148,
+        0.40, 0.34, 0.055, CUSPIDE_BIANCO)
+    box(f"Cimasa_Apice_Cusp_{tag}", G, cx, y_dado, z_ap + 0.196,
+        0.44, 0.37, 0.042, CUSPIDE_BIANCO)
 
+    # Statue apicali piu' alte e snelle (1,52 m): due figure femminili
+    # velate dal lungo panneggio verticale, mano al petto a sinistra e
+    # mano alzata in gesto di parola a destra, come nella fotografia.
     statua_gotica_v26(
-        f"Statua_Cuspide_{tag}", ST, cx, y_dado, z_ap + 0.660, 1.340,
-        spec={"gesto": "petto" if side < 0 else "libro", "scala_plinto": 0.82,
-              "barba": 0.0, "copricapo": "velo" if side < 0 else "capelli",
-              "yaw": -0.08 * side, "nod": 0.035, "seed": 4 if side < 0 else 9},
+        f"Statua_Cuspide_{tag}", ST, cx, y_dado, z_ap + 0.218, 1.520,
+        spec={"gesto": "petto" if side < 0 else "parla", "scala_plinto": 0.62,
+              "barba": 0.0, "copricapo": "velo",
+              "yaw": -0.08 * side, "nod": 0.030, "seed": 4 if side < 0 else 9},
     )
 
 
@@ -6053,12 +6139,12 @@ for side in (-1, 1):
     for dx_s in (-1.45, 0.95):
         statue(f"Statua_Loggia_{tag}_{dx_s:+.2f}", ST, cx + side * dx_s, -1.68, Z_GALLERIA + 0.18, 1.34, PIETRA)
 
-    # Trabeazione e cuspide laterale v2.9: H/W = 0,93 come nel nuovo
-    # dettaglio frontale; nella v2.8 il timpano era troppo basso e largo.
+    # Trabeazione e cuspide laterale: H/W = 0,93 come nel dettaglio
+    # frontale; la v3.0 rifa' gattoni, cornice, mosaici, base e apice.
     box(f"Trabeazione_Cuspide_{tag}", R, cx, -1.02, Z_CUSP_LAT, w_loggia + 0.15, 0.62, 0.38, BIANCO2)
     box(f"Trabeazione_Cuspide_Toro_{tag}", D, cx, -1.36, Z_CUSP_LAT + 0.16,
         w_loggia + 0.22, 0.14, 0.055, BIANCO)
-    cuspide_laterale_mosaico_v29(
+    cuspide_laterale_mosaico_v30(
         tag, cx, side,
         z_base=Z_CUSP_LAT + 0.30,
         w=DIM.get("larghezza_cuspidi_mosaico", 3.85),
@@ -6363,7 +6449,7 @@ if "gltf" in EXPORT.get("formats", []) and not os.environ.get("CHIESA_NO_GLB"):
     except Exception as e:
         print(f"Export GLB non riuscito: {e}")
 
-print("Generazione v2.9 completata!")
+print("Generazione v3.0 completata!")
 sys.stdout.flush()
 sys.stderr.flush()
 if "bpy" in sys.modules and not bpy.app.binary_path:
