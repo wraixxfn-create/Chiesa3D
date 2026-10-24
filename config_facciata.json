@@ -2,7 +2,7 @@
   "meta": {
     "opera": "Facciata Monumentale del Duomo di Siena — Cattedrale Metropolitana di Santa Maria Assunta",
     "autori_storici": "Giovanni Pisano (ordine inferiore, 1284-1297) — Giovanni di Cecco (ordine superiore, dal 1376) — Mosaici dell'apice 1878",
-    "versione": "2.8",
+    "versione": "2.9",
     "scala_finale": 3.0,
     "unita": "metri"
   },
@@ -31,13 +31,17 @@
     "larghezza_trabeazione_timpano": 8.8,
     "raggio_oculo_x": 2.88,
     "raggio_oculo_z": 2.88,
-    "altezza_centro_oculo": 19.75
+    "altezza_centro_oculo": 19.75,
+    "larghezza_cuspidi_mosaico": 3.85,
+    "altezza_cuspidi_mosaico": 3.58
   },
   "texture_reali": {
     "facciata": "riferimento_facciata.jpg",
     "apice": "riferimento_apice.jpg",
     "dimensione_mosaico_px": 1536,
-    "vetrata": "riferimento_vetrata.jpg"
+    "vetrata": "riferimento_vetrata.jpg",
+    "cuspidi": "riferimento_cuspidi.jpg",
+    "dimensione_mosaici_laterali_px": 1536
   },
   "materiali": {
     "Marmo_Bianco": {
@@ -146,9 +150,9 @@
         0.35
       ],
       "tex": "mosaico_sx",
-      "roughness": 0.32,
-      "metallic": 0.22,
-      "emission_strength": 0.05
+      "roughness": 0.4,
+      "metallic": 0.12,
+      "emission_strength": 0.18
     },
     "Mosaico_Dx_Mat": {
       "color": [
@@ -157,9 +161,9 @@
         0.35
       ],
       "tex": "mosaico_dx",
-      "roughness": 0.32,
-      "metallic": 0.22,
-      "emission_strength": 0.05
+      "roughness": 0.4,
+      "metallic": 0.12,
+      "emission_strength": 0.18
     },
     "Mosaico_Oro": {
       "color": [
@@ -247,13 +251,13 @@
       "tex": "oculo_vetro",
       "roughness": 0.27,
       "metallic": 0.04,
-      "bump": 0.10,
+      "bump": 0.1,
       "emission_strength": 0.75
     },
     "Ferro_Griglia": {
       "color": [
-        0.070,
-        0.080,
+        0.07,
+        0.08,
         0.078
       ],
       "roughness": 0.48,
@@ -268,7 +272,7 @@
       "tex": "pietra_statue",
       "roughness": 0.56,
       "bump": 0.22,
-      "ao_strength": 0.50
+      "ao_strength": 0.5
     },
     "Patina_Rosone": {
       "color": [
@@ -363,6 +367,30 @@
       ],
       "roughness": 0.32,
       "metallic": 0.55
+    },
+    "Pietra_Cuspidi_Rilievi": {
+      "color": [
+        0.81,
+        0.765,
+        0.685
+      ],
+      "tex": "pietra_statue",
+      "roughness": 0.52,
+      "bump": 0.22,
+      "ao_strength": 0.0,
+      "emission_strength": 0.05
+    },
+    "Marmo_Cuspidi_Chiaro": {
+      "color": [
+        0.86,
+        0.825,
+        0.755
+      ],
+      "tex": "marmo_caldo",
+      "roughness": 0.48,
+      "bump": 0.16,
+      "ao_strength": 0.0,
+      "emission_strength": 0.05
     }
   },
   "camera": {
