@@ -29,6 +29,44 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
 
+## Versione 3.0 — i due triangoli dei mosaici, terzo passaggio
+
+Terzo intervento dedicato ai **due triangoli laterali con i mosaici**
+(Presentazione a sinistra, Natività a destra), calibrato sul confronto
+diretto fra `confronto_cuspidi.png` v2.9 e la fotografia: nella v2.9 i
+mosaici uscivano slavati, i gattoni leggevano come piccole colombe
+bianche, la cornice era un nastro piatto e le statue apicali poggiavano
+su un dado a torretta che in foto non esiste.
+
+- **Mosaici de-velati e saturi.** Nuova estrazione
+  `_extract_mosaic_laterale_v30`: il fondo della Presentazione, bruciato
+  dal sole nella foto, torna bianco-oro senza annegare le figure (il
+  sacerdote scuro riacquista il suo nero-blu); la Natività ritrova l'oro
+  pieno. Saturazione da cartone musivo (1,24–1,34), albedo scurito per
+  il sole diretto di Cycles, grana delle tessere anche nel colore e
+  bump delle fughe più profondo. Via l'emissione (0,18) che slavava
+  entrambe le scene e il metallic che le spegneva.
+- **Gattoni a giglio senese.** `_bm_gattone_cuspide` è ora un fiore di
+  giglio scolpito — petalo centrale carnoso, due petali laterali
+  arcuati, sepali ricadenti e bottone alla base — in otto esemplari per
+  falda, larghi circa 0,27 m come in fotografia.
+- **Cornice con ombre vere.** Dieci modanature a mitra con gole di
+  patina fra i fili, banda a **ovoli e dardi** scolpita lungo gli
+  spioventi (gusci, ovoli a tutto tondo e dardi appuntiti) e
+  perlinatura più grande sul campo aureo. I marmi delle cuspidi
+  riacquistano AO e pointiness (`ao_strength` 0,48–0,62, niente
+  emissione): le modanature si leggono anche in pieno sole.
+- **Apice come in foto.** Eliminato il dado a torretta con specchiatura
+  rosa: lastra bassa (0,15 m in tutto), capitello di foglie d'acanto e
+  **statue femminili velate di 1,52 m**, mano al petto a sinistra e
+  mano alzata a destra.
+- **Base completata.** Fregio a ovoli e dardi a tutto tondo, perle e
+  dentelli, e sotto la cornice la **fascia scura di serpentino** della
+  fotografia; il grande pannello rosa piatto sotto i frontoni è
+  ridotto a una sottile lastra chiara.
+- `confronto_cuspidi.png` rigenerato (fotografia / v3.0); per le prove
+  rapide resta `CHIESA_SOLO_CUSPIDI=1`.
+
 ## Versione 2.9 — i due frontoni dei mosaici riletti sul nuovo dettaglio
 
 Secondo intervento dedicato ai **due triangoli laterali con i mosaici**, questa
