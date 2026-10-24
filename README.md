@@ -6,12 +6,14 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 | File | Descrizione |
 |---|---|
-| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire, con rosone e sculture v2.7 e materiali PBR a texture incorporate |
+| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire, con rosone, sculture e cuspidi dei mosaici v2.8 e materiali PBR a texture incorporate |
 | `Facciata_Duomo_Siena.glb` | Esportazione glTF 2.0 per visualizzatori web / game engine |
 | `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 48 campioni, 900×1050) |
 | `anteprima_apice.png` | Render ravvicinato della cuspide centrale e dei pinnacoli (Cycles CPU, 48 campioni, 900×1022) |
 | `anteprima_rosone.png` | Il rosone e tutte le statue che lo circondano, inquadrati come nella fotografia di dettaglio (Cycles CPU, 48 campioni, 1453×1582) |
 | `confronto_rosone.png` | Confronto fotografia / versione 2.6 / versione 2.7 del rosone, della vetrata e delle sculture |
+| `anteprima_cuspidi.png` | Il taglio della fotografia d'insieme con il rosone al centro e le due cuspidi dei mosaici ai lati (Cycles CPU, 1600×700) |
+| `confronto_cuspidi.png` | Confronto fotografia / versione 2.8 delle due cuspidi: presentazione a sinistra, natività a destra |
 | `anteprima_galleria.png` | Dettaglio panoramico v2.5 sul taglio della fotografia: fregio di cherubini, trabeazione a scacchiera, 15 edicole con profeti in altorilievo, pennacchi e sommità del rosone (Cycles CPU, 1600×520) |
 | `confronto_galleria.png` | Confronto fotografia di riferimento / versione 2.4 / versione 2.5 della galleria dei Profeti |
 | `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprime e GLB da zero |
@@ -25,6 +27,44 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
+
+## Versione 2.8 — le due cuspidi dei mosaici (Presentazione e Natività)
+
+Intervento dedicato ai **due timpani laterali che affiancano il rosone**, quelli
+con il mosaico su fondo aureo: nella v2.7 erano triangoli troppo acuti, con una
+cornice fatta di due scatole ruotate e un mosaico da 256 px che a distanza
+leggeva come una macchia slavata.
+
+- **Proporzioni misurate sulla fotografia.** I due timpani non sono equilateri
+  né acuti: sono **larghi e bassi** (H/W ≈ 0,68, apice a ~61°), centrati sui
+  settori di ±8,05 m e appoggiati sul cornicione della loggia, con l'apice che
+  resta libero fra i due pilastri polistili.
+- **Cornice modanata a mitra.** Via le due scatole ruotate che si incrociavano
+  sull'apice lasciando un vuoto nero: la cuspide ha ora sei modanature continue
+  tagliate a mitra sull'asse — filo esterno in pieno sole, canalino dei
+  dentelli, toro con perline, gola, secondo toro dentellato e battuta d'ombra
+  sul campo aureo — ciascuna con il proprio filo frontale e la propria
+  profondità.
+- **Gattoni rampanti veri** (`_bm_gattone_cuspide`): sedici per falda, sono
+  foglie carnose lobate che si arricciano verso l'esterno con perla terminale
+  e seconda fogliolina alla base, rastremate verso la punta; prima erano
+  cilindri con una sfera in cima.
+- **Mosaici ad alta risoluzione.** Texture da **1024 px** (prima 256) lette
+  quasi per intero dal triangolo reale, con i bordi lapidei sostituiti da
+  tessere d'oro, contrasto e saturazione riportati e calibrazione fotometrica
+  ambrata: sotto il sole diretto l'oro resta oro e le figure conservano i rossi,
+  i blu e i verdi dei cartoni ottocenteschi.
+- **Campo aureo arretrato di 0,17 m** rispetto alla cornice: il risalto delle
+  modanature nasce dalla profondità e il bordo del mosaico non scompare più
+  dietro la ghiera (nella v2.7 il mosaico sporgeva e la cornice interna
+  spariva).
+- **Base e apice ridisegnati.** Base d'imposta a tre fili sottili con dentelli
+  e perline a sbalzo; dado apicale con gola fogliata e statua a figura intera
+  di 0,33 h (`statua_gotica_v26`), al posto della figurina di 1,25 m su un
+  piedistallo troppo pesante. Nessun pinnacolo sull'apice, come in fotografia.
+- **Nuova inquadratura `anteprima_cuspidi.png`** (1600×700) che riprende
+  esattamente il taglio della fotografia d'insieme: rosone al centro, i due
+  timpani ai lati, e `confronto_cuspidi.png` con foto e modello affiancati.
 
 ## Versione 2.7 — vetrata e sculture del rosone, secondo passaggio profondo
 
