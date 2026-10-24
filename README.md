@@ -6,14 +6,14 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 | File | Descrizione |
 |---|---|
-| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2 pronto da aprire, con rosone, sculture e cuspidi dei mosaici v2.8 e materiali PBR a texture incorporate |
+| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2+ pronto da aprire, con rosone, sculture e frontoni dei mosaici v2.9 e materiali PBR a texture incorporate |
 | `Facciata_Duomo_Siena.glb` | Esportazione glTF 2.0 per visualizzatori web / game engine |
-| `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 48 campioni, 900×1050) |
+| `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 64 campioni, 900×1050) |
 | `anteprima_apice.png` | Render ravvicinato della cuspide centrale e dei pinnacoli (Cycles CPU, 48 campioni, 900×1022) |
 | `anteprima_rosone.png` | Il rosone e tutte le statue che lo circondano, inquadrati come nella fotografia di dettaglio (Cycles CPU, 48 campioni, 1453×1582) |
 | `confronto_rosone.png` | Confronto fotografia / versione 2.6 / versione 2.7 del rosone, della vetrata e delle sculture |
-| `anteprima_cuspidi.png` | Il taglio della fotografia d'insieme con il rosone al centro e le due cuspidi dei mosaici ai lati (Cycles CPU, 1600×700) |
-| `confronto_cuspidi.png` | Confronto fotografia / versione 2.8 delle due cuspidi: presentazione a sinistra, natività a destra |
+| `anteprima_cuspidi.png` | Il rosone al centro e i due frontoni dei mosaici ai lati, nello stesso taglio panoramico del nuovo riferimento (Cycles CPU, 64 campioni, 1800×660) |
+| `confronto_cuspidi.png` | Confronto fotografia / versione 2.9 dei due frontoni: Presentazione a sinistra, Natività a destra |
 | `anteprima_galleria.png` | Dettaglio panoramico v2.5 sul taglio della fotografia: fregio di cherubini, trabeazione a scacchiera, 15 edicole con profeti in altorilievo, pennacchi e sommità del rosone (Cycles CPU, 1600×520) |
 | `confronto_galleria.png` | Confronto fotografia di riferimento / versione 2.4 / versione 2.5 della galleria dei Profeti |
 | `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprime e GLB da zero |
@@ -22,11 +22,44 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 | `riferimento_apice.jpg` | Fotografia ravvicinata ad alta risoluzione (2176×2472) usata per calibrare l'intera zona superiore centrale |
 | `riferimento_galleria.jpg` | Fotografia di dettaglio (1866×619) della galleria dei Profeti e dei pennacchi del rosone, riferimento della versione 2.3 |
 | `riferimento_vetrata.jpg` | Fotografia di dettaglio (1453×1582) del rosone, delle nicchie laterali e dei pennacchi, riferimento della versione 2.6 |
+| `riferimento_cuspidi.jpg` | Nuovo dettaglio frontale (3120×1146) dei due frontoni con la Presentazione e la Natività, riferimento della versione 2.9 |
 
 ## Dimensioni
 
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
+
+## Versione 2.9 — i due frontoni dei mosaici riletti sul nuovo dettaglio
+
+Secondo intervento dedicato ai **due triangoli laterali con i mosaici**, questa
+volta calibrato sul riferimento frontale `riferimento_cuspidi.jpg` (3120×1146).
+La v2.9 sostituisce proporzioni, texture e apparato decorativo della v2.8.
+
+- **Proporzioni corrette.** Il rapporto altezza/larghezza è ora circa **0,93**:
+  i frontoni non sono più schiacciati. Il campo musivo occupa circa il 78%
+  della larghezza esterna e il corpo nascosto è stato assottigliato per
+  eliminare il grande fianco grigio visibile in prospettiva.
+- **Mosaici puliti a 1536 px.** Presentazione e Natività sono campionate sul
+  filo interno corretto del nuovo ritaglio. È eliminata la banda bianca del
+  mosaico destro; niente più bilanciamento sulla mediana o bordi dorati
+  disegnati sopra le figure. Un micro-rilievo separato suggerisce le fughe
+  fra le tessere senza coprire il dettaglio fotografico.
+- **Otto modanature continue a mitra.** Fili esterni, gole, dentelli, tori,
+  perlinatura lapidea e nastro a foglie/dardi hanno profondità coordinate.
+  I materiali dedicati `Marmo_Cuspidi_Chiaro` e `Pietra_Cuspidi_Rilievi`
+  mantengono le ombre sottili e leggibili invece di creare fasce nere.
+- **Gattoni trilobati.** Nove elementi carnosi per falda, con lobo centrale,
+  due lobi laterali e ricciolo, sostituiscono le piccole spine e i gambi
+  cilindrici. La dimensione digrada verso l'apice.
+- **Base completata.** Ovoli/foglie, dentelli e perline collegano la soglia
+  del mosaico al cornicione. Eliminate le quattro ghimberghe duplicate che
+  formavano una fila di “V” non presente nella fotografia.
+- **Apice integrato.** Fiore fogliato, volute, dado basso scanalato con
+  specchiatura rosa e statue a figura intera con plinto ridotto; la statua
+  sinistra ha una posa raccolta al petto, quella destra regge il libro.
+- **Nuove anteprime.** `anteprima_cuspidi.png` è ora 1800×660 e segue il taglio
+  del riferimento; `confronto_cuspidi.png` affianca foto e modello dei soli
+  due frontoni. Per le prove: `CHIESA_SOLO_CUSPIDI=1`.
 
 ## Versione 2.8 — le due cuspidi dei mosaici (Presentazione e Natività)
 
@@ -445,6 +478,8 @@ toccare `config_facciata.json`:
 CHIESA_SAMPLES=16 CHIESA_RES_X=450 CHIESA_RES_Y=600 CHIESA_NO_GLB=1 python genera_facciata.py
 CHIESA_NO_RENDER=1 python genera_facciata.py       # solo .blend, senza render
 CHIESA_SOLO_ROSone=1 python genera_facciata.py     # solo la vista del rosone
+CHIESA_SOLO_CUSPIDI=1 python genera_facciata.py    # solo i frontoni dei mosaici
+CHIESA_SALTA_DETTAGLI_CENTRALI=1 python genera_facciata.py  # facciata + cuspidi
 ```
 
 ## Rigenerare il modello
@@ -461,4 +496,4 @@ oppure con il modulo Python `bpy` (`pip install bpy==4.2.0`):
 python genera_facciata.py
 ```
 
-Lo script sovrascrive `Facciata_Duomo_Siena.blend`, `anteprima_facciata.png`, `anteprima_apice.png`, `anteprima_galleria.png`, `anteprima_rosone.png` e `Facciata_Duomo_Siena.glb`.
+Lo script sovrascrive `Facciata_Duomo_Siena.blend`, `anteprima_facciata.png`, `anteprima_apice.png`, `anteprima_galleria.png`, `anteprima_rosone.png`, `anteprima_cuspidi.png` e, se abilitato, `Facciata_Duomo_Siena.glb`.
