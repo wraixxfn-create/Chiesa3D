@@ -107,6 +107,32 @@ AGGIORNAMENTO v2.7 — VETRATA E SCULTURE DEL ROSONE:
   6. Redentore riproporzionato e raccolto nella posa della fotografia;
      inquadratura allargata a 1453x1582 per comprendere tutte le sculture.
 
+AGGIORNAMENTO v2.8 — LE DUE CUSPIDI DEI MOSAICI (Presentazione e Natività):
+
+  1. Proporzioni vere: i due timpani laterali sono larghi e bassi (H/W ~ 0,68,
+     non 1,05), centrati sui settori (-8,05 m / +8,05 m) e appoggiati sul
+     cornicione della loggia.  Nella v2.7 erano triangoli troppo acuti, con
+     l'apice che si perdeva dietro ai pilastri.
+  2. Cornice modanata a mitra al posto di due scatole ruotate: filo esterno
+     investito dal sole, canalino dei dentelli, toro con perline, gola,
+     secondo toro dentellato e battuta sul campo aureo, tutti con y e
+     profondita' coerenti.  Niente piu' "X" di scatole sull'apice.
+  3. Gattoni rampanti veri (`_bm_gattone_cuspide`): foglia carnosa lobata che
+     si arriccia in fuori con perla terminale e seconda fogliolina alla base,
+     sedici per falda, rastremati verso la punta.
+  4. Mosaici riletti ad alta risoluzione (1024 px, prima 256): triangolo
+     letto quasi per intero, bordi lapidei sostituiti da tessere d'oro,
+     contrasto/saturazione riportati e calibrazione fotometrica ambrata,
+     cosi' sotto il sole il campo aureo resta oro e non sbianca.
+  5. Campo del mosaico arretrato rispetto alla cornice (0,17 m): il risalto
+     delle modanature nasce dalla profondita' e il bordo aureo non finisce
+     piu' dietro al mosaico come nella v2.7.
+  6. Base d'imposta a tre fili sottili con dentelli e perline a sbalzo, dado
+     apicale con gola fogliata e statua a figura intera (`statua_gotica_v26`)
+     di 0,33 h: prima era una figurina di 1,25 m su un piedistallo pesante.
+  7. Nuova inquadratura `anteprima_cuspidi.png` (1600x700) sul taglio della
+     fotografia d'insieme: rosone al centro e i due timpani ai lati.
+
 """
 
 import bpy
@@ -131,6 +157,7 @@ PNG_PATH = os.path.join(OUT_DIR, "anteprima_facciata.png")
 APICE_PNG_PATH = os.path.join(OUT_DIR, "anteprima_apice.png")
 GALLERIA_PNG_PATH = os.path.join(OUT_DIR, "anteprima_galleria.png")
 ROSONE_PNG_PATH = os.path.join(OUT_DIR, "anteprima_rosone.png")
+CUSPIDI_PNG_PATH = os.path.join(OUT_DIR, "anteprima_cuspidi.png")
 VETRATA_PATH = os.path.join(OUT_DIR, "riferimento_vetrata.jpg")
 GLB_PATH = os.path.join(OUT_DIR, "Facciata_Duomo_Siena.glb")
 
@@ -469,6 +496,86 @@ def _extract_mosaic_apice_clean(name, apice_rgb, p_bl, p_br, p_top, size=1536):
     return _save_packed_image(name, merged)
 
 
+def _dist_punto_retta(px, py, a, b):
+    """Distanza vettoriale dei punti (px, py) dalla retta passante per a e b."""
+    ax, ay = a
+    bx, by = b
+    dx, dy = bx - ax, by - ay
+    ln = max(math.hypot(dx, dy), 1e-6)
+    nx, ny = -dy / ln, dx / ln
+    return np.abs((px - ax) * nx + (py - ay) * ny)
+
+
+def _extract_mosaic_laterale_v28(name, topdown_rgb, p_bl, p_br, p_top, size=1024):
+    """Mosaico delle cuspidi laterali (Presentazione a sinistra, Natività a
+    destra) riletto ad alta risoluzione dalla fotografia d'insieme.
+
+    Rispetto alla v2.7 (256 px, ritaglio appena interno e nessuna
+    calibrazione) qui il triangolo viene letto quasi per intero, ripulito
+    dai bordi lapidei, riportato su un fondo aureo continuo a tessere e
+    calibrato fotometricamente come il mosaico centrale: sotto il sole
+    diretto il campo aureo non sbianca e le figure conservano i rossi,
+    i blu e i verdi dei cartoni ottocenteschi.
+    """
+    v_lin = np.linspace(0.0, 1.0, size, dtype=np.float32)
+    vv, uu = np.meshgrid(v_lin, v_lin, indexing="ij")   # riga 0 = base
+    denom = np.maximum(1.0 - vv, 1e-3)
+    s = np.clip((uu - 0.5 * vv) / denom, 0.0, 1.0)
+    px = (1.0 - vv) * ((1.0 - s) * p_bl[0] + s * p_br[0]) + vv * p_top[0]
+    py = (1.0 - vv) * ((1.0 - s) * p_bl[1] + s * p_br[1]) + vv * p_top[1]
+    sampled = _bilinear_sample(topdown_rgb, px, py)
+
+    # 1) Bordi: la fotografia contiene un filo di cornice lapidea lungo i tre
+    #    lati; viene sostituito con tessere d'oro, perché il bordo è poi
+    #    ricostruito in geometria (listello, perline e battuta).
+    d_edges = np.minimum(
+        np.minimum(_dist_punto_retta(px, py, p_bl, p_br),
+                   _dist_punto_retta(px, py, p_bl, p_top)),
+        _dist_punto_retta(px, py, p_br, p_top),
+    )
+    w_edge = 4.2
+    bordo = np.clip((w_edge - d_edges) / w_edge, 0.0, 1.0) ** 0.8
+
+    rng = np.random.default_rng(2024)
+    tess = np.kron(
+        rng.normal(0.0, 0.020, (size // 4, size // 4)).astype(np.float32),
+        np.ones((4, 4), dtype=np.float32),
+    )
+    tess += 0.016 * np.sin(2.0 * math.pi * (61.0 * uu + 47.0 * vv))
+    crema = np.array((0.905, 0.800, 0.560), dtype=np.float32)[None, None, :]
+    oro = np.array((0.965, 0.880, 0.640), dtype=np.float32)[None, None, :]
+    fondo_oro = crema * (1.0 - vv[:, :, None] * 0.22) + oro * (vv[:, :, None] * 0.22)
+    fondo_oro = np.clip(fondo_oro * (1.0 + tess[:, :, None]), 0.0, 1.0)
+    merged = sampled * (1.0 - bordo[:, :, None]) + fondo_oro * bordo[:, :, None]
+
+    # 2) Il mosaico originale è ricco e contrastato: la fotografia è velata
+    #    dalla luce diffusa, quindi si riportano livelli e saturazione.
+    merged = _affina_textura(
+        merged, lo=0.4, hi=99.6, contrasto=1.10, unsharp=0.85, raggio=1,
+        saturazione=1.32, gamma=0.96,
+    )
+    # 3) Bilanciamento del bianco per cuspide.  Le due fotografie hanno luce
+    #    diversa: il timpano destro, in pieno sole, arriva con dominante
+    #    azzurrina presa dal cielo, quello sinistro in ombra è più caldo.
+    #    Il campo aureo occupa la maggior parte del triangolo, quindi la
+    #    mediana interna è una buona stima del suo colore: la si riporta su
+    #    un oro di riferimento, con guadagno limitato per non falsare i rossi
+    #    e i blu delle vesti.
+    core = d_edges > (w_edge * 1.6)
+    if int(core.sum()) > 64:
+        med = np.median(merged[core], axis=0)
+        med = np.maximum(med, 1e-3)
+        oro_riferimento = np.array((0.900, 0.760, 0.455), dtype=np.float32)
+        gain = np.clip(oro_riferimento / med, 0.72, 1.42)
+        merged = np.clip(merged * gain[None, None, :], 0.0, 1.0)
+
+    # 4) Calibrazione fotometrica (come il mosaico centrale): albedo
+    #    leggermente abbassato e componente ambrata esaltata, così sotto il
+    #    sole diretto l'oro resta oro e non diventa giallo pallido.
+    merged = np.clip(merged * np.array((1.010, 0.965, 0.830), dtype=np.float32)[None, None, :], 0.0, 1.0)
+    return _save_packed_image(name, merged)
+
+
 def _make_striped_marble_tex(name, base_srgb, stripe_srgb, n_strisce=26, seed=91):
     """Lastra di marmo rosa a righe orizzontali chiare (fondo delle nicchie della
     galleria dei Profeti, come nella fotografia del coronamento senese)."""
@@ -683,23 +790,24 @@ def build_all_textures():
             size=512,
             boost=1.18,
         )
-        tex["mosaico_sx"] = _extract_triangle_tex(
+        # v2.8: i due mosaici delle cuspidi laterali sono letti ad alta
+        # risoluzione (1024 px) quasi per intero e calibrati in oro, non più
+        # ritagli da 256 px appena interni alla cornice.
+        tex["mosaico_sx"] = _extract_mosaic_laterale_v28(
             "Tex_Mosaico_Presentazione",
             topdown,
-            (724 * sx, 1146 * sy),
-            (914 * sx, 1143 * sy),
-            (822 * sx, 1016 * sy),
-            size=256,
-            boost=1.20,
+            (737.0 * sx, 1150.0 * sy),
+            (944.0 * sx, 1146.0 * sy),
+            (829.0 * sx, 1012.0 * sy),
+            size=1024,
         )
-        tex["mosaico_dx"] = _extract_triangle_tex(
+        tex["mosaico_dx"] = _extract_mosaic_laterale_v28(
             "Tex_Mosaico_Nativita",
             topdown,
-            (1750 * sx, 1110 * sy),
-            (1944 * sx, 1102 * sy),
-            (1850 * sx, 972 * sy),
-            size=256,
-            boost=1.20,
+            (1795.0 * sx, 1121.0 * sy),
+            (1993.0 * sx, 1117.0 * sy),
+            (1882.0 * sx, 973.0 * sy),
+            size=1024,
         )
         tex["bronzo_porta"] = _extract_rect_tex(
             "Tex_Porta_Bronzo", topdown, 1232 * sx, 1887 * sy, 1454 * sx, 2252 * sy, 256, 384, boost=1.22
@@ -5590,6 +5698,264 @@ _mesh_da_bmesh("Abaco_Pedestallo_Angelo", G, bm_cap_w, BIANCO)
 statua_angelo_apicale("Angelo_Apicale", ST, 0.0, Y_AP, Z_APICE + 0.80, h=1.96)
 
 # =============================================================================
+# 6.6 — LE DUE CUSPIDI LATERALI DEI MOSAICI (v2.8)
+#    Presentazione al tempio (sinistra) e Natività (destra).  Rilette sulla
+#    fotografia d'insieme: il triangolo vero è largo e basso (H/W ~ 0,65,
+#    non 1,05 come nella v2.7), la cornice è una modanatura a mitra con
+#    gola d'ombra, toro perlinato e gattoni rampanti (non due scatole
+#    ruotate), il mosaico è ad alta risoluzione e la statua apicale poggia
+#    su un dado con gola fogliata.
+# =============================================================================
+def _apertura_cuspide(W, H, o):
+    """Apertura interna di una cuspide arretrata di `o` (distanza
+    perpendicolare) dal filo esterno: (semilarghezza alla base, quota apice).
+
+    La linea interna è parallela allo spiovente, quindi il triangolo resta
+    simile all'esterno: il fattore di scala è k = 1 - 2·L·o/(W·H), con
+    L = lunghezza dello spiovente.  (Nella v2.7 il fattore era applicato al
+    contrario e l'apertura riusciva più stretta del dovuto, lasciando una
+    fascia di marmo fra cornice e mosaico.)
+    """
+    L = math.hypot(W * 0.5, H)
+    k = max(0.30, 1.0 - 2.0 * L * o / max(W * H, 1e-6))
+    return (W * 0.5) * k, H * k
+
+
+# Sezione della cornice (dal filo esterno verso il campo del mosaico):
+# (arretramento esterno, arretramento interno, y del fronte, profondità, materiale)
+# Sezione della cornice della cuspide (dal filo esterno verso il campo del
+# mosaico): frazioni dello spessore totale O_CUSPIDE_LAT, y del fronte,
+# profondità e materiale.  Lo spessore è calibrato sulla fotografia: il
+# triangolo dorato occupa circa l'80% della larghezza esterna.
+O_CUSPIDE_LAT = 0.360
+PROFILO_CUSPIDE_LAT = (
+    (0.000, 0.088, -1.377, 0.60, BIANCO),    # filo esterno investito dal sole
+    (0.088, 0.132, -1.341, 0.16, PIETRA),    # canalino dei dentelli (poco profondo)
+    (0.132, 0.204, -1.391, 0.62, BIANCO),    # toro luminoso
+    (0.204, 0.244, -1.345, 0.15, PIETRA),    # gola stretta
+    (0.244, 0.322, -1.386, 0.60, BIANCO2),   # secondo toro (porta le perline)
+    (0.322, 0.360, -1.361, 0.56, BIANCO),    # battuta sul campo aureo
+)
+O_CUSPIDE_LAT = PROFILO_CUSPIDE_LAT[-1][1]
+O_DENT_CUSP_LAT = 0.110       # asse dei dentelli
+O_PERLE_CUSP_LAT = 0.268      # asse delle perline (accanto al campo aureo)
+O_FOGLIE_CUSP_LAT = 0.348     # asse delle foglioline sulla battuta
+
+
+def _bm_gattone_cuspide(bm, base, u_dir, out_dir, size=0.12, piega=0.42):
+    """Gattone (crocket) gotico senese a foglia carnosa che si arriccia verso
+    l'esterno, appoggiato sul filo della cornice.
+
+    A differenza dei "cilindri con sfera" delle versioni precedenti, qui la
+    foglia è una superficie lobata unica: la punta si piega in fuori grazie
+    alla curvatura progressiva del profilo, e una seconda fogliolina più
+    piccola alla base ne raddoppia il volume.
+    """
+    up = (u_dir * math.cos(0.20) + out_dir * math.sin(0.20)).normalized()
+    phi = math.atan2(up.x, up.z)
+    M = Matrix.Translation(base) @ Matrix.Rotation(phi, 4, "Y")
+    profilo = ((0.00, 0.30), (0.15, 0.52), (0.30, 0.40), (0.46, 0.54),
+               (0.62, 0.42), (0.78, 0.34), (0.91, 0.20), (1.00, 0.07))
+    ln = size * 1.18
+    _bm_foglia(bm, ln, size * 0.56, size * 0.34, M,
+               profilo=profilo, piega=piega, gonfia=1.36)
+    # perla terminale del ricciolo (la punta della foglia si piega in fuori)
+    tip = M @ Vector((piega * ln * 0.99, -size * 0.06, ln * 0.995))
+    _bm_sfera(bm, Matrix.Translation(tip), 0.0, 0.0, 0.0, size * 0.16,
+              sx=1.05, sy=0.85, sz=1.05, u=8, v=6)
+    M2 = (Matrix.Translation(base + up * size * 0.06 + out_dir * size * 0.10)
+          @ Matrix.Rotation(phi + 0.40, 4, "Y"))
+    _bm_foglia(bm, size * 0.72, size * 0.34, size * 0.24, M2,
+               profilo=profilo, piega=piega * 0.9, gonfia=1.28)
+
+
+def cuspide_laterale_mosaico_v28(tag, cx, side, z_base, w, h, mos_mat):
+    """Cuspide laterale con mosaico: corpo, cornice modanata a mitra,
+    dentelli, perline, gattoni, base a mensole e statua su piedistallo."""
+    y_wall = -1.02
+    y_mos = -1.250          # faccia del campo aureo: 0,13 m dietro la cornice
+
+    # --- 1. Corpo murario triangolare arretrato (nessun foro all'apice) ---
+    prism(f"Cuspide_Lat_Corpo_{tag}", R, cx, y_wall + 0.88, z_base, w, h, 1.76, BIANCO)
+    # Fascia di marmo rigato appena dietro il campo aureo: dà profondità al
+    # bordo del mosaico e chiude ogni fessura da cui prima traspariva il cielo.
+    half_in, z_ap_in = _apertura_cuspide(w, h, O_CUSPIDE_LAT)
+    prism(f"Cuspide_Lat_Fondo_{tag}", R, cx, y_wall + 0.10, z_base,
+          2.0 * half_in + 0.12, z_ap_in + 0.06, 0.22, ROSA_C)
+
+    # --- 2. Mosaico: riempie l'apertura della cornice, base alzata di 5 cm ---
+    #     Il campo aureo sta ARRETRATO rispetto alla cornice: il risalto delle
+    #     modanature nasce dalla profondità (nella v2.7 il mosaico sporgeva e
+    #     la cornice interna spariva dietro al vetro del mosaico).
+    z_mos = z_base + 0.055
+    fr = 1.0 - 0.055 / max(z_ap_in, 1e-3)
+    prism(f"Mosaico_Laterale_Reale_{tag}", S, cx, y_mos + 0.055, z_mos,
+          2.0 * half_in * fr, (z_ap_in - 0.055), 0.11, mos_mat, mosaic_uv=True)
+    # Battuta d'ombra sottile fra mosaico e modanature: stacca il campo aureo
+    prism(f"Battuta_Mosaico_CuspLat_{tag}", D, cx, y_mos + 0.150, z_base,
+          2.0 * half_in + 0.050, z_ap_in + 0.025, 0.09, SCURO)
+
+    # --- 3. Cornice modanata a mitra, con dentelli, perline e foglioline ---
+    #     `banda_mitrata`, `punto_fascia` e `crocchi_spiovente` lavorano
+    #     sull'asse x = 0 (come per la cuspide centrale): gli oggetti appena
+    #     creati vengono poi traslati sull'asse della cuspide laterale.
+    _prima = set(bpy.data.objects)
+    sin_t, L_slope = _angolo_spiovente(w, h)
+    for s in (-1, 1):
+        for k_f, (o0, o1, y_f, dep, mat_f) in enumerate(PROFILO_CUSPIDE_LAT):
+            banda_mitrata(
+                f"Fascia_CuspideLat_{tag}_{s}_{k_f}", D, s, w, h,
+                o0, o1, y_f, dep, mat_f, z_base=z_base,
+            )
+        tilt = -s * math.atan2(w * 0.5, h)
+
+        # Dentellatura fitta nel canale in ombra
+        bm_d = bmesh.new()
+        n_d = max(18, int(L_slope / 0.068))
+        for i in range(n_d):
+            u = 0.010 + 0.980 * i / (n_d - 1)
+            pxd, pzd = punto_fascia(s, w, h, O_DENT_CUSP_LAT, u, z_base)
+            # dentelli accostati (non rade borchie distanziate): la fascia
+            # legge come un nastro scolpito, con ombre sottili negli incavi
+            _bm_box(bm_d, Matrix.Identity(4), pxd, -1.282, pzd,
+                    0.074, 0.098, 0.056, rot=Matrix.Rotation(tilt, 4, "Y"))
+        _mesh_da_bmesh(f"Dentelli_CuspideLat_{tag}_{s}", D, bm_d, BIANCO2)
+
+        # Perline sul toro luminoso
+        n_p = max(14, int(L_slope / 0.085))
+        punti = []
+        for i in range(n_p):
+            u = 0.014 + 0.972 * i / (n_p - 1)
+            pxp, pzp = punto_fascia(s, w, h, O_PERLE_CUSP_LAT, u, z_base)
+            punti.append((pxp, -1.404, pzp))
+        fila_perle(f"Perle_CuspideLat_{tag}_{s}", D, punti, 0.0125, ORO_C)
+
+        # Foglioline lanceolate sulla battuta interna, come nella fotografia
+        bm_f = bmesh.new()
+        n_f = max(12, int(L_slope / 0.155))
+        d_slope = Vector((-s * w * 0.5, 0.0, h)).normalized()
+        q_slope = d_slope.to_track_quat("Z", "Y").to_matrix().to_4x4()
+        for i in range(n_f):
+            u = 0.020 + 0.950 * i / (n_f - 1)
+            pxf, pzf = punto_fascia(s, w, h, O_FOGLIE_CUSP_LAT, u, z_base)
+            Mf = Matrix.Translation((pxf, -1.322, pzf)) @ q_slope
+            _bm_foglia(bm_f, 0.098, 0.036, 0.019, Mf, gonfia=1.15)
+        _mesh_da_bmesh(f"Foglie_Battuta_CuspLat_{tag}_{s}", D, bm_f, PIETRA_RIL)
+
+        # Gattoni rampanti carnosi e uncinati sul filo esterno
+        bm_g = bmesh.new()
+        n_g = 13
+        u_g = Vector((-s * w * 0.5, 0.0, h)).normalized()
+        out_g = Vector((u_g.z, 0.0, -u_g.x))
+        if out_g.x * s < 0.0:
+            out_g = -out_g
+        out_g.normalize()
+        for i in range(n_g):
+            u = 0.055 + 0.885 * i / (n_g - 1)
+            bxg, bzg = punto_fascia(s, w, h, 0.012, u, z_base)
+            _bm_gattone_cuspide(bm_g, Vector((bxg, -1.432, bzg)), u_g, out_g,
+                                size=0.112 + 0.038 * (1.0 - u), piega=0.60)
+        _mesh_da_bmesh(f"Gattoni_CuspideLat_{tag}_{s}", D, bm_g, BIANCO)
+
+    for _o in set(bpy.data.objects) - _prima:
+        _o.location.x += cx
+
+    # Fondo murario sotto la base: chiude il cielo che nella v2.8
+    # traspariva fra il cornicione della loggia e il triangolo.
+    box(f"Fondo_Sotto_CuspLat_{tag}", R, cx, -1.02,
+        z_base - 1.16, w - 0.30, 0.30, 1.90, BIANCO)
+    box(f"Fondo_Sotto_CuspLat_B_{tag}", R, cx, -1.06,
+        z_base - 0.62, w - 0.62, 0.24, 0.62, ROSA_C)
+    # Parapetto a ghimberghette: la cuspide poggia su una fila di piccoli
+    # frontoni, come nella fotografia, invece che su una parete liscia.
+    #     Le ghimberghette restano BASSE, sotto il filo del mosaico: nella
+    #     fotografia non sporgono davanti al campo aureo.
+    z_par = z_base - 0.74
+    box(f"Parapetto_CuspLat_{tag}", D, cx, -1.22, z_par, w - 0.62, 0.42, 0.22, BIANCO2)
+    n_gh = 4
+    passo_gh = (w - 0.95) / (n_gh - 1)
+    for i_gh in range(n_gh):
+        x_gh = cx - (w - 0.95) * 0.5 + i_gh * passo_gh
+        spioventi_modanati(
+            f"Ghim_Parapetto_{tag}_{i_gh}", D, x_gh, -1.30, z_par + 0.09,
+            0.70, 0.44, 0.052, 0.18, BIANCO
+        )
+        finial(f"Ghim_Parapetto_Fin_{tag}_{i_gh}", D, x_gh, -1.30, z_par + 0.50, 0.19)
+
+    # --- 4. Base d'imposta: corona modanata, dentelli e perline ---
+    #     Tre fili sottili a sbalzo crescente (come in fotografia), non una
+    #     piattaforma: il triangolo sembra poggiare sul cornicione della loggia.
+    box(f"Cornice_Base_CuspLat_{tag}_C", D, cx, -1.06, z_base - 0.335,
+        w + 0.16, 0.46, 0.075, BIANCO)
+    box(f"Cornice_Base_CuspLat_{tag}_B", D, cx, -1.13, z_base - 0.265,
+        w + 0.24, 0.50, 0.070, BIANCO2)
+    box(f"Cornice_Base_CuspLat_{tag}_A", D, cx, -1.20, z_base - 0.205,
+        w + 0.32, 0.54, 0.055, BIANCO)
+    box(f"Ombra_Base_CuspLat_{tag}", D, cx, -1.335, z_base - 0.238,
+        w + 0.26, 0.05, 0.045, SCURO)
+    bm_bd = bmesh.new()
+    n_bd = int((w + 0.32) / 0.080)
+    for i in range(n_bd):
+        xb = cx - (w + 0.32) * 0.5 + (i + 0.5) * ((w + 0.32) / n_bd)
+        _bm_box(bm_bd, Matrix.Identity(4), xb, -1.345, z_base - 0.208,
+                0.044, 0.080, 0.046)
+    _mesh_da_bmesh(f"Dentelli_Base_CuspLat_{tag}", D, bm_bd, BIANCO)
+    n_bp = int((w + 0.26) / 0.090)
+    punti_b = [(cx - (w + 0.26) * 0.5 + (i + 0.5) * ((w + 0.26) / n_bp), -1.436, z_base - 0.292)
+               for i in range(n_bp)]
+    fila_perle(f"Perle_Base_CuspLat_{tag}", D, punti_b, 0.022, BIANCO)
+    # Fascia di raccordo fra cornicione e base della cuspide
+    box(f"Zoccolo_Base_CuspLat_{tag}", D, cx, -1.10, z_base - 0.130,
+        w + 0.02, 0.42, 0.085, PIETRA)
+
+    # --- 5. Apice: dado modanato a gola fogliata + statua (niente pinnacolo) ---
+    #     Proporzioni lette sulla fotografia: dado ≈ 0,27 dell'altezza della
+    #     cuspide, statua ≈ 0,33, entrambi centrati sull'asse.
+    z_ap = z_base + h
+    dado_h, stat_h = h * 0.215, h * 0.335
+    y_dado = -1.20
+    # Cornice di coronamento della cuspide (sotto il dado)
+    box(f"Dado_Cusp_{tag}_Cornice", G, cx, y_dado + 0.02, z_ap - 0.016,
+        0.52, 0.42, 0.030, BIANCO)
+    bm_cb = bmesh.new()
+    bm_cbp = bmesh.new()
+    for s in (-1, 1):
+        for i in range(2):
+            M = (Matrix.Translation((cx + s * (0.075 + i * 0.060), y_dado - 0.175,
+                                     z_ap + 0.052 + i * 0.008))
+                 @ Matrix.Rotation(s * (math.pi * 0.5 - 0.34), 4, "Y")
+                 @ Matrix.Rotation(-s * 0.10, 4, "Z"))
+            _bm_foglia(bm_cb, 0.120 - i * 0.020, 0.058, 0.028, M, gonfia=1.30)
+            _bm_sfera(bm_cbp, M, 0.0, -0.008, 0.070, 0.020, u=7, v=5)
+    # riccioli alle due estremità della gola
+    for s in (-1, 1):
+        _bm_sfera(bm_cb, Matrix.Translation((cx + s * 0.145, y_dado - 0.190, z_ap + 0.062)),
+                  0.0, 0.0, 0.0, 0.026, sx=1.15, sy=0.85, sz=1.15, u=8, v=6)
+    _mesh_da_bmesh(f"Gola_Fogliata_Cusp_{tag}", G, bm_cb, PIETRA_RIL)
+    _mesh_da_bmesh(f"Gola_Fogliata_Ombre_Cusp_{tag}", G, bm_cbp, PATINA)
+    # Dado: zoccolo, corpo rigato, gola fogliata, cornice superiore
+    box(f"Dado_Cusp_{tag}_Zoccolo", G, cx, y_dado, z_ap + 0.090, 0.52, 0.42, 0.060, BIANCO2)
+    box(f"Dado_Cusp_{tag}_Corpo", G, cx, y_dado + 0.01, z_ap + 0.070 + dado_h * 0.42,
+        0.44, 0.38, dado_h * 0.62, PIETRA)
+    # specchiatura leggermente incassata sul fronte (marmo rosato)
+    box(f"Dado_Cusp_{tag}_Specchio", D, cx, y_dado - 0.175, z_ap + 0.070 + dado_h * 0.42,
+        0.30, 0.035, dado_h * 0.40, ROSA_C)
+    box(f"Dado_Cusp_{tag}_Gola", G, cx, y_dado - 0.01, z_ap + 0.070 + dado_h * 0.80,
+        0.50, 0.41, 0.065, BIANCO)
+    box(f"Dado_Cusp_{tag}_Cimasa", G, cx, y_dado, z_ap + 0.070 + dado_h * 0.94,
+        0.58, 0.44, 0.050, BIANCO2)
+    box(f"Dado_Cusp_{tag}_Piano", G, cx, y_dado, z_ap + 0.070 + dado_h,
+        0.46, 0.38, 0.040, PIETRA)
+    z_stat = z_ap + 0.070 + dado_h + 0.020
+    statua_gotica_v26(
+        f"Statua_Cuspide_{tag}", ST, cx, y_dado, z_stat, stat_h,
+        spec={"gesto": "benedicente" if side < 0 else "libro",
+              "barba": 0.0, "copricapo": "velo" if side < 0 else "capelli",
+              "yaw": -0.10 * side, "nod": 0.04, "seed": 4 if side < 0 else 9},
+    )
+
+
+# =============================================================================
 # 7. SETTORI LATERALI INTERNI (cx = +-8.05 m): LOGGETTA GOTICA A 5 ARCHETTI
 #    ACUTI SU COLONNINE BINATE + CUSPIDI DORATE CON STATUA
 # =============================================================================
@@ -5628,24 +5994,18 @@ for side in (-1, 1):
     for dx_s in (-1.45, 0.95):
         statue(f"Statua_Loggia_{tag}_{dx_s:+.2f}", ST, cx + side * dx_s, -1.68, Z_GALLERIA + 0.18, 1.34, PIETRA)
 
-    # Trabeazione e Cuspide Laterale Dorata (quota esatta della foto: apice pietra ~22.5 m)
-    box(f"Trabeazione_Cuspide_{tag}", R, cx, -0.95, Z_CUSP_LAT, w_loggia + 0.15, 1.35, 0.38, BIANCO2)
-    prism(f"Cuspide_Lat_Struttura_{tag}", R, cx, -0.45, Z_CUSP_LAT + 0.16, w_loggia, H_CUSP_LAT, 1.75, BIANCO)
-    prism(
-        f"Mosaico_Laterale_Reale_{tag}", R, cx, -1.36, Z_CUSP_LAT + 0.44,
-        w_loggia * 0.78, H_CUSP_LAT * 0.74, 0.10, mos_mat, mosaic_uv=True
+    # Trabeazione e cuspide laterale con il mosaico (v2.8: proporzioni,
+    # cornice modanata a mitra, gattoni e statua rilette sulla fotografia)
+    box(f"Trabeazione_Cuspide_{tag}", R, cx, -1.02, Z_CUSP_LAT, w_loggia + 0.15, 0.62, 0.38, BIANCO2)
+    box(f"Trabeazione_Cuspide_Toro_{tag}", D, cx, -1.36, Z_CUSP_LAT + 0.16,
+        w_loggia + 0.22, 0.14, 0.055, BIANCO)
+    cuspide_laterale_mosaico_v28(
+        tag, cx, side,
+        z_base=Z_CUSP_LAT + 0.30,
+        w=4.35,
+        h=4.35 * 0.68,
+        mos_mat=mos_mat,
     )
-    spioventi_modanati(
-        f"Cornice_Cuspide_Lat_{tag}", R, cx, -1.46, Z_CUSP_LAT + 0.16,
-        w_loggia + 0.18, H_CUSP_LAT + 0.10, 0.25, 0.34, BIANCO
-    )
-    foglie_rampanti(
-        f"Foglie_Cuspide_Lat_{tag}", D, cx, -1.52, Z_CUSP_LAT + 0.20,
-        w_loggia + 0.30, H_CUSP_LAT + 0.12, PIETRA, n=8, size=0.24
-    )
-    z_top_cusp = Z_CUSP_LAT + 0.16 + H_CUSP_LAT
-    box(f"Base_Statua_Cusp_{tag}", G, cx, -1.15, z_top_cusp + 0.16, 0.52, 0.52, 0.32, PIETRA)
-    statue(f"Statua_Cuspide_{tag}", ST, cx, -1.15, z_top_cusp + 0.32, 1.25, PIETRA)
 
 # =============================================================================
 # 8. TORRIONI GOTICI ANGOLARI ESTERNI A DUE CAMPATE (x = +-12.7 m):
@@ -5902,6 +6262,19 @@ else:
         bpy.ops.render.render(write_still=True)
         print("Dettaglio del rosone salvato: anteprima_rosone.png")
 
+        # Quinta inquadratura (v2.8): il rosone con le due cuspidi dei mosaici
+        # ai lati, nello stesso taglio della fotografia d'insieme.
+        if not (_solo_galleria or _solo_rosone):
+            target_cusp = Vector((0.0, -1.45 * SCALA, 22.2 * SCALA))
+            cam.location = (0.0, -28.0 * SCALA, 22.2 * SCALA)
+            cam.rotation_euler = (target_cusp - cam.location).to_track_quat("-Z", "Y").to_euler()
+            cam.data.lens = 45.0
+            scene.render.resolution_x = int(os.environ.get("CHIESA_CUSPIDI_RES_X", 1600))
+            scene.render.resolution_y = int(os.environ.get("CHIESA_CUSPIDI_RES_Y", 700))
+            scene.render.filepath = CUSPIDI_PNG_PATH
+            bpy.ops.render.render(write_still=True)
+            print("Dettaglio delle cuspidi con i mosaici salvato: anteprima_cuspidi.png")
+
         # Il .blend resta impostato sull'inquadratura generale.
         cam.location = camera_loc_main
         cam.rotation_euler = camera_rot_main
@@ -5928,7 +6301,7 @@ if "gltf" in EXPORT.get("formats", []) and not os.environ.get("CHIESA_NO_GLB"):
     except Exception as e:
         print(f"Export GLB non riuscito: {e}")
 
-print("Generazione v2.7 completata!")
+print("Generazione v2.8 completata!")
 sys.stdout.flush()
 sys.stderr.flush()
 if "bpy" in sys.modules and not bpy.app.binary_path:
