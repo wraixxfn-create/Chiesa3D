@@ -34,6 +34,27 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
 
+## Versione 3.4 — guglie delle due torri piu' alte e snelle
+
+Ritocco sulla **guglia centrale** delle due torri, confrontata con
+`riferimento_torri.jpg`: nella v3.3 il coronamento era corto e tozzo, mentre
+nella fotografia la guglia si allunga in un ago rastremato.
+
+- **Guglia piu' alta:** lunghezza 3,20 m (prima 2,12 m), profilo rastremato
+  a sei punti fino a 0,04 m di raggio, con le costolature esistenti.
+- **Due ordini di ghimberghe piramidali** sulla guglia (a 0,95 m e 1,90 m),
+  quattro per ordine, ciascuna con piccolo bottone.
+- **Crochet piu' fitti:** nove corone di fogliame (prima sei), disposte
+  lungo tutta la nuova altezza.
+- La statua sommitale si sposta automaticamente in cima alla nuova guglia.
+- `config_facciata.json` passa alla versione **3.4**.
+
+Limiti noti: la parte bassa della guglia nella fotografia e' piu' massiccia e
+ricca di fogliame; nel modello resta piu' sottile della foto. I render
+`anteprima_*.png` sono stati rigenerati a 32 campioni (prova rapida); il
+`confronto_torri.png` affianca la foto alla v3.4, ma la sua intestazione
+testuale riporta ancora la dicitura v3.3.
+
 ## Versione 3.3 — le due torri ai lati della cuspide, sulla foto allegata
 
 Intervento dedicato alle **due torri che affiancano la cuspide centrale**,
