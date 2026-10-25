@@ -5138,17 +5138,31 @@ def _torre_pinnacolo(side, cx_vis, w_vis, cx, tag):
         _bm_finnial_torre(bm_w, bm_p, Mi, px, py, z_pl, 1.00, 0.30)
 
     # ------------------------------------------- guglia centrale scolpita
-    z_s0, z_s1 = z_pl + 0.06, z_pl + 2.12
+    # v3.4: guglia piu' alta e snella come in fotografia (lunga 3,20 m,
+    # rastremata fino a un ago), con due ordini di ghimberghe piramidali
+    L_GUGL = 3.20
+    z_s0, z_s1 = z_pl + 0.06, z_pl + 0.06 + L_GUGL
     _bm_lathe(bm_w, Mi @ Matrix.Translation((cx_vis, y_c, z_s0 - 0.10)),
               ((0.000, 0.335), (0.070, 0.315), (0.120, 0.275)), seg=8, sy=1.0)
     _bm_lathe(bm_w, Mi @ Matrix.Translation((cx_vis, y_c, z_s0)),
-              ((0.000, 0.320), (0.500, 0.270), (1.010, 0.205),
-               (1.550, 0.145), (1.930, 0.095), (2.120, 0.052)),
+              ((0.000, 0.320), (0.800, 0.250), (1.600, 0.170),
+               (2.400, 0.100), (3.000, 0.058), (L_GUGL, 0.040)),
               seg=14, sy=1.0, rib=0.14, rib_n=8)
+    # ghimberghe piramidali a due ordini, sulla guglia, ai due terzi e a meta'
+    for zq in (0.95, 1.90):
+        t_q = zq / L_GUGL
+        rr_q = 0.32 * (1.0 - t_q) + 0.04 * t_q
+        for k in range(4):
+            a = math.tau * k / 4.0 + math.pi * 0.25
+            px = cx_vis + (rr_q + 0.02) * math.cos(a)
+            py = y_c + (rr_q + 0.02) * math.sin(a)
+            _bm_cono(bm_w, Mi, px, py, z_s0 + zq + 0.12, 0.085, 0.0, 0.24,
+                     rot=Matrix.Rotation(a, 4, "Z"), seg=4)
+            _bm_sfera(bm_p, Mi, px, py, z_s0 + zq + 0.27, 0.030, u=6, v=4)
     # gattoni a corona su tutta la guglia (e' un cono di fogliame)
-    for j in range(6):
-        t = 0.04 + 0.155 * j
-        rr = 0.320 * (1.0 - t) + 0.030 * t
+    for j in range(9):
+        t = 0.03 + 0.105 * j
+        rr = 0.320 * (1.0 - t) + 0.040 * t
         for k in range(8):
             a = math.tau * k / 8.0 + (math.pi * 0.125 if j % 2 else 0.0)
             ca, sa = math.cos(a), math.sin(a)
