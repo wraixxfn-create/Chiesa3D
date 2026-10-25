@@ -11,7 +11,7 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 | `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 64 campioni, 900×1050) |
 | `anteprima_apice.png` | Render ravvicinato della cuspide centrale, delle **due torri-pinnacolo** e dell'angelo (Cycles CPU, 64 campioni, 900×1022) |
 | `anteprima_torri.png` | Panoramica delle due torri-pinnacolo con i registri di lancette, i doccioni e i coronamenti (Cycles CPU, 64 campioni, 1500×820) |
-| `confronto_torri.png` | Confronto fotografia / v3.2 di ciascuna torre: fusto, registro delle lancette, coronamento, guglia e statua |
+| `confronto_torri.png` | Confronto fotografia allegata / v3.3 di ciascuna torre: fusto a lastre, due grandi lancette, fasce a dente di cane, coronamento pieno e statua |
 | `anteprima_rosone.png` | Il rosone e tutte le statue che lo circondano, inquadrati come nella fotografia di dettaglio (Cycles CPU, 48 campioni, 1453×1582) |
 | `confronto_rosone.png` | Confronto fotografia / versione 2.6 / versione 2.7 del rosone, della vetrata e delle sculture |
 | `anteprima_cuspidi.png` | Il rosone al centro e i due frontoni dei mosaici ai lati, nello stesso taglio panoramico del nuovo riferimento (Cycles CPU, 64 campioni, 1800×660) |
@@ -20,10 +20,11 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 | `confronto_galleria.png` | Confronto fotografia di riferimento / versione 2.4 / versione 2.5 della galleria dei Profeti |
 | `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprime e GLB da zero |
 | `crea_confronto_torri.py` | Compone `confronto_torri.png` affiancando i ritagli della fotografia ai render `model_sx.png` / `model_dx.png` |
-| `model_sx.png`, `model_dx.png` | Render laterali di ciascuna torre usati dal confronto (Cycles CPU, 48 campioni, 340×1240) |
+| `model_sx.png`, `model_dx.png` | Primi piani verticali di ciascuna torre usati dal confronto, rigenerati dallo script (Cycles CPU, 520×1420) |
 | `config_facciata.json` | Tutti i parametri (dimensioni, materiali PBR, luci, camera, render, export) |
 | `riferimento_facciata.jpg` | Fotografia d'insieme di riferimento |
 | `riferimento_apice.jpg` | Fotografia ravvicinata ad alta risoluzione (2176×2472) usata per calibrare l'intera zona superiore centrale |
+| `riferimento_torri.jpg` | Nuova fotografia frontale allegata (1997×3043) delle due torri ai lati della cuspide, riferimento della versione 3.3 |
 | `riferimento_galleria.jpg` | Fotografia di dettaglio (1866×619) della galleria dei Profeti e dei pennacchi del rosone, riferimento della versione 2.3 |
 | `riferimento_vetrata.jpg` | Fotografia di dettaglio (1453×1582) del rosone, delle nicchie laterali e dei pennacchi, riferimento della versione 2.6 |
 | `riferimento_cuspidi.jpg` | Nuovo dettaglio frontale (3120×1146) dei due frontoni con la Presentazione e la Natività, riferimento della versione 2.9 |
@@ -32,6 +33,40 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
+
+## Versione 3.3 — le due torri ai lati della cuspide, sulla foto allegata
+
+Intervento dedicato alle **due torri che affiancano la cuspide centrale**,
+nato dalla nuova fotografia frontale allegata (`riferimento_torri.jpg`).
+Riletta su quella foto, la v3.2 sbagliava la lettura d'insieme: il fusto
+era una gabbia di colonnine rotonde su pannelli rosa scuro a righe (da
+lontano, un palo a righe) e il coronamento era una lanterna traforata con
+vani neri che nella realtà non esiste.
+
+- **Fusto a lastre di marmo bianco.** Tre lesene piatte per faccia (fronte
+  e fianco esterno), interrotte dai registri; due sole **vene salmone**
+  sottili in marmo rosato chiaro al centro delle specchiature, come le
+  strisce chiare della fotografia. Via il marmo rigato scuro a tutta altezza.
+- **Due grandi lancette, non quattro miniature.** Un registro di due
+  lancette cieche alte con fondo rosato, doppia ghiera e **ghimberghe
+  piene** crochettate, più un registro di tre lancette strette sotto la
+  cornice, con fessura scura sottile.
+- **Fasce a dente di cane.** Tre marcapiano con dentelli a diamante su un
+  filo d'ombra di serpentino, al posto delle squame a archetti della v3.2.
+- **Doccioni diagonali.** A due quote, protesi in diagonale dagli spigoli
+  frontali (più due a metà della guglia): corpo inarcato più spesso, collo
+  che ricade, testa con fauci sotto la schiena, orecchie e ali ripiegate.
+- **Coronamento pieno.** Via la lanterna coi vani neri: plinto ottagonale,
+  **quattro pinnacoletti diagonali** a cresta fogliata con bocciolo a
+  tulipano (senza guglia propria, come in foto), **guglia centrale
+  interamente coperta di gattoni** con due figure in nicchia e due
+  doccioni, capitello fogliato a coppa e **statua sommitale** di 1,42 m.
+- Fusto visibile leggermente più largo (1,40 m) e materiali dei pannelli
+  riportati sui marmi chiari (`Marmo_Bianco` / `Marmo_Rosato_Chiaro`).
+- `CHIESA_SOLO_TORRI=1` ora salta davvero le altre viste (tiene l'apice)
+  e rigenera anche i primi piani `model_sx.png` / `model_dx.png`;
+  `crea_confronto_torri.py` compone il confronto sulla foto allegata.
+- `config_facciata.json` passa alla versione **3.3**.
 
 ## Versione 3.2 — le due torri-pinnacolo ai lati della cuspide
 

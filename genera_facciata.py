@@ -175,6 +175,29 @@ AGGIORNAMENTO v3.0 — I DUE TRIANGOLI DEI MOSAICI, TERZO PASSAGGIO:
      fascia di serpentino scuro sotto la cornice; via il grande
      pannello rosa piatto sotto i frontoni.
 
+AGGIORNAMENTO v3.3 — LE DUE TORRI AI LATI DELLA CUSPIDE, terzo passaggio,
+sulla nuova fotografia frontale allegata (`riferimento_torri.jpg`):
+
+  1. Fusto a lastre di marmo bianco con tre lesene piatte per faccia
+     (fronte e fianco esterno): via la gabbia di cinque colonnine rotonde
+     su pannelli di marmo rigato rosa scuro della v3.2, che da lontano
+     leggeva come un palo a righe.  Restano due sole vene salmone sottili
+     in marmo rosato chiaro, interrotte da fasce e registri come in foto.
+  2. Un registro grande di DUE lancette cieche con ghimberghe crochettate
+     (prima quattro miniature per faccia) e un registro piccolo di tre
+     lancette strette sotto la cornice; fasce marcapiano a dente di cane
+     al posto delle squame a archetti.
+  3. Doccioni zoomorfi protesi in diagonale dagli spigoli a due quote,
+     piu' due a mezza altezza della guglia: non piu' stecche laterali.
+  4. Coronamento PIENO: via la lanterna traforata con i vani neri, che
+     nella fotografia non esiste.  Quattro pinnacoletti diagonali a
+     cresta fogliata e bocciolo, guglia centrale interamente coperta di
+     gattoni con due figure in nicchia, capitello fogliato a coppa e
+     statua sommitale piu' alta (1,42 m).
+  5. `CHIESA_SOLO_TORRI=1` ora salta davvero le altre viste (ma tiene
+     l'apice) e rigenera anche i primi piani `model_sx.png`/`model_dx.png`;
+     nuovo confronto `confronto_torri.png` sulla foto allegata.
+
 """
 
 import bpy
@@ -240,7 +263,7 @@ scene = bpy.context.scene
 scene.unit_settings.system = "METRIC"
 scene.unit_settings.scale_length = 1.0
 scene["titolo"] = "Duomo di Siena — solo facciata ovest"
-scene["nota"] = "Modello procedurale v3.0: i due triangoli laterali dei mosaici con gattoni a giglio, cornici con gole d'ombra e ovoli, mosaici de-velati e saturi, apici con statue femminili su capitello di foglie; retro piatto."
+scene["nota"] = "Modello procedurale v3.3: le due torri ai lati della cuspide rifatte sulla fotografia frontale allegata (fusto a lastre bianche con due vene salmone, due grandi lancette con ghimberghe, fasce a dente di cane, doccioni diagonali e coronamento pieno a guglia fogliata con statua); retro piatto."
 
 
 # -----------------------------------------------------------------------------
@@ -4762,27 +4785,32 @@ def _statua_santa_guglia(name, col, x, y, z, h=1.18, turn=0.14, material=None):
 # =============================================================================
 # 5. LE DUE TORRI-PINNACOLO CHE AFFIANCANO LA CUSPIDE CENTRALE
 # -----------------------------------------------------------------------------
-# Rifatte da zero sul dettaglio fotografico `riferimento_apice.jpg`.  Nella
-# versione precedente erano un prisma con cinque costoloni piatti, due stecche
-# sporgenti al posto dei doccioni, un tabernacolo a cono e una statuina
-# tozza: a distanza il coronamento leggeva come un «palo con un fungo sopra».
+# v3.3 — Rifatte sulla nuova fotografia frontale `riferimento_torri.jpg`
+# (la foto allegata dall'utente, 1997x3043).  La v3.2, riletta su quella
+# foto, sbagliava tre cose: il fusto era una gabbia di colonnine rotonde su
+# pannelli rosa scuro a righe (nella foto e' una parete di lastre bianche
+# con tre lesene piatte e due sole vene salmone sottili), le lancette erano
+# quattro miniature per faccia (nella foto sono DUE grandi con ghimberghe,
+# piu' tre strette sotto la cornice) e il coronamento era una lanterna
+# traforata con vani neri (nella foto e' un grappolo PIENO di fogliame).
 #
 # Qui c'e' il vero torrione-pinnacolo senese, dalla base al vertice:
 #
-#   1. fusto polistilo: cinque colonnine scanalate con entasi, basi attiche e
-#      capitelli a due ordini di foglie, piu' le colonnine d'angolo e quelle
-#      della faccia interna, tutte in Marmo_Bianco;
-#   2. specchiature in marmo rigato rosa senese fra le colonnine, con filletti
-#      di serpentino e tondini cosmateschi;
-#   3. due registri di lancette cieche con ghimberghe a gattoni, uno basso e
-#      uno alto, separati da due fasce di squame in serpentino («carellature»)
-#      che corrono su tutte le facce visibili;
-#   4. quattro doccioni zoomorfi scolpiti a due quote: mensola fogliata, corpo
-#      accovacciato, collo teso, fauci aperte, ali ripiegate e coda arricciata;
-#   5. coronamento a grappolo: cornice a tre fili, plinto ottagonale, otto
-#      pinnacoli di due misure, lanterna traforata a quattro archi con la
-#      statuetta del santo all'interno, guglia aperta a otto costole
-#      crochettate, fiorone e grande statua sommitale a figura intera.
+#   1. fusto a lastre di Marmo_Bianco con tre lesene piatte per faccia
+#      (fronte e fianco esterno), due specchiature con una vena centrale
+#      in marmo rosato chiaro, interrotta da fasce e registri;
+#   2. registro grande di due lancette cieche con fondo rosato, doppia
+#      ghiera e ghimberghe crochettate, e registro piccolo di tre lancette
+#      strette sotto la cornice;
+#   3. tre fasce marcapiano a dente di cane (dentelli a diamante su un filo
+#      d'ombra di serpentino), non piu' le squame a archetti;
+#   4. doccioni zoomorfi a due quote protesi in DIAGONALE dagli spigoli:
+#      mensola, dorso inarcato, collo teso, fauci, orecchie e ali ripiegate;
+#   5. coronamento pieno: cornice a tre fili con dentelli, plinto
+#      ottagonale, quattro pinnacoletti diagonali a cresta fogliata e
+#      bocciolo (senza guglia propria), guglia centrale interamente
+#      crochettata con due figure in nicchia e due doccioni a mezza
+#      altezza, capitello fogliato a coppa e grande statua sommitale.
 # =============================================================================
 
 
@@ -4895,262 +4923,275 @@ def _bm_pinnacolo_torre(bm_w, bm_p, bm_d, M, x, y, z0, alt, larg, ghimberghe=Tru
     _bm_sfera(bm_p, M, x, y, z_s0 + h_s + hw * 0.055, hw * 0.085, sz=1.5, u=8, v=6)
 
 
-def _torre_pinnacolo(side, cx_vis, w_vis, cx, tag):
-    """Fusto polistilo, registri di lancette, fasce di squame, doccioni e
-    coronamento a grappolo di pinnacoli attorno alla lanterna traforata."""
-    bm_w = bmesh.new()      # marmo bianco: colonnine, cornici, pinnacoli
-    bm_p = bmesh.new()      # pietra scolpita: capitelli, gattoni, doccioni
-    bm_s = bmesh.new()      # serpentino: fasce di squame e filletti
-    bm_r = bmesh.new()      # marmo rigato: specchiature dei pannelli
-    Mi = Matrix.Identity(4)
+def _bm_doccione_torre(bm, base, dx, dy, lung, r):
+    """Doccione zoomorfo proteso in diagonale da uno spigolo della torre.
 
-    z0, z1 = 19.58, 27.30            # fusto continuo fra il registro basso e la cornice
-    hw = w_vis * 0.5                 # 0.67 m: semilarghezza del fusto
-    y_pan = -1.588                   # asse dei pannelli rigati
-    y_dec = -1.648                   # piano dei rilievi (lancette, squame)
-    y_col = -1.668                   # asse delle colonnine frontali
-    y_cor = -1.292                   # asse delle colonnine d'angolo
-    y_c = -1.060                     # asse del coronamento ottagonale
+    Il corpo e' costruito in un telaio locale con +X lungo la direzione di
+    proiezione (dx, dy): mensola fogliata d'innesto, dorso inarcato, collo
+    teso, testa con fauci e ali ripiegate.  Nella fotografia i doccioni non
+    sporgono frontalmente come stecche, ma in diagonale dagli spigoli.
+    """
+    yaw = math.atan2(dy, dx)
+    M = Matrix.Translation(base) @ Matrix.Rotation(yaw, 4, "Z")
+    # mensola d'innesto
+    _bm_box(bm, M, -lung * 0.06, 0.0, -r * 0.30, lung * 0.30, r * 2.2, r * 2.0)
+    # dorso inarcato e collo che ricade: la testa finisce sotto la schiena,
+    # protesa in avanti e in basso come i doccioni della fotografia
+    _bm_segmento(bm, M, (-lung * 0.10, 0.0, 0.0), (lung * 0.34, 0.0, r * 0.55),
+                 r * 1.02, r * 0.70, seg=10, sy=0.88)
+    _bm_segmento(bm, M, (lung * 0.34, 0.0, r * 0.55), (lung * 0.72, 0.0, -r * 0.55),
+                 r * 0.68, r * 0.46, seg=10, sy=0.86)
+    # zampe anteriori ripiegate sotto il petto
+    for sz in (-1, 1):
+        _bm_segmento(bm, M, (lung * 0.30, sz * r * 0.55, -r * 0.10),
+                     (lung * 0.52, sz * r * 0.45, -r * 0.85),
+                     r * 0.30, r * 0.18, seg=7)
+    # testa allungata, muso aperto e orecchie appuntite
+    _bm_sfera(bm, M, lung * 0.80, 0.0, -r * 0.72, r * 0.72,
+              sx=1.45, sy=0.82, sz=0.80, u=12, v=8)
+    _bm_segmento(bm, M, (lung * 0.86, 0.0, -r * 0.50), (lung * 1.02, 0.0, -r * 0.78),
+                 r * 0.40, r * 0.16, seg=8, sy=0.78)
+    _bm_segmento(bm, M, (lung * 0.84, 0.0, -r * 0.88), (lung * 0.98, 0.0, -r * 1.28),
+                 r * 0.30, r * 0.12, seg=7, sy=0.75)
+    for sz in (-1, 1):
+        _bm_cono(bm, M, lung * 0.74, sz * r * 0.42, -r * 0.30, r * 0.16, r * 0.02,
+                 r * 0.85, seg=6)
+        # ala ripiegata lungo il fianco
+        _bm_foglia(bm, r * 2.4, r * 0.85, r * 0.22,
+                   M @ Matrix.Translation((lung * 0.10, sz * r * 0.62, r * 0.40))
+                   @ Matrix.Rotation(math.radians(-102), 4, "Y")
+                   @ Matrix.Rotation(sz * math.radians(22), 4, "X"),
+                   piega=-0.10, gonfia=1.05)
 
-    # ---------------------------------------------------------------- pannelli
-    for sx, wp in ((-0.445, 0.245), (-0.152, 0.258), (0.152, 0.258), (0.445, 0.245)):
-        _bm_box(bm_r, Mi, cx_vis + sx, y_pan, (z0 + z1) * 0.5,
-                wp, 0.090, (z1 - z0) - 0.26)
-    # filletti di serpentino ai lati di ogni specchiatura
-    for sx in (-0.585, -0.302, 0.0, 0.302, 0.585):
-        for s2 in (-1, 1):
-            _bm_box(bm_s, Mi, cx_vis + sx + s2 * 0.094, y_pan - 0.024,
-                    (z0 + z1) * 0.5, 0.010, 0.062, (z1 - z0) - 0.30)
-    # ------------------------------------------------- fasce di squame (XZ)
-    def fascia_squame(zb, frame, semi, y_out, n=7, span=0.200, rise=0.125):
-        """Le «carellature» senesi: due file di archetti lapidei che corrono
-        davanti alle colonnine, su un filo di serpentino in ombra.  Nella
-        fotografia e' la fascia continua, non il singolo arco, a leggere."""
-        _bm_box(bm_s, frame, 0.0, y_out + 0.052, zb + rise * 0.92,
-                2.0 * semi, 0.030, rise * 2.00)
-        _bm_box(bm_w, frame, 0.0, y_out + 0.028, zb + rise * 2.02,
-                2.0 * semi, 0.060, 0.034)
-        _bm_box(bm_w, frame, 0.0, y_out + 0.028, zb - 0.020,
-                2.0 * semi, 0.062, 0.032)
-        for riga in (0, 1):
-            zz = zb + riga * rise * 0.94
-            passo = 2.0 * semi / n
-            for i in range(n):
-                xx = -semi + (i + 0.5 + 0.5 * riga) * passo
-                _bm_arco_acuto(bm_w, frame, xx, y_out, zz, span, rise, 0.024,
-                               seg_u=9, seg_v=6)
-                _bm_arco_acuto(bm_p, frame, xx, y_out + 0.014, zz + rise * 0.08,
-                               span * 0.70, rise * 0.66, 0.010, seg_u=8, seg_v=5)
 
-    # ------------------------------------------------------------- colonnine
-    for sx, r in ((-0.600, 0.082), (-0.302, 0.060), (0.0, 0.086), (0.302, 0.060), (0.600, 0.082)):
-        _bm_colonnina_torre(bm_w, bm_p, Mi, cx_vis + sx, y_col, z0, z1, r)
-    # colonnine d'angolo (piu' grosse, danno lo spigolo arrotondato del torrione)
-    for s2 in (-1, 1):
-        _bm_colonnina_torre(bm_w, bm_p, Mi, cx_vis + s2 * 0.628, y_cor,
-                            z0, z1, 0.104, lobi=10)
-        _bm_colonnina_torre(bm_w, bm_p, Mi, cx_vis + s2 * 0.585, -0.980,
-                            z0, z1, 0.104, lobi=8)
-
-    # ------------------------------------------------- registri di lancette
-    def lancetta(xx, zb, zs, span, rise, ghimberga=True, rif=1.0):
-        """Lancetta cieca: fondo in ombra arretrato, ghiera bianca a sesto
-        acuto, montanti e ghimberga crochettata.  Il buio resta dentro la
-        ghiera, cosi' a distanza si legge un arco e non una macchia."""
-        _bm_box(bm_s, Mi, xx, y_dec + 0.046, (zb + zs) * 0.5,
-                span * 0.34, 0.030, zs - zb)
-        _bm_arco_acuto(bm_s, Mi, xx, y_dec + 0.046, zs, span * 0.34, rise * 0.62,
-                       0.010, seg_u=12, seg_v=5)
-        # ghiera bianca a due fili: e' lo spessore della pietra che fa leggere
-        # la lancetta come una finestra cieca e non come una macchia
-        _bm_arco_acuto(bm_w, Mi, xx, y_dec, zs, span, rise, 0.026,
-                       seg_u=14, seg_v=6)
-        _bm_arco_acuto(bm_p, Mi, xx, y_dec - 0.012, zs, span * 0.82, rise * 0.88,
-                       0.013, seg_u=14, seg_v=5)
-        for s2 in (-1, 1):
-            _bm_box(bm_w, Mi, xx + s2 * span * 0.50, y_dec,
-                    (zb + zs) * 0.5, 0.030, 0.052, zs - zb)
-            _bm_box(bm_p, Mi, xx + s2 * span * 0.50, y_dec - 0.020,
-                    (zb + zs) * 0.5 - 0.02, 0.016, 0.022, zs - zb - 0.10)
-        if ghimberga:
-            _bm_ghimberga(bm_w, Mi, xx, span * 0.58, zs + rise * 0.90,
-                          zs + rise * 1.92, y_dec - 0.020, 0.022, 0.030,
-                          crockets=bm_p, n_croc=3, croc_size=0.034 * rif)
-            _bm_sfera(bm_p, Mi, xx, y_dec - 0.036, zs + rise * 1.93, 0.025,
-                      sz=1.45, u=8, v=6)
-
-    # registro basso: quattro lancette cieche nelle specchiature
-    for sx in (-0.445, -0.152, 0.152, 0.445):
-        lancetta(cx_vis + sx, 19.98, 21.10, 0.175, 0.250, rif=0.80)
-    fascia_squame(21.52, Mi, hw + 0.01, -1.800)
-
-    # registro alto: stesse lancette, piu' slanciate
-    for sx in (-0.445, -0.152, 0.152, 0.445):
-        lancetta(cx_vis + sx, 22.42, 23.62, 0.175, 0.300, rif=0.80)
-    fascia_squame(24.30, Mi, hw + 0.01, -1.800)
-
-    # piccolo registro di archetti ciechi sotto la cornice
-    for sx in (-0.44, -0.15, 0.15, 0.44):
-        _bm_box(bm_s, Mi, cx_vis + sx, y_dec + 0.012, 25.72, 0.185, 0.032, 0.34)
-        _bm_arco_acuto(bm_p, Mi, cx_vis + sx, y_dec, 25.58, 0.195, 0.27, 0.013,
-                       seg_u=10, seg_v=5)
-        _bm_arco_acuto(bm_w, Mi, cx_vis + sx, y_dec + 0.006, 25.58, 0.245, 0.32, 0.016,
-                       seg_u=10, seg_v=5)
-    fascia_squame(26.22, Mi, hw + 0.01, -1.800, n=8, span=0.180, rise=0.098)
-
-    # --------------------------------------------------- spigoli interni
-    # Il fianco rivolto alla cuspide non e' decorato da colonnine (resterebbe
-    # dentro il nucleo murario): lo spigolo e' invece arrotondato da una
-    # costola continua che raccorda il fronte al muro di spalla.
-    for s2 in (-1, 1):
-        _bm_box(bm_w, Mi, cx_vis - side * 0.665, -1.230, (z0 + z1) * 0.5,
-                0.115, 0.300, (z1 - z0) - 0.16)
-        for zz in (22.02, 24.72, 26.44):
-            _bm_box(bm_s, Mi, cx_vis - side * 0.690, -1.260, zz, 0.090, 0.260, 0.115)
-
-    # ------------------------------------------------------------ doccioni
-    for zz, lung, rr, pit in ((21.24, 0.86, 0.112, -6.0), (23.96, 0.98, 0.126, 8.0)):
-        for s2 in (-1, 1):
-            # La bestia sporge di fianco, in profilo rispetto alla facciata:
-            # e' cosi' che si legge nella fotografia.
-            gargolla(f"Doccione_Torre_{tag}_{int(zz * 10)}_{s2:+d}", D,
-                     cx_vis + s2 * 0.640, -1.560, zz, s2, lung, rr, PIETRA,
-                     pitch_deg=pit)
-
-    # ------------------------------------------------------------ cornice
-    _bm_box(bm_w, Mi, cx_vis, y_c, z1 + 0.028, w_vis + 0.10, 1.60, 0.056)
-    _bm_box(bm_p, Mi, cx_vis, y_c, z1 + 0.082, w_vis + 0.17, 1.54, 0.052)
-    _bm_box(bm_w, Mi, cx_vis, y_c, z1 + 0.138, w_vis + 0.06, 1.48, 0.064)
-    # dentelli e perline d'angolo della cornice
-    for s2 in (-1, 1):
-        for zz in (z1 + 0.028, z1 + 0.082):
-            _bm_box(bm_p, Mi, cx_vis + s2 * (w_vis * 0.5 + 0.050), -1.680, zz, 0.070, 0.230, 0.052)
-    for i in range(6):
-        _bm_box(bm_p, Mi, cx_vis - 0.500 + i * 0.200, -1.660, z1 + 0.028, 0.105, 0.240, 0.048)
-
-    # ========================================================== CORONAMENTO
-    # Il colmo della torre, come in `riferimento_apice.jpg`, e' un grappolo
-    # compatto: cornice a tre fili, plinto ottagonale, otto pinnacoli di due
-    # misure, lanterna traforata con la statuetta del santo, guglia
-    # crochettata e statua sommitale.
-    z_pl = z1 + 0.235                       # colmo del plinto ottagonale
-    _bm_lathe(bm_w, Mi @ Matrix.Translation((cx_vis, y_c, z1 + 0.150)),
-              ((0.000, 0.585), (0.030, 0.585), (0.044, 0.545)), seg=8, sy=1.0)
-    _bm_lathe(bm_r, Mi @ Matrix.Translation((cx_vis, y_c, z1 + 0.186)),
-              ((0.000, 0.525), (0.032, 0.525), (0.048, 0.495)), seg=8, sy=1.0)
-
-    # otto pinnacoli: quattro diagonali piu' alti, quattro sui lati
-    for k in range(8):
-        a = math.tau * k / 8.0 + math.pi * 0.25
-        px = cx_vis + 0.448 * math.cos(a)
-        py = y_c + 0.470 * math.sin(a)
-        grande = 0.58 < abs(math.sin(a)) < 0.80
-        alt = 2.06 if grande else 1.44
-        lar = 0.450 if grande else 0.350
-        # dado d'appoggio
-        _bm_box(bm_w, Mi, px, py, z_pl - 0.048, lar * 1.02, lar * 1.02, 0.108)
-        _bm_box(bm_p, Mi, px, py, z_pl - 0.104, lar * 1.14, lar * 1.14, 0.034)
-        _bm_pinnacolo_torre(bm_w, bm_p, bm_s, Mi, px, py, z_pl - 0.004, alt, lar)
-
-    # ------------------------------------------------ lanterna traforata
-    z_l0 = z_pl + 0.18
-    z_l1 = z_l0 + 0.60
-    _bm_lathe(bm_w, Mi @ Matrix.Translation((cx_vis, y_c, z_l0 - 0.070)),
-              ((0.000, 0.330), (0.026, 0.330), (0.042, 0.300)), seg=8, sy=1.0)
-    # nucleo in ombra: fa leggere il traforo a distanza
-    _bm_lathe(bm_p, Mi @ Matrix.Translation((cx_vis, y_c, z_l0)),
-              ((0.000, 0.255), (0.700, 0.255)), seg=8, sy=1.0)
+def _bm_finnial_torre(bm_w, bm_p, M, x, y, z0, alt, larg):
+    """Pinnacoletto laterale del coronamento: dado, fusto a costole, cresta
+    fogliata a sega e bocciolo a tulipano.  Nella fotografia i pinnacoli
+    laterali NON hanno una guglia propria: finiscono con un bocciolo."""
+    hw = larg * 0.5
+    _bm_box(bm_w, M, x, y, z0 + 0.035, larg * 1.30, larg * 1.30, 0.070)
+    _bm_box(bm_p, M, x, y, z0 + 0.088, larg * 1.08, larg * 1.08, 0.046)
+    h_f = alt * 0.52
+    _bm_box(bm_w, M, x, y, z0 + 0.11 + h_f * 0.5, larg * 0.72, larg * 0.72, h_f)
+    for sx2 in (-1, 1):
+        for sy2 in (-1, 1):
+            _bm_box(bm_w, M, x + sx2 * hw * 0.42, y + sy2 * hw * 0.42,
+                    z0 + 0.11 + h_f * 0.5, larg * 0.22, larg * 0.22, h_f * 1.02)
+    # cresta fogliata: foglie verticali a sega sui quattro spigoli
     for k in range(4):
         a = math.tau * k / 4.0 + math.pi * 0.25
-        _bm_colonnina_torre(bm_w, bm_p, Mi,
-                            cx_vis + 0.286 * math.cos(a), y_c + 0.318 * math.sin(a),
-                            z_l0, z_l1, 0.046, lobi=6, base=False)
-    # archetti aperti sui quattro lati, con ghimberghe a gattoni
-    for k in range(4):
-        R = Matrix.Rotation(k * math.pi * 0.5 + math.pi * 0.25, 4, "Z")
-        Fl = (Mi @ Matrix.Translation((cx_vis, y_c, 0.0)) @ R)
-        _bm_arco_acuto(bm_w, Fl, 0.0, -0.262, z_l0 + 0.26, 0.330, 0.24, 0.026,
-                       seg_u=12, seg_v=6)
-        _bm_ghimberga(bm_w, Fl, 0.0, 0.215, z_l0 + 0.26 + 0.14,
-                      z_l0 + 0.26 + 0.14 + 0.30, -0.278, 0.024, 0.034,
-                      crockets=bm_p, n_croc=3, croc_size=0.038)
-    # statuetta del santo dentro la lanterna, rivolta al fronte
-    statua_gotica_v26(
-        f"Statuetta_Lanterna_{tag}", ST, cx_vis, y_c - 0.235, z_l0 + 0.030,
-        0.50, spec=dict(gesto="croce", barba=0.45, copricapo="cappuccio",
-                        yaw=0.0, nod=0.05, seed=3 if side > 0 else 7, lato=1),
-        material=PIETRA_RIL,
-    )
-    # cornice di coronamento della lanterna
-    _bm_lathe(bm_w, Mi @ Matrix.Translation((cx_vis, y_c, z_l1)),
-              ((0.000, 0.300), (0.024, 0.335), (0.048, 0.335), (0.064, 0.280)),
-              seg=8, sy=1.0)
-    _bm_lathe(bm_p, Mi @ Matrix.Translation((cx_vis, y_c, z_l1 + 0.058)),
-              ((0.000, 0.300), (0.028, 0.272), (0.042, 0.242)), seg=8, sy=1.0)
+        ca, sa = math.cos(a), math.sin(a)
+        for j in range(3):
+            t = j / 2.0
+            Mf = (M @ Matrix.Translation((x + ca * hw * 0.46, y + sa * hw * 0.46,
+                                          z0 + 0.14 + h_f * (0.55 + 0.42 * t)))
+                  @ Vector((ca, sa, 1.15)).normalized()
+                  .to_track_quat("Z", "Y").to_matrix().to_4x4())
+            _bm_foglia(bm_p, alt * 0.20 * (1.0 - 0.22 * t), larg * 0.30,
+                       larg * 0.11, Mf, piega=0.24, gonfia=1.25)
+    # bocciolo a tulipano
+    z_b = z0 + 0.11 + h_f
+    _bm_lathe(bm_p, M @ Matrix.Translation((x, y, z_b)),
+              ((0.000, hw * 0.30), (0.045, hw * 0.52), (0.120, hw * 0.60),
+               (0.200, hw * 0.34), (0.260, hw * 0.10)),
+              seg=10, sy=1.0)
+    _bm_sfera(bm_p, M, x, y, z_b + alt * 0.30, hw * 0.20, sz=1.35, u=8, v=6)
 
-    # ------------------------------------------- guglia crochettata
-    z_g0 = z_l1 + 0.100
-    z_g1 = z_g0 + 0.56
-    # nucleo pieno rastremato: nella fotografia la guglia e' un cono di
-    # fogliame, non un traliccio nel vuoto
-    _bm_lathe(bm_w, Mi @ Matrix.Translation((cx_vis, y_c, z_g0 - 0.02)),
-              ((0.000, 0.196), (0.120, 0.170), (0.250, 0.128),
-               (0.390, 0.082), (0.500, 0.040), (0.560, 0.014)),
-              seg=14, sy=1.0, rib=0.09, rib_n=7)
-    # otto costole in rilievo, dal piede alla punta
+
+def _torre_pinnacolo(side, cx_vis, w_vis, cx, tag):
+    """v3.3 — Fusto a lastre di marmo bianco con due specchiature, registro
+    grande di due lancette con ghimberghe, registro piccolo sotto la cornice,
+    fasce a dente di cane, doccioni diagonali agli spigoli e coronamento
+    PIENO: guglia scolpita a fogliame con figure e doccioni, quattro
+    pinnacoletti a bocciolo e grande statua sommitale.  Niente piu' lanterna
+    traforata con i vani neri, che nella fotografia non esiste."""
+    bm_w = bmesh.new()      # marmo bianco: lastre, lesene, cornici, guglia
+    bm_p = bmesh.new()      # pietra scolpita: gattoni, foglie, doccioni
+    bm_s = bmesh.new()      # serpentino: solo fili d'ombra sotto le fasce
+    bm_r = bmesh.new()      # marmo rosato chiaro: vena centrale e fondi lancette
+    Mi = Matrix.Identity(4)
+
+    z0, z1 = 19.58, 27.30            # fusto fra il registro basso e la cornice
+    hw = w_vis * 0.5                 # 0.67 m
+    y_c = -1.02                      # asse del coronamento
+
+    # quote dei registri (uguali su fronte e fianco esterno)
+    Z_BANDA = (21.92, 24.52, 25.98)  # fasce a dente di cane
+    ZB_LANC, ZS_LANC = 22.14, 23.28  # registro grande: corpo e imposta arco
+    RISE_LANC = 0.44
+    ZB_MINI, ZS_MINI = 26.18, 26.58  # registro piccolo sotto la cornice
+    RISE_MINI = 0.26
+
+    def fascia(frame, hwl, zb):
+        """Fascia marcapiano senese: filo d'ombra, lastra aggettante e fila
+        di dentelli a diamante (il 'dente di cane' della fotografia)."""
+        _bm_box(bm_s, frame, 0.0, -0.006, zb - 0.052, hwl * 2.0 + 0.05, 0.030, 0.026)
+        _bm_box(bm_w, frame, 0.0, -0.028, zb, hwl * 2.0 + 0.10, 0.085, 0.075)
+        n = max(5, int((hwl * 2.0) / 0.115))
+        for i in range(n):
+            xx = -hwl + (i + 0.5) * (2.0 * hwl / n)
+            _bm_box(bm_p, frame, xx, -0.058, zb - 0.085, 0.062, 0.045, 0.062,
+                    rot=Matrix.Rotation(math.pi * 0.25, 4, "Y"))
+
+    def lancetta(frame, xx, zb, zs, span, rise, ghimberga_h, infill=True):
+        """Lancetta cieca grande: fondo rosato chiaro incassato, doppia
+        ghiera, montanti e ghimberga piena crochettata con bottone."""
+        if infill:
+            _bm_lastra(bm_r, frame,
+                       [(xx - span * 0.26, zb), (xx + span * 0.26, zb),
+                        (xx + span * 0.26, zs), (xx, zs + rise * 0.82),
+                        (xx - span * 0.26, zs)],
+                       0.020, y0=-0.026)
+        _bm_arco_acuto(bm_w, frame, xx, -0.040, zs, span, rise, 0.030,
+                       seg_u=14, seg_v=6)
+        _bm_arco_acuto(bm_p, frame, xx, -0.052, zs, span * 0.78, rise * 0.82,
+                       0.014, seg_u=14, seg_v=5)
+        for s2 in (-1, 1):
+            _bm_box(bm_w, frame, xx + s2 * span * 0.50, -0.038,
+                    (zb + zs) * 0.5, 0.034, 0.055, zs - zb)
+        if ghimberga_h > 0:
+            # timpano pieno della ghimberga (nella foto non e' un contorno)
+            _bm_lastra(bm_w, frame,
+                       [(xx - span * 0.60, zs + rise * 0.50),
+                        (xx + span * 0.60, zs + rise * 0.50),
+                        (xx, zs + rise * 0.55 + ghimberga_h)],
+                       0.030, y0=-0.030)
+            _bm_ghimberga(bm_w, frame, xx, span * 0.60, zs + rise * 0.55,
+                          zs + rise * 0.55 + ghimberga_h, -0.034, 0.034, 0.045,
+                          crockets=bm_p, n_croc=4, croc_size=0.052)
+            _bm_sfera(bm_p, frame, xx, -0.052, zs + rise * 0.55 + ghimberga_h + 0.02,
+                      0.034, sz=1.45, u=8, v=6)
+
+    def faccia(frame, hwl):
+        """Una faccia della torre in coordinate locali: x sulla larghezza,
+        y negativo verso l'osservatore, z assoluta."""
+        # lastra di fondo in marmo bianco (niente piu' pannelli rosa scuro)
+        _bm_box(bm_w, frame, 0.0, 0.030, (z0 + z1) * 0.5,
+                hwl * 2.0, 0.070, (z1 - z0) - 0.10)
+        # lesene piatte: due agli spigoli, una centrale (la foto ne mostra
+        # 3), ma a tratti: si fermano sotto i registri di lancette
+        for xx, wl in ((-hwl * 0.93, 0.15), (0.0, 0.11), (hwl * 0.93, 0.15)):
+            for za, zb2 in ((z0 + 0.10, ZB_LANC - 0.05),
+                            (Z_BANDA[1] + 0.07, ZB_MINI - 0.05),
+                            (ZS_MINI + RISE_MINI + 0.34, z1 - 0.06)):
+                _bm_box(bm_w, frame, xx, -0.018, (za + zb2) * 0.5,
+                        wl, 0.055, zb2 - za)
+                _bm_box(bm_p, frame, xx, -0.030, (za + zb2) * 0.5,
+                        wl * 0.34, 0.030, zb2 - za)
+        # vena salmone sottile al centro di ciascuna delle due specchiature:
+        # due sole strisce chiare, interrotte dai registri e dalle fasce
+        for xx in (-hwl * 0.47, hwl * 0.47):
+            for za, zb2 in ((z0 + 0.14, Z_BANDA[0] - 0.10),
+                            (Z_BANDA[1] + 0.10, Z_BANDA[2] - 0.10)):
+                _bm_box(bm_r, frame, xx, -0.012, (za + zb2) * 0.5,
+                        hwl * 0.26, 0.026, zb2 - za)
+        # registro grande: DUE lancette con ghimberghe (non quattro piccole)
+        for xx in (-hwl * 0.47, hwl * 0.47):
+            lancetta(frame, xx, ZB_LANC, ZS_LANC, hwl * 0.60, RISE_LANC, 0.62)
+        # registro piccolo sotto la cornice: tre lancette strette
+        for xx in (-hwl * 0.60, 0.0, hwl * 0.60):
+            lancetta(frame, xx, ZB_MINI, ZS_MINI, hwl * 0.36, RISE_MINI, 0.30,
+                     infill=False)
+            _bm_box(bm_r, frame, xx, -0.024, (ZB_MINI + ZS_MINI) * 0.5,
+                    hwl * 0.09, 0.018, ZS_MINI - ZB_MINI)
+        for zb in Z_BANDA:
+            fascia(frame, hwl, zb)
+        # zoccolo d'imposta della faccia
+        _bm_box(bm_w, frame, 0.0, -0.026, z0 + 0.055, hwl * 2.0 + 0.08, 0.080, 0.11)
+
+    # fronte e fianco esterno (quello che si vede in tre quarti)
+    faccia(Matrix.Translation((cx_vis, -1.638, 0.0)), hw)
+    faccia(Matrix.Translation((cx_vis + side * 0.675, -0.95, 0.0))
+           @ Matrix.Rotation(side * math.pi * 0.5, 4, "Z"), 0.585)
+
+    # ------------------------------------------------------------ doccioni
+    # due quote, agli spigoli frontali, protesi in diagonale in fuori
+    for zz in (Z_BANDA[0] + 0.06, Z_BANDA[2] + 0.04):
+        for s2 in (-1, 1):
+            _bm_doccione_torre(bm_p, Vector((cx_vis + s2 * 0.60, -1.60, zz)),
+                               s2 * 0.72, -0.70, 0.66, 0.100)
+
+    # ------------------------------------------------------------ cornice
+    for i, (dz, ag, dep) in enumerate(((0.055, 0.14, 1.62), (0.135, 0.22, 1.56),
+                                       (0.215, 0.12, 1.50))):
+        _bm_box(bm_w if i != 1 else bm_p, Mi, cx_vis, y_c + 0.06, z1 + dz,
+                w_vis + ag, dep, 0.075)
+    for i in range(9):
+        _bm_box(bm_p, Mi, cx_vis - 0.56 + i * 0.14, -1.80, z1 + 0.055,
+                0.075, 0.10, 0.062, rot=Matrix.Rotation(math.pi * 0.25, 4, "Y"))
+
+    # ========================================================== CORONAMENTO
+    # Grappolo pieno e scolpito, come nella fotografia: plinto ottagonale,
+    # quattro pinnacoletti a bocciolo, guglia centrale interamente coperta
+    # di fogliame con figure e doccioni, capitello fogliato e statua.
+    z_pl = z1 + 0.30
+    _bm_lathe(bm_w, Mi @ Matrix.Translation((cx_vis, y_c, z1 + 0.235)),
+              ((0.000, 0.600), (0.035, 0.600), (0.060, 0.545)), seg=8, sy=1.0)
+    _bm_lathe(bm_r, Mi @ Matrix.Translation((cx_vis, y_c, z1 + 0.270)),
+              ((0.000, 0.545), (0.038, 0.545), (0.055, 0.505)), seg=8, sy=1.0)
+
+    # quattro pinnacoletti diagonali a bocciolo
+    for k in range(4):
+        a = math.tau * k / 4.0 + math.pi * 0.25
+        px = cx_vis + 0.46 * math.cos(a)
+        py = y_c + 0.46 * math.sin(a)
+        _bm_finnial_torre(bm_w, bm_p, Mi, px, py, z_pl, 1.00, 0.30)
+
+    # ------------------------------------------- guglia centrale scolpita
+    z_s0, z_s1 = z_pl + 0.06, z_pl + 2.12
+    _bm_lathe(bm_w, Mi @ Matrix.Translation((cx_vis, y_c, z_s0 - 0.10)),
+              ((0.000, 0.335), (0.070, 0.315), (0.120, 0.275)), seg=8, sy=1.0)
+    _bm_lathe(bm_w, Mi @ Matrix.Translation((cx_vis, y_c, z_s0)),
+              ((0.000, 0.320), (0.500, 0.270), (1.010, 0.205),
+               (1.550, 0.145), (1.930, 0.095), (2.120, 0.052)),
+              seg=14, sy=1.0, rib=0.14, rib_n=8)
+    # gattoni a corona su tutta la guglia (e' un cono di fogliame)
+    for j in range(6):
+        t = 0.04 + 0.155 * j
+        rr = 0.320 * (1.0 - t) + 0.030 * t
+        for k in range(8):
+            a = math.tau * k / 8.0 + (math.pi * 0.125 if j % 2 else 0.0)
+            ca, sa = math.cos(a), math.sin(a)
+            Mf = (Mi @ Matrix.Translation((cx_vis + rr * ca, y_c + rr * sa,
+                                           z_s0 + (z_s1 - z_s0) * t))
+                  @ Vector((ca, sa, 0.55)).normalized()
+                  .to_track_quat("Z", "Y").to_matrix().to_4x4())
+            _bm_foglia(bm_p, 0.135 * (1.0 - 0.30 * t), 0.085, 0.036, Mf,
+                       piega=0.30, gonfia=1.35)
+    # due doccioni che sporgono dalla guglia a mezza altezza
+    for s2 in (-1, 1):
+        _bm_doccione_torre(bm_p, Vector((cx_vis + s2 * 0.16, y_c - 0.16,
+                                         z_s0 + 0.92)),
+                           s2 * 0.68, -0.74, 0.46, 0.070)
+    # figure nelle nicchie della guglia: fronte e fianco esterno
+    for k, (fx, fy, rot) in enumerate((
+            (cx_vis, y_c - 0.275, 0.0),
+            (cx_vis + side * 0.275, y_c, side * math.pi * 0.5))):
+        _bm_lathe(bm_p, Mi @ Matrix.Translation((fx, fy, z_s0 + 0.02)),
+                  ((0.000, 0.085), (0.035, 0.105), (0.070, 0.070)), seg=10, sy=1.0)
+        statua_gotica_v26(
+            f"Figura_Guglia_Torre_{tag}_{k}", ST, fx, fy, z_s0 + 0.055, 0.44,
+            spec=dict(gesto="petto" if k == 0 else "libro", barba=0.35,
+                      copricapo="cappuccio", yaw=0.0, nod=0.08,
+                      seed=5 + k * 7, lato=1, rot_z=rot,
+                      scala_plinto=0.55),
+            material=PIETRA_RIL)
+
+    # -------------------------------- capitello fogliato e statua sommitale
+    _bm_lathe(bm_p, Mi @ Matrix.Translation((cx_vis, y_c, z_s1 - 0.03)),
+              ((0.000, 0.070), (0.055, 0.120), (0.130, 0.160),
+               (0.190, 0.125), (0.225, 0.095)),
+              seg=12, sy=1.0, rib=0.10, rib_n=8)
     for k in range(8):
         a = math.tau * k / 8.0
-        ca, sa = math.cos(a), math.sin(a)
-        pts, raggi = [], []
-        for j in range(6):
-            t = j / 5.0
-            rr = 0.196 * (1.0 - t) + 0.022 * t
-            pts.append((cx_vis + rr * ca, y_c + rr * sa, z_g0 + (z_g1 - z_g0) * t))
-            raggi.append(0.020 * (1.0 - 0.42 * t))
-        _bm_sweep24(bm_w, Mi, pts, raggi, lati=7, ellisse=1.0, campioni=2)
-    # gattoni a corona e nodo (knop) a meta' altezza
-    for k in range(8):
-        a = math.tau * k / 8.0 + (math.pi * 0.125 if k % 2 else 0.0)
-        ca, sa = math.cos(a), math.sin(a)
-        for j in range(6):
-            t = 0.05 + 0.170 * j
-            rr = 0.196 * (1.0 - t) + 0.022 * t
-            Mf = (Mi @ Matrix.Translation((cx_vis + rr * ca, y_c + rr * sa,
-                                           z_g0 + (z_g1 - z_g0) * t))
-                  @ Vector((ca, sa, 0.40)).normalized()
-                  .to_track_quat("Z", "Y").to_matrix().to_4x4())
-            _bm_foglia(bm_p, 0.092 * (1.0 - 0.18 * t), 0.076, 0.030, Mf,
-                       piega=0.32, gonfia=1.35)
-    _bm_lathe(bm_p, Mi @ Matrix.Translation((cx_vis, y_c, z_g0 + 0.300)),
-              ((0.000, 0.124), (0.024, 0.146), (0.048, 0.146), (0.070, 0.108)),
-              seg=10, sy=1.0, rib=0.06, rib_n=8)
-    # fiorone apicale: calice fogliato e bottone
-    _bm_lathe(bm_p, Mi @ Matrix.Translation((cx_vis, y_c, z_g1 - 0.040)),
-              ((0.000, 0.076), (0.058, 0.096), (0.124, 0.048), (0.166, 0.016)),
-              seg=10, sy=1.0)
-    for k in range(6):
-        a = math.tau * k / 6.0
-        Mf = (Mi @ Matrix.Translation((cx_vis + 0.056 * math.cos(a),
-                                       y_c + 0.056 * math.sin(a), z_g1 + 0.006))
-              @ Vector((math.cos(a), math.sin(a), 0.95)).normalized()
+        Mf = (Mi @ Matrix.Translation((cx_vis + 0.110 * math.cos(a),
+                                       y_c + 0.110 * math.sin(a), z_s1 + 0.055))
+              @ Vector((math.cos(a), math.sin(a), 1.05)).normalized()
               .to_track_quat("Z", "Y").to_matrix().to_4x4())
-        _bm_foglia(bm_p, 0.140, 0.056, 0.028, Mf, piega=0.20, gonfia=1.2)
-
-    # ---------------------------------------------- grande statua sommitale
-    z_st = z_g1 + 0.165
-    _bm_lathe(bm_w, Mi @ Matrix.Translation((cx_vis, y_c, z_st - 0.115)),
-              ((0.000, 0.125), (0.026, 0.140), (0.070, 0.120), (0.104, 0.086)),
-              seg=8, sy=1.0, rib=0.05, rib_n=8)
-    for k in range(8):
-        a = math.tau * k / 8.0 + math.pi * 0.125
-        Mf = (Mi @ Matrix.Translation((cx_vis + 0.112 * math.cos(a),
-                                       y_c + 0.112 * math.sin(a), z_st - 0.070))
-              @ Vector((math.cos(a), math.sin(a), 1.10)).normalized()
-              .to_track_quat("Z", "Y").to_matrix().to_4x4())
-        _bm_foglia(bm_p, 0.070, 0.034, 0.017, Mf, piega=0.16, gonfia=1.25)
+        _bm_foglia(bm_p, 0.135, 0.062, 0.030, Mf, piega=0.18, gonfia=1.25)
     statua_gotica_v26(
-        f"Statua_Sommitale_Torre_{tag}", ST, cx_vis, y_c - 0.010, z_st,
-        1.34,
+        f"Statua_Sommitale_Torre_{tag}", ST, cx_vis, y_c - 0.010, z_s1 + 0.20,
+        1.42,
         spec=dict(
             gesto=("croce" if side < 0 else "libro"),
             barba=(0.30 if side < 0 else 0.0),
@@ -5164,8 +5205,7 @@ def _torre_pinnacolo(side, cx_vis, w_vis, cx, tag):
     _mesh_da_bmesh(f"Torre_Fusto_Marmo_{tag}", G, bm_w, BIANCO)
     _mesh_da_bmesh(f"Torre_Fusto_Scolpito_{tag}", G, bm_p, PIETRA_RIL)
     _mesh_da_bmesh(f"Torre_Fusto_Serpentino_{tag}", G, bm_s, VERDE)
-    _mesh_da_bmesh(f"Torre_Fusto_Rigato_{tag}", G, bm_r, RIGATO)
-
+    _mesh_da_bmesh(f"Torre_Fusto_Rigato_{tag}", G, bm_r, ROSA_C)
 
 
 def pilastro_centrale_completo(side):
@@ -5175,7 +5215,7 @@ def pilastro_centrale_completo(side):
     # mentre una spalla interna a |x| = 4.42..4.70 m raccorda la cuspide
     # centrale sopra la trabeazione.
     cx_vis = side * 5.35
-    w_vis = 1.34
+    w_vis = 1.40
     cx = side * 5.18
     tag = "Sx" if side < 0 else "Dx"
     h_shaft = Z_PIL_TOP - Z_GALLERIA
@@ -6720,7 +6760,7 @@ else:
         camera_rot_main = cam.rotation_euler.copy()
         lens_main = cam.data.lens
         res_main = (scene.render.resolution_x, scene.render.resolution_y)
-        if not (_salta_tutto or _salta_centrali):
+        if not (_salta_centrali or (_salta_tutto and not _solo_torri)):
             target_detail = Vector((-0.12 * SCALA, -1.40 * SCALA, 28.98 * SCALA))
             cam.location = (-0.50 * SCALA, -34.5 * SCALA, 16.5 * SCALA)
             cam.rotation_euler = (target_detail - cam.location).to_track_quat("-Z", "Y").to_euler()
@@ -6735,7 +6775,7 @@ else:
         # v2.5: obiettivo abbassato e camera arretrata per includere anche le
         # mezze figure dei pennacchi, come nel taglio della fotografia
         # `riferimento_galleria.jpg` (nella v2.4 restavano fuori campo).
-        if not (_solo_rosone or _solo_cuspidi or _salta_centrali):
+        if not (_solo_rosone or _solo_cuspidi or _solo_torri or _salta_centrali):
             target_galleria = Vector((0.0, -1.50 * SCALA, 23.25 * SCALA))
             cam.location = (0.0, -22.00 * SCALA, 23.55 * SCALA)
             cam.rotation_euler = (target_galleria - cam.location).to_track_quat("-Z", "Y").to_euler()
@@ -6748,7 +6788,7 @@ else:
 
         # Quarta inquadratura (v2.7): il rosone e le statue che lo circondano,
         # inquadrati come nella fotografia di riferimento `riferimento_vetrata.jpg`.
-        if not (_solo_cuspidi or _salta_centrali):
+        if not (_solo_cuspidi or _solo_torri or _salta_centrali):
             target_rosone = Vector((0.0, -1.45 * SCALA, (Z_PAN + 0.88) * SCALA))
             cam.location = (0.0, -15.0 * SCALA, (Z_PAN + 0.88) * SCALA)
             cam.rotation_euler = (target_rosone - cam.location).to_track_quat("-Z", "Y").to_euler()
@@ -6772,9 +6812,25 @@ else:
             bpy.ops.render.render(write_still=True)
             print("Dettaglio delle due torri salvato: anteprima_torri.png")
 
+            # v3.3: primi piani verticali di ciascuna torre (model_sx.png /
+            # model_dx.png), usati da crea_confronto_torri.py.  Prima erano
+            # render manuali fatti in Blender e non rigenerabili da script.
+            for _side_t, _nome_t in ((-1, "model_sx.png"), (1, "model_dx.png")):
+                _cx_t = _side_t * 5.35
+                target_t = Vector((_cx_t * SCALA, -1.55 * SCALA, 24.55 * SCALA))
+                cam.location = ((_cx_t + _side_t * 1.90) * SCALA,
+                                -20.50 * SCALA, 23.40 * SCALA)
+                cam.rotation_euler = (target_t - cam.location).to_track_quat("-Z", "Y").to_euler()
+                cam.data.lens = 45.0
+                scene.render.resolution_x = int(os.environ.get("CHIESA_TORRE1_RES_X", 520))
+                scene.render.resolution_y = int(os.environ.get("CHIESA_TORRE1_RES_Y", 1420))
+                scene.render.filepath = os.path.join(OUT_DIR, _nome_t)
+                bpy.ops.render.render(write_still=True)
+                print(f"Primo piano torre salvato: {_nome_t}")
+
         # Quinta inquadratura (v2.9): lo stesso taglio panoramico 3120×1146
         # del nuovo riferimento, con statue apicali intere e rosone in asse.
-        if not (_solo_galleria or _solo_rosone):
+        if not (_solo_galleria or _solo_rosone or _solo_torri):
             target_cusp = Vector((0.0, -1.45 * SCALA, 22.33 * SCALA))
             cam.location = (0.0, -28.0 * SCALA, 22.33 * SCALA)
             cam.rotation_euler = (target_cusp - cam.location).to_track_quat("-Z", "Y").to_euler()
@@ -6811,7 +6867,7 @@ if "gltf" in EXPORT.get("formats", []) and not os.environ.get("CHIESA_NO_GLB"):
     except Exception as e:
         print(f"Export GLB non riuscito: {e}")
 
-print("Generazione v3.2 completata!")
+print("Generazione v3.3 completata!")
 sys.stdout.flush()
 sys.stderr.flush()
 if "bpy" in sys.modules and not bpy.app.binary_path:
