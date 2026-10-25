@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Confronto fotografia / modello delle due torri-pinnacolo (v3.2).
+"""Confronto fotografia / modello delle due torri-pinnacolo (v3.3).
 
-Ritaglia dalla fotografia di riferimento `riferimento_apice.jpg` le due torri,
-le affianca ai render dedicati `model_sx.png` / `model_dx.png` e ritaglia
-automaticamente il cielo attorno al modello.
+Ritaglia dalla nuova fotografia frontale `riferimento_torri.jpg` le due
+torri, le affianca ai render dedicati `model_sx.png` / `model_dx.png`
+(rigenerati da `genera_facciata.py`) e ritaglia il cielo attorno al modello.
 """
 from PIL import Image, ImageChops, ImageDraw, ImageFont
 
@@ -39,12 +39,21 @@ def auto_crop_sky(im, pad=10):
     return rgb.crop((x0, y0, x1, y1))
 
 
-def cella(path, box, size, crop_sky=False):
+def cella(path, box, size):
     im = Image.open(path).convert("RGB")
     if box:
         im = im.crop(box)
-    if crop_sky:
-        im = auto_crop_sky(im)
+    im.thumbnail(size, Image.LANCZOS)
+    return im
+
+
+def cella_modello(path, size):
+    """Render della torre: tiene la banda centrale con la torre, poi
+    ritaglia il cielo restante."""
+    im = Image.open(path).convert("RGB")
+    w, h = im.size
+    im = im.crop((int(w * 0.20), int(h * 0.01), int(w * 0.84), int(h * 0.99)))
+    im = auto_crop_sky(im)
     im.thumbnail(size, Image.LANCZOS)
     return im
 
@@ -60,14 +69,15 @@ def main():
     pad = 10
     cell_h = H_OUT - HEADER - 76
 
-    sx_ph = cella("riferimento_apice.jpg", (30, 830, 390, 2160), (col_w, cell_h))
-    dx_ph = cella("riferimento_apice.jpg", (1785, 830, 2145, 2160), (col_w, cell_h))
-    sx_md = cella("model_sx.png", None, (col_w, cell_h))
-    dx_md = cella("model_dx.png", None, (col_w, cell_h))
+    # torri nella fotografia allegata (1997x3043): statua compresa
+    sx_ph = cella("riferimento_torri.jpg", (18, 85, 352, 2420), (col_w, cell_h))
+    dx_ph = cella("riferimento_torri.jpg", (1642, 85, 1976, 2420), (col_w, cell_h))
+    sx_md = cella_modello("model_sx.png", (col_w, cell_h))
+    dx_md = cella_modello("model_dx.png", (col_w, cell_h))
 
     caselle = [sx_ph, sx_md, dx_ph, dx_md]
-    etichette = ["FOTOGRAFIA\ntorre sinistra", "MODELLO v3.2\ntorre sinistra",
-                 "FOTOGRAFIA\ntorre destra", "MODELLO v3.2\ntorre destra"]
+    etichette = ["FOTOGRAFIA\ntorre sinistra", "MODELLO v3.3\ntorre sinistra",
+                 "FOTOGRAFIA\ntorre destra", "MODELLO v3.3\ntorre destra"]
     for i, (im, lab) in enumerate(zip(caselle, etichette)):
         x0 = 18 + i * (col_w + pad)
         y0 = HEADER + 6
@@ -79,19 +89,19 @@ def main():
                             fill=(255, 255, 255), spacing=2)
 
     draw.text((18, 6),
-              "LE DUE TORRI-PINNACOLO — fusto, lancette, carellature e coronamento",
+              "LE DUE TORRI-PINNACOLO — fusto, lancette, fasce e coronamento",
               font=f_title, fill=(255, 255, 255))
     draw.text((18, 50),
-              "v3.2 — cinque colonnine scanalate con capitelli fogliati e specchiature in marmo rigato rosa; "
-              "due registri di lancette cieche; tre fasce di carellature;",
+              "v3.3 — fusto a lastre di marmo bianco con tre lesene piatte e due vene salmone; "
+              "registro grande di due lancette con ghimberghe piene;",
               font=f_sub, fill=(214, 219, 228))
     draw.text((18, 72),
-              "otto doccioni zoomorfi; cornice a tre fili; otto pinnacoli; lanterna traforata col santo; "
-              "guglia crochettata con nodo; statua sommitale a figura intera.",
+              "tre fasce a dente di cane; doccioni diagonali agli spigoli; coronamento pieno: "
+              "pinnacoletti a bocciolo, guglia fogliata con figure, statua sommitale.",
               font=f_sub, fill=(214, 219, 228))
     draw.text((18, 100),
-              "Prima della v3.2: prisma con cinque costoloni piatti, due stecche al posto dei doccioni, "
-              "tabernacolo a cono e figurina tozza.",
+              "Prima della v3.3: fusto a colonnine su pannelli rosa a righe e lanterna traforata "
+              "con vani neri, che nella fotografia non esiste.",
               font=f_sub, fill=(150, 165, 190))
 
     canvas.save("confronto_torri.png")
