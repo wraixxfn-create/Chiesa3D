@@ -12,6 +12,7 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 | `anteprima_apice.png` | Render ravvicinato della cuspide centrale, delle **due torri-pinnacolo** e dell'angelo (Cycles CPU, 64 campioni, 900×1022) |
 | `anteprima_torri.png` | Panoramica delle due torri-pinnacolo con i registri di lancette, i doccioni e i coronamenti (Cycles CPU, 64 campioni, 1500×820) |
 | `confronto_torri.png` | Confronto fotografia allegata / v3.3 di ciascuna torre: fusto a lastre, due grandi lancette, fasce a dente di cane, coronamento pieno e statua |
+| `confronto_v36.png` | Confronto d'insieme fotografia / v3.5 / v3.6: portali con lunette e ghimberghe sopra gli archi, torrioni esterni rifatti e gradinata a gradoni pieni |
 | `anteprima_rosone.png` | Il rosone e tutte le statue che lo circondano, inquadrati come nella fotografia di dettaglio (Cycles CPU, 48 campioni, 1453×1582) |
 | `confronto_rosone.png` | Confronto fotografia / versione 2.6 / versione 2.7 del rosone, della vetrata e delle sculture |
 | `anteprima_cuspidi.png` | Il rosone al centro e i due frontoni dei mosaici ai lati, nello stesso taglio panoramico del nuovo riferimento (Cycles CPU, 64 campioni, 1800×660) |
@@ -33,6 +34,54 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
+
+## Versione 3.6 — tre migliorie sotto la parte centrale superiore
+
+Confronto diretto fra il render v3.5 e la fotografia d'insieme del Duomo
+vero: la parte centrale in alto (cuspide, rosone e i due triangoli dei
+mosaici) reggeva, il resto No. Tre soli interventi, tutti sotto quella
+zona, che resta intatta (`confronto_v36.png`: foto / v3.5 / v3.6):
+
+1. **I tre portali di Giovanni Pisano.** Era la divergenza più grave:
+   `quota_imposta_portali` in config valeva 12,6 m mentre tutto
+   l'ordine inferiore (piloni, contrafforti, portali) è disegnato a
+   8,45 m, così lunette e archivolti galleggiavano 4 m sopra i portoni
+   e il prisma pieno della ghimberga li copriva — nel render l'arco
+   finiva «dentro» un triangolo piatto e vuoto. Ripristinata
+   l'imposta, la lunetta è una **vera semiluna** con corda
+   sull'imposta (sole di San Bernardino al centro, ghirlanda su
+   timpanetto ai lati) e il campo della ghimberga è il **pennacchio
+   sopra l'estradosso** (`campo_ghimberga`: triangolo meno il disco
+   dell'arco), arretrato dietro le ghiere, con filetto rosato
+   sull'estradosso e medaglione col busto fra arco e apice. Ghiere e
+   colonnine tortili passano dal rosa saturo al **rosato chiaro**
+   senese, e le statue dei piloni nella valle fra le falde sono ora
+   figure a tutto tondo (`statua_gotica_v26`) davanti alle falde,
+   sul leone a sbalzo.
+2. **I due torrioni angolari esterni** (Sez. 8, la parte più vecchia
+   del modello). Doccioni **corti, grossi e inclinati** con innesto
+   sulla faccia laterale, come il grande drago della foto — prima
+   erano stecche orizzontali lunghe fino a 1,95 m sporgenti nel
+   vuoto. Lancette della campata interna **strette e incassate**
+   dietro stipiti e ghiere con colonnina tortile (l'ordine basso è
+   cieco con fondo chiaro, come in foto, e niente terzo triangolo di
+   ghimberga sull'ordine alto). Statue a **figura intera di 1,88 m**
+   su mensole aggettanti con mensolone a tromba e baldacchino, al
+   posto delle statuine-pedina incollate su rettangoli rosa.
+   Coronamento a **grappolo pieno**: torretta ottagonale con
+   monofora e cuspide, pinnacoli pieni e statua sommitale; via la
+   lanterna cilindrica «a pedina» arretrata e i finali a spillone.
+   Anche la feritoia nera da francobollo sul contrafforte esterno
+   diventa la piccola monofora della campata interna.
+3. **La gradinata del sagrato.** 14 **gradoni pieni** larghi 34 m
+   (prima 13 lastre sottili da 42 m che in prospettiva leggevano come
+   un'unica rampa/lastra grigia), con naso in marmo chiaro e filetto
+   d'ombra di serpentino sotto ogni alzata: i gradini si contano uno
+   a uno anche in vista frontale. Una lastra di sagrato chiude la
+   discesa a quota piazza.
+
+- `config_facciata.json` passa alla versione **3.6**. Le anteprime sono
+  state rigenerate tutte a 32 campioni con denoising.
 
 ## Versione 3.5 — torri-pinnacolo piu' massicce e ricche di fogliame
 
