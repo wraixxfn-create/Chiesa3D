@@ -2,7 +2,7 @@
   "meta": {
     "opera": "Facciata Monumentale del Duomo di Siena — Cattedrale Metropolitana di Santa Maria Assunta",
     "autori_storici": "Giovanni Pisano (ordine inferiore, 1284-1297) — Giovanni di Cecco (ordine superiore, dal 1376) — Mosaici dell'apice 1878",
-    "versione": "3.7",
+    "versione": "3.8",
     "scala_finale": 3.0,
     "unita": "metri"
   },
@@ -74,12 +74,12 @@
     },
     "Marmo_Gradinata": {
       "color": [
-        0.58,
-        0.595,
-        0.63
+        0.735,
+        0.712,
+        0.675
       ],
       "tex": "gradinata",
-      "roughness": 0.62,
+      "roughness": 0.58,
       "bump": 0.28,
       "ao_strength": 0.35
     },

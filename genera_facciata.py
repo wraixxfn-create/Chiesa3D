@@ -290,7 +290,7 @@ scene = bpy.context.scene
 scene.unit_settings.system = "METRIC"
 scene.unit_settings.scale_length = 1.0
 scene["titolo"] = "Duomo di Siena — solo facciata ovest"
-scene["nota"] = "Modello procedurale v3.5: le due torri ai lati della cuspide rifatte sulla fotografia frontale allegata (fusto a lastre bianche con due vene salmone, due grandi lancette con ghimberghe, fasce a dente di cane, doccioni diagonali e coronamento pieno a guglia fogliata con statua); retro piatto."
+scene["nota"] = "Modello procedurale v3.8: le due torri ai lati della cuspide rifatte sulla fotografia frontale allegata (fusto a lastre bianche con due vene salmone, due grandi lancette con ghimberghe, fasce a dente di cane, doccioni diagonali e coronamento pieno a guglia fogliata con statua); retro piatto."
 
 
 # -----------------------------------------------------------------------------
@@ -882,8 +882,11 @@ def build_all_textures():
     tex["pietra_statue"] = _make_marble_tex(
         "Tex_Pietra_Statue", (0.84, 0.79, 0.71), (0.71, 0.65, 0.56), courses=6, seed=21, contrast=0.06, blocks=False
     )
+    # v3.8 (miglioria 3): la gradinata era grigio-azzurra (0,62/0,63/0,67) e
+    # con la luce del cielo leggeva come una rampa di cemento.  I gradoni del
+    # sagrato sono in marmo chiaro caldo, appena grigio, come in fotografia.
     tex["gradinata"] = _make_marble_tex(
-        "Tex_Gradinata", (0.62, 0.63, 0.67), (0.48, 0.50, 0.54), courses=12, seed=31, contrast=0.14
+        "Tex_Gradinata", (0.760, 0.735, 0.690), (0.630, 0.600, 0.555), courses=12, seed=31, contrast=0.10
     )
     tex["marmo_rosa"] = _make_marble_tex(
         "Tex_Marmo_Rosa", (0.64, 0.46, 0.41), (0.48, 0.33, 0.29), courses=6, seed=41, contrast=0.13
@@ -1512,6 +1515,31 @@ def foglie_rampanti(name, col, cx, y, z_base, width, height, material=PIETRA, n=
                 f"{name}_Bocciolo_{s}_{i}", col, x - s * size * 0.14, y - 0.05,
                 z + size * 0.82, size * 0.14, material
             )
+
+
+def _crocchi_falda(name, col, s, cx, y, z_base, width, height, n=8, size=0.22,
+                   material=None, piega=0.26, verso_su=True):
+    """Crocchette d'acanto ripiegate lungo una falda spiovente (v3.8).
+
+    Sostituisce `foglie_rampanti` (conetti lisci con perlina in punta) dove
+    servono crocchette vere: ghimberghe dei portali, timpani, arcs ciechi.
+    Tutte le foglie finiscono in un'unica mesh.
+    """
+    material = material or PIETRA
+    L = math.hypot(width * 0.5, height)
+    nx, nz = s * height / L, (width * 0.5) / L        # normale esterna alla falda
+    bm = bmesh.new()
+    for i in range(n):
+        t = 0.05 + 0.90 * i / max(1, n - 1)
+        bx = cx + s * width * 0.5 * (1.0 - t)
+        bz = z_base + height * t
+        sz_i = size * (1.0 - 0.34 * t)
+        direz = Vector((nx * 0.72, 0.0, nz * 0.72 + (0.62 if verso_su else 0.30)))
+        M = (Matrix.Translation((bx + nx * sz_i * 0.10, y, bz + nz * sz_i * 0.10))
+             @ direz.normalized().to_track_quat("Z", "Y").to_matrix().to_4x4())
+        _bm_foglia(bm, sz_i, sz_i * 0.40, sz_i * 0.13, M,
+                   piega=piega * s, gonfia=1.25)
+    return _mesh_da_bmesh(name, col, bm, material, uv_scale=(1.5, 1.5))
 
 
 def rosetta_rilievo(name, col, x, y, z, radius, petals=6):
@@ -3368,8 +3396,11 @@ for i in range(14):
     # naso del gradino in marmo chiaro e gola d'ombra sotto l'alzata
     box(f"Gradino_Naso_{i+1}", S, 0.0, cy_i - 0.42, top_i - 0.030,
         34.0, 0.07, 0.055, BIANCO2)
+    # v3.8 (miglioria 3): la gola d'ombra sotto il naso era una lista di
+    # serpentino quasi nera, cosi' i gradoni leggevano come righe nere su
+    # grigio; ora e' una semplice battuta d'ombra in marmo patinato.
     box(f"Gradino_Ombra_{i+1}", S, 0.0, cy_i - 0.405, top_i - 0.115,
-        34.0, 0.03, 0.085, VERDE)
+        34.0, 0.03, 0.085, PATINA)
 # Lastra di sagrato a quota piazza, a chiudere la discesa
 box("Sagrato_Piazza", S, 0.0, -10.65, GRAD_SUOLO - 0.03, 36.0, 3.4, 0.14, GRADINATA_MAT)
 box("Basamento_Pietra", S, 0.0, -0.35, 0.95, 31.2, 3.6, 1.9, BIANCO2)
@@ -3402,12 +3433,20 @@ for side in (-1, 1):
     # Campata esterna sporgente (fasce bicrome nette bianco / verde-nero di Prato)
     xe = side * 13.85
     box(f"Contrafforte_Base_Est_{side}", S, xe, -0.15, 5.15, 2.25, 2.95, 6.45, BIANCO)
-    # Solo 5 fasce SOTTILI di serpentino molto distanziate, come nella foto
-    # (la v1.3 alternava bande nere spesse e marmo: effetto "zebratura" assente
-    # nell'originale, dove i corsi scuri sono listelli di ~15 cm)
-    for k in range(5):
-        zk = 2.95 + k * 1.02
-        box(f"Fascia_Est_{side}_{k}", D, xe, -0.22, zk, 2.30, 2.92, 0.15, VERDE)
+    # v3.8 (miglioria 3) — I CORSI BICROMI DEL CONTRAFFORTE.
+    # Prima c'erano cinque listelli di serpentino alti 0,15 m distanziati di
+    # un metro l'uno dall'altro: sul marmo chiaro leggevano come un codice a
+    # barre.  Nel Duomo vero il contrafforte e' fasciato da corsi fitti e
+    # regolari (marmo bianco ~0,26 m, serpentino ~0,11 m) per tutta l'altezza:
+    # qui si rifa' con quel passo, lasciando libero il solo dado d'imposta.
+    n_corsi = 9
+    passo_c = 0.72
+    for k in range(n_corsi):
+        zk = 2.66 + k * passo_c
+        # v3.8b — i corsi ora sono INTARSIATI a filo (2 mm di risalto):
+        # sporgendo di 5 cm proiettavano un'ombra netta sotto ogni listello
+        # e il contrafforte leggeva come una persiana.
+        box(f"Fascia_Est_{side}_{k}", D, xe, -0.155, zk, 2.26, 2.945, 0.135, VERDE)
     # Feritoia stretta: in foto e' una piccola monofora sulla campata
     # INTERNA (fra le due fasce scure sopra le losanghe), non un
     # francobollo nero sul contrafforte esterno (v3.6, miglioria 2)
@@ -3417,15 +3456,28 @@ for side in (-1, 1):
     # Campata interna arretrata con fasce bicrome + fascia a losanghe rosa/bianche
     xi = side * 11.82
     box(f"Contrafforte_Base_Int_{side}", S, xi, -0.05, 5.15, 1.90, 2.75, 6.45, BIANCO)
-    # Stesso ritmo sottile della campata esterna, evitando la fascia a losanghe
-    for zk in (2.60, 3.62, 6.05, 7.07):
-        box(f"Fascia_Int_{side}_{zk:.2f}", D, xi, -1.45, zk, 1.92, 0.12, 0.13, VERDE)
-    # Fascia a 3 riquadri con losanghe intarsiate (come nella foto a quota ~4.8 m)
-    box(f"Cornice_Losanghe_{side}", D, xi, -1.44, 4.85, 1.88, 0.12, 1.05, BIANCO2)
-    for c in range(3):
-        lx = xi + (c - 1) * 0.58
-        box(f"Riquadro_Los_{side}_{c}", D, lx, -1.47, 4.85, 0.50, 0.10, 0.62, ROSA_C)
-        box(f"Losanga_{side}_{c}", D, lx, -1.51, 4.85, 0.32, 0.10, 0.32, VERDE, rot_y=math.radians(45))
+    # v3.8 (miglioria 3): la campata interna era un rettangolo di marmo
+    # bianco con quattro listelli verdi e tre losanghe rosa — la parte piu'
+    # "da plastico" di tutto il basamento.  Ora ha la specchiatura in marmo
+    # rosato incorniciata e, a quota 4,85 m, la fascia a LOSANGHE
+    # BICROME (cinque tasselli alternati bianco / serpentino), come la
+    # fascia intarsiata che gira sui contrafforti del Duomo.
+    box(f"Specch_Base_Int_{side}", D, xi, -1.435, 3.12, 1.56, 0.10, 0.96, ROSA_C)
+    for zk in (2.60, 3.64):
+        box(f"Fascia_Int_{side}_{zk:.2f}", D, xi, -1.45, zk, 1.92, 0.12, 0.11, VERDE)
+    for zk in (6.05, 7.07, 8.06):
+        box(f"Fascia_Int_{side}_{zk:.2f}", D, xi, -1.45, zk, 1.92, 0.12, 0.11, VERDE)
+    # fascia a losanghe bicrome (5 tasselli, fondo alternato)
+    box(f"Cornice_Losanghe_{side}", D, xi, -1.44, 4.85, 1.88, 0.12, 0.98, BIANCO2)
+    for c in range(5):
+        lx = xi + (c - 2) * 0.36
+        box(f"Riquadro_Los_{side}_{c}", D, lx, -1.475, 4.85, 0.32, 0.08, 0.62, BIANCO2)
+        # v3.8b — losanga ROSATA con cuore di serpentino: prima il contrasto
+        # bianco/nero alternato faceva una scacchiera da bagno.
+        box(f"Losanga_{side}_{c}", D, lx, -1.505, 4.85, 0.235, 0.08, 0.235, ROSA_C,
+            rot_y=math.radians(45))
+        box(f"Losanga_Cuore_{side}_{c}", D, lx, -1.525, 4.85, 0.095, 0.08, 0.095,
+            VERDE, rot_y=math.radians(45))
 
     # Trabeazione scolpita d'imposta sui contrafforti (z = 8.35 m, NON attraversa gli archi)
     box(f"Trabeazione_Angolo_{side}", S, side * 12.85, -0.25, Z_IMPOSTA, 4.35, 3.05, 0.62, BIANCO2)
@@ -3463,19 +3515,40 @@ def pilone_strombato(cx, central_side=False):
     box(f"{tag}_LesenaFilo1", D, cx, yf + 0.01, 3.72, 0.05, 0.04, 5.60, ROSA_C)
     box(f"{tag}_LesenaFilo2", D, cx, yf + 0.21, 3.72, 0.05, 0.04, 5.60, ROSA_C)
     bm_gir = bmesh.new()
+    # v3.8b — IL CANDELABRO D'ACANTO DELLA LESENA.
+    # Prima erano foglie applicate come piastrelle: in pieno sole ogni foglia
+    # accendeva una scheggia bianca e la lesena leggeva come una lisca di
+    # pesce.  Qui il tralcio e' costruito come nell'intaglio vero: un fusto
+    # sottile che sale serpeggiando, e a ogni nodo due VOLUTE (tubi ricurvi
+    # che si avvolgono) con il bocciolo in punta e una fogliolina coricata
+    # alla base.  Tutto e' dentro un'unica mesh, fusa con la lesena.
+    ident_gir = Matrix.Identity(4)
+    _bm_segmento(bm_gir, ident_gir, (cx, yf - 0.030, 0.95),
+                 (cx, yf - 0.030, 6.40), 0.030, 0.020, seg=8)
     for k in range(9):
-        zk = 1.32 + k * 0.56
-        # spirale di foglie d'acanto che sale avvolgendosi attorno alla lesena
+        zk = 1.36 + k * 0.60
         for s_f in (-1, 1):
+            # voluta: tre tratti di tubo che si arricciano verso l'alto
+            p0 = (cx + s_f * 0.030, yf - 0.032, zk)
+            p1 = (cx + s_f * 0.140, yf - 0.040, zk + 0.120)
+            p2 = (cx + s_f * 0.205, yf - 0.042, zk + 0.300)
+            p3 = (cx + s_f * 0.150, yf - 0.044, zk + 0.430)
+            p4 = (cx + s_f * 0.075, yf - 0.044, zk + 0.400)
+            _bm_segmento(bm_gir, ident_gir, p0, p1, 0.022, 0.019, seg=7)
+            _bm_segmento(bm_gir, ident_gir, p1, p2, 0.019, 0.016, seg=7)
+            _bm_segmento(bm_gir, ident_gir, p2, p3, 0.016, 0.013, seg=7)
+            _bm_segmento(bm_gir, ident_gir, p3, p4, 0.013, 0.010, seg=7)
+            _bm_sfera(bm_gir, ident_gir, p4[0], p4[1], p4[2], 0.024,
+                      sx=1.1, sy=0.8, sz=1.0, u=8, v=5)
+            # fogliolina coricata alla base della voluta (bassorilievo)
             _bm_foglia(
-                bm_gir, 0.40, 0.175, 0.075,
-                Matrix.Translation((cx + s_f * 0.075, yf - 0.015, zk - 0.16))
-                @ Matrix.Rotation(s_f * 0.62, 4, "Y")
-                @ Matrix.Rotation(-s_f * 0.18, 4, "X"),
-                piega=0.16 * s_f, gonfia=1.25,
+                bm_gir, 0.20, 0.085, 0.020,
+                Matrix.Translation((cx + s_f * 0.070, yf - 0.028, zk - 0.10))
+                @ Matrix.Rotation(s_f * 1.15, 4, "Y")
+                @ Matrix.Rotation(s_f * 0.55, 4, "X"),
+                piega=0.0, gonfia=0.55,
             )
-        _bm_rosetta(bm_gir, Matrix.Identity(4), cx, yf - 0.020, zk + 0.20,
-                    0.075, petali=4, spess=0.55)
+    _bm_rosetta(bm_gir, ident_gir, cx, yf - 0.030, 6.55, 0.075, petali=4, spess=0.45)
     _mesh_da_bmesh(f"{tag}_Girali", P, bm_gir, PIETRA, uv_scale=(1.2, 1.2))
 
     # --- sei colonnine: due lisce, due tortili, due tortili opposte
@@ -4308,14 +4381,39 @@ def portale_pisano(cx, door_w, door_h, r_ext, gh_base, gh_apex, door_mat, centra
         if k < n_an - 1:
             arch(f"Archivolto_Filo_{tag}_{k}", D, cx, y_k - 0.02, cz_arch,
                  r_k + m_k * 1.05, 0.022, PATINA, seg_u=40)
-    # ghiere intagliate: rosette sulle due fasce portanti
-    for band, rr in ((1, r_lun + 0.16 + span_a * 1.5 / n_an),
-                     (5, r_lun + 0.16 + span_a * 5.5 / n_an)):
-        for k in range(31):
-            a = math.pi * (k + 0.5) / 31
-            rosetta_rilievo(f"Fogliame_Archivolto_{tag}_{band}_{k}", P,
-                            cx + rr * math.cos(a), front - 0.62,
-                            cz_arch + rr * math.sin(a), 0.098, petals=5)
+    # v3.8 (miglioria 2): le due fasce portanti degli archivolti erano
+    # decorate con 31 rosette a petali ciascuna, che in vista frontale
+    # leggevano come asterischi bianchi appoggiati sopra gli archi.  Nella
+    # fotografia gli archivolti portano una CORDA INTRECCIATA e un filo di
+    # perline, cioe' modanature continue: qui si rifanno cosi'.
+    r_corda = r_lun + 0.16 + span_a * 1.5 / n_an
+    arco_ritorto(f"Corda_Archivolto_{tag}", P, cx, front - 0.34, cz_arch,
+                 r_corda, span_a / n_an * 0.34, PIETRA, seg_u=54, seg_v=10,
+                 ribs=6, turns=3.1, amp=0.30)
+    r_perle = r_lun + 0.16 + span_a * 5.5 / n_an
+    bm_perle = bmesh.new()
+    n_perle = 46
+    for k in range(n_perle):
+        a = math.pi * (k + 0.5) / n_perle
+        _bm_sfera(bm_perle, Matrix.Identity(4),
+                  cx + r_perle * math.cos(a), front - 0.40,
+                  cz_arch + r_perle * math.sin(a), 0.052, u=8, v=5)
+    _mesh_da_bmesh(f"Perline_Archivolto_{tag}", P, bm_perle, BIANCO,
+                   uv_scale=(1.2, 1.2))
+    # piccole foglie d'acanto fra corda e perline (una per volta, fuse)
+    bm_fog_arco = bmesh.new()
+    n_fog = 26
+    for k in range(n_fog):
+        a = math.pi * (k + 0.5) / n_fog
+        rr = r_lun + 0.16 + span_a * 3.4 / n_an
+        base = Vector((cx + rr * math.cos(a), front - 0.38,
+                       cz_arch + rr * math.sin(a)))
+        direz = Vector((math.cos(a) * 0.55, 0.0, math.sin(a) * 0.55 + 0.55))
+        M = (Matrix.Translation(base)
+             @ direz.normalized().to_track_quat("Z", "Y").to_matrix().to_4x4())
+        _bm_foglia(bm_fog_arco, 0.20, 0.085, 0.030, M, piega=0.22, gonfia=1.2)
+    _mesh_da_bmesh(f"Fogliame_Archivolto_{tag}", P, bm_fog_arco, PIETRA,
+                   uv_scale=(1.4, 1.4))
     # chiave di volta e mensole d'imposta
     sphere(f"Chiave_Volta_{tag}", P, cx, front - 0.60, cz_arch + r_ext - 0.02, 0.20, PIETRA)
     for s_m in (-1, 1):
@@ -4332,27 +4430,51 @@ def portale_pisano(cx, door_w, door_h, r_ext, gh_base, gh_apex, door_mat, centra
          r_ext + 0.30, 0.065, ROSA_C, seg_u=38)
     spioventi_modanati(f"Ghimberga_Cornice_{tag}", P, cx, -1.72, gh_base, gh_w, gh_h,
                        0.26, 0.36, BIANCO)
-    foglie_rampanti(f"Ghimberga_Foglie_{tag}", P, cx, -1.76, gh_base, gh_w, gh_h,
-                    PIETRA, n=11, size=0.30)
-    for side in (-1, 1):
-        for row in range(4):
-            t = 0.38 + row * 0.12
-            xx = cx + side * gh_w * 0.32 * (1.0 - t)
-            zz = gh_base + gh_h * t
-            if math.hypot(xx - cx, zz - cz_arch) > r_ext + 0.16:
-                rosetta_rilievo(f"Tralcio_Ghimberga_{tag}_{side}_{row}",
-                                P, xx, -1.66, zz, 0.25)
+    # v3.8 (miglioria 2): le foglie rampanti erano coni lisci con una perlina
+    # in punta, che sulle falde delle tre ghimberghe leggevano come i rebbi
+    # di un tridente.  Ora sono crocchette d'acanto ripiegate, come quelle
+    # (già giuste) della cuspide centrale.
+    for s_g in (-1, 1):
+        _crocchi_falda(f"Ghimberga_Foglie_{tag}_{s_g}", P, s_g, cx, -1.76,
+                       gh_base + 0.04, gh_w, gh_h, n=13, size=0.26,
+                       material=PIETRA)
+    # v3.8b — nelle riseghe del campo, al posto delle rosette a raggiera e
+    # delle foglie "in piedi" (che leggevano come frecce), tre piccole
+    # rosette scolpite coricate sul marmo, come i fregi di Giovanni Pisano.
+    for s_f in (-1, 1):
+        for row in range(3):
+            xx = cx + s_f * gh_w * (0.30 - row * 0.07)
+            zz = gh_base + gh_h * (0.44 + row * 0.11)
+            if math.hypot(xx - cx, zz - cz_arch) <= r_ext + 0.22:
+                continue
+            rosetta_rilievo(f"Tralcio_Ghimberga_{tag}_{s_f}_{row}",
+                            P, xx, -1.655, zz, 0.155, petals=6)
     spioventi_modanati(f"Ghimberga_ListelloInterno_{tag}", P, cx, -1.66,
                        gh_base + 0.30, gh_w * 0.85, gh_h * 0.85,
                        0.065, 0.10, ROSA_C)
-    # medaglione col busto nel pennacchio
+    # medaglione col busto nel pennacchio: cornice, fondo, spalle, testa e
+    # capelli (prima cono + sfera leggevano come una campanella)
     z_med = gh_base + gh_h * 0.56
     torus(f"Medaglione_Cornice_{tag}", P, cx, -1.67, z_med, 0.56, 0.11, BIANCO)
+    torus(f"Medaglione_FiloInterno_{tag}", P, cx, -1.64, z_med, 0.44, 0.035, ROSA_C)
     cyl(f"Medaglione_Fondo_{tag}", P, cx, -1.65, z_med, 0.50, 0.08, ROSA_C,
         vertices=24, rot_x=math.radians(90))
-    cone(f"Medaglione_Busto_{tag}", P, cx, -1.72, z_med - 0.12, 0.24, 0.14, 0.38,
-         PIETRA, vertices=10)
-    sphere(f"Medaglione_Testa_{tag}", P, cx, -1.73, z_med + 0.16, 0.15, PIETRA)
+    # v3.8b — il busto era un cilindro con una sfera appoggiata sopra: in
+    # vista frontale leggeva come una campanella.  Ora e' un mezzo busto
+    # scolpito: petto inclinato, spalle, collo e testa con la chioma.
+    bm_med = bmesh.new()
+    _bm_lathe(bm_med, Matrix.Translation((cx, -1.70, z_med - 0.34)),
+              ((0.0, 0.30), (0.12, 0.26), (0.26, 0.20), (0.38, 0.115)), seg=16,
+              sy=0.30)
+    _mesh_da_bmesh(f"Medaglione_Busto_{tag}", P, bm_med, PIETRA, uv_scale=(1.4, 1.4))
+    sphere(f"Medaglione_Spalle_{tag}", P, cx, -1.72, z_med - 0.12, 0.27,
+           PIETRA, sx=1.15, sy=0.34, sz=0.34)
+    box(f"Medaglione_Collo_{tag}", P, cx, -1.735, z_med - 0.01, 0.105, 0.0750,
+        0.13, PIETRA)
+    sphere(f"Medaglione_Testa_{tag}", P, cx, -1.745, z_med + 0.10, 0.115,
+           PIETRA, sy=0.86, sz=0.94)
+    sphere(f"Medaglione_Chioma_{tag}", P, cx, -1.705, z_med + 0.135, 0.132,
+           PIETRA, sy=0.74, sz=0.88)
 
     # statua di coronamento sul vertice della ghimberga
     if central:
@@ -4390,21 +4512,49 @@ spandrel_positions = [
     (9.35, 13.75, 1.75, 2.05),
 ]
 for idx_s, (sx_pos, sz_pos, sw, sh) in enumerate(spandrel_positions):
-    # Specchiatura chiara incorniciata come nella foto (marmo bianco/rosato con
-    # rosone fogliato); il verde di Prato resta solo nel piccolo intarsio centrale
+    # v3.8 (miglioria 2) — LE SPECCHIATURE FRA LE TRE GHIMBERGHE.
+    # Prima erano un quadrato rosa con un anello e sei coni che partivano dal
+    # centro: in vista frontale un "fiocco di neve" su una piastrella, e le
+    # due losanghe verdi ai lati leggevano come decorazioni da bagno.
+    # Nella fotografia questi riquadri sono pannelli cosmateschi: cornice
+    # bianca, filo di serpentino, campo in marmo rosato con un ROSONE
+    # fogliato a bassorilievo al centro e quattro tasselli verdi agli angoli.
     box(f"Specch_CorniceEst_{idx_s}", D, sx_pos, -1.30, sz_pos, sw, 0.10, sh, BIANCO)
-    box(f"Specch_CorniceRosa_{idx_s}", D, sx_pos, -1.33, sz_pos, sw - 0.24, 0.10, sh - 0.24, ROSA_C)
-    box(f"Specch_LastraPrato_{idx_s}", D, sx_pos, -1.36, sz_pos, sw - 0.44, 0.10, sh - 0.44, BIANCO)
-    # Rosone fogliato scolpito al centro, con piccolo intarsio verde romboidale
-    torus(f"Specch_Rosone_{idx_s}", D, sx_pos, -1.41, sz_pos + 0.12, 0.47, 0.09, ROSA_C)
-    box(f"Specch_Intarsio_{idx_s}", D, sx_pos, -1.43, sz_pos + 0.12, 0.20, 0.08, 0.20, PIETRA, rot_y=math.radians(45))
-    for leaf_i in range(6):
-        la = leaf_i * math.pi / 3.0
-        cone(
-            f"Specch_Petalo_{idx_s}_{leaf_i}", D,
-            sx_pos + math.cos(la) * 0.35, -1.42, sz_pos + 0.12 + math.sin(la) * 0.35,
-            0.13, 0.02, 0.46, PIETRA, vertices=6, rot_y=math.pi / 2.0 - la
-        )
+    for k_f, (dx_f, dz_f, sx_f, sz_f) in enumerate((
+        (0.0, (sh - 0.20) * 0.5, sw - 0.14, 0.075),
+        (0.0, -(sh - 0.20) * 0.5, sw - 0.14, 0.075),
+        ((sw - 0.14) * 0.5, 0.0, 0.075, sh - 0.26),
+        (-(sw - 0.14) * 0.5, 0.0, 0.075, sh - 0.26),
+    )):
+        box(f"Specch_Filo_{idx_s}_{k_f}", D, sx_pos + dx_f, -1.335, sz_pos + dz_f,
+            sx_f, 0.08, sz_f, VERDE)
+    box(f"Specch_Campo_{idx_s}", D, sx_pos, -1.35, sz_pos, sw - 0.26, 0.09,
+        sh - 0.26, BIANCO2)
+    # rosone fogliato a bassorilievo: anello, otto petali carnosi e bottone
+    r_ros = min(sw, sh) * 0.215
+    cyl(f"Specch_RosoneDisco_{idx_s}", D, sx_pos, -1.40, sz_pos + 0.02, r_ros,
+        0.05, BIANCO, vertices=26, rot_x=math.radians(90))
+    torus(f"Specch_Rosone_{idx_s}", D, sx_pos, -1.42, sz_pos + 0.02, r_ros * 0.96,
+          0.045, ROSA_C)
+    bm_ros = bmesh.new()
+    for leaf_i in range(8):
+        la = math.tau * leaf_i / 8.0
+        base = Vector((sx_pos + math.cos(la) * r_ros * 0.42, -1.435,
+                       sz_pos + 0.02 + math.sin(la) * r_ros * 0.42))
+        direz = Vector((math.cos(la), 0.0, math.sin(la)))
+        M = (Matrix.Translation(base)
+             @ direz.to_track_quat("Z", "Y").to_matrix().to_4x4())
+        _bm_foglia(bm_ros, r_ros * 0.58, r_ros * 0.24, r_ros * 0.10, M,
+                   piega=0.0, gonfia=1.1)
+    _mesh_da_bmesh(f"Specch_Petali_{idx_s}", D, bm_ros, PIETRA, uv_scale=(1.8, 1.8))
+    sphere(f"Specch_Bottone_{idx_s}", D, sx_pos, -1.45, sz_pos + 0.02,
+           r_ros * 0.20, PIETRA, sy=0.45)
+    # quattro tasselli verdi di serpentino agli angoli del campo
+    for c_i, (cx_i, cz_i) in enumerate(((1, 1), (-1, 1), (1, -1), (-1, -1))):
+        box(f"Specch_Tassello_{idx_s}_{c_i}", D,
+            sx_pos + cx_i * (sw * 0.5 - 0.28), -1.395,
+            sz_pos + cz_i * (sh * 0.5 - 0.28), 0.15, 0.06, 0.15, ROSA_C,
+            rot_y=math.radians(45))
 
 # --- Cornicione orizzontale principale della galleria a mensole (z = 15.35 m) ---
 box("Cornicione_Galleria", S, 0.0, -0.35, Z_GALLERIA, 30.6, 3.05, 0.44, BIANCO2)
@@ -6991,9 +7141,16 @@ for side in (-1, 1):
 # =============================================================================
 
 def _lancetta_gotica(name, col, cx, y_face, z0, w, h, gable_h=0.85,
-                     gable=True, scura=True):
+                     gable=True, scura=True, traforo=False):
     """Lancetta gotica senese incassata: vano in ombra, spallette, ghiere,
-    colonnine binate e ghimberga crochettata."""
+    colonnine binate e ghimberga crochettata.
+
+    v3.8 (miglioria 1): con `traforo=True` il vano non e' piu' un rettangolo
+    nero con due colonnine — riceve il traforo senese vero: un oculo a
+    quatrifoglio nella testata, il montante centrale che sale dal davanzale
+    e due archetti interni che si appoggiano alle spallette.  Era questo che
+    mancava perche' le finestre del torrione leggessero come "buchi" neri.
+    """
     h_testa = w * 0.80
     z_imp = z0 + h - h_testa
     box(f"{name}_Vano", col, cx, y_face + 0.24, z0 + (h - h_testa) * 0.5,
@@ -7003,9 +7160,6 @@ def _lancetta_gotica(name, col, cx, y_face, z0, w, h, gable_h=0.85,
     for s_v in (-1, 1):
         box(f"{name}_Spalletta_{s_v}", col, cx + s_v * w * 0.5, y_face + 0.12,
             z0 + (h - h_testa) * 0.5, 0.055, 0.26, h - h_testa, NICCHIA)
-    # tre colonnine nel vano (binate ai lati, una in asse) come nei trafori
-    # senesi: nella prima stesura stavano a 0,10 m l'una dall'altra e
-    # leggevano come i pioli di una scala
     for s_c in (-1, 1):
         cyl(f"{name}_Col_{s_c}", col, cx + s_c * (w * 0.30), y_face + 0.18,
             z0 + (h - h_testa) * 0.5, 0.038, h - h_testa, BIANCO2, vertices=10)
@@ -7017,17 +7171,44 @@ def _lancetta_gotica(name, col, cx, y_face, z0, w, h, gable_h=0.85,
          w * 0.5 + 0.078, 0.022, ROSA_C, seg_u=24, pointed=0.60)
     arch(f"{name}_GhieraEst", col, cx, y_face + 0.07, z_imp + 0.010,
          w * 0.5 + 0.135, 0.034, BIANCO2, seg_u=24, pointed=0.60)
+    if traforo:
+        # montante centrale che sale dal davanzale all'imposta
+        box(f"{name}_Montante", col, cx, y_face + 0.20, z0 + (h - h_testa) * 0.5,
+            w * 0.085, 0.10, h - h_testa, BIANCO2)
+        box(f"{name}_MontanteBase", col, cx, y_face + 0.19, z0 + 0.10,
+            w * 0.16, 0.12, 0.20, PIETRA)
+        # oculo a quatrifoglio nella testata: quattro lobi su fondo in ombra
+        r_lob = w * 0.155
+        torus(f"{name}_Oculo", col, cx, y_face + 0.02, z_imp + w * 0.46,
+              w * 0.32, 0.030, BIANCO2)
+        for k_l in range(4):
+            ang_l = math.tau * k_l / 4.0 + math.pi / 4.0
+            cyl(f"{name}_OculoLobo_{k_l}", col,
+                cx + math.cos(ang_l) * r_lob, y_face + 0.20,
+                z_imp + w * 0.46 + math.sin(ang_l) * r_lob, r_lob, 0.07,
+                SCURO if scura else NICCHIA, vertices=12, rot_x=math.radians(90))
+        cyl(f"{name}_OculoCuore", col, cx, y_face + 0.20, z_imp + w * 0.46,
+            r_lob, 0.07, SCURO if scura else NICCHIA, vertices=14,
+            rot_x=math.radians(90))
     if gable:
         z_g = z_imp + h_testa * 0.86
         spioventi_modanati(f"{name}_Ghimb", col, cx, y_face - 0.02, z_g,
                            w * 1.62, gable_h, 0.085, 0.22, BIANCO)
-        foglie_rampanti(f"{name}_GhimbFoglie", col, cx, y_face - 0.06, z_g + 0.03,
-                        w * 1.62, gable_h, PIETRA, n=4, size=0.11)
+        for s_f in (-1, 1):
+            _crocchi_falda(f"{name}_GhimbFoglie_{s_f}", col, s_f, cx,
+                           y_face - 0.06, z_g + 0.03, w * 1.62, gable_h,
+                           n=6, size=0.16)
         finial(f"{name}_Fiore", col, cx, y_face - 0.04, z_g + gable_h + 0.06, 0.30)
 
 
 def _pinnacolo_crochettato(name, col, x, y, z0, alt, larg, n_croc=5):
-    """Pinnacolo a sezione ottagonale interamente crochettato (v3.7)."""
+    """Pinnacolo a sezione ottagonale interamente crochettato.
+
+    v3.8 (miglioria 1): le crocchette erano coni lisci da 0,30 m infilzati
+    sui sei spigoli — da lontano il pinnacolo leggeva come un cactus.  Ora
+    sono foglie d'acanto ripiegate in fuori (una sola mesh per pinnacolo),
+    quattro per giro e piu' piccole salendo, come nei pinnacoli senesi.
+    """
     box(f"{name}_Zoccolo", col, x, y, z0 + 0.09, larg * 2.05, 0.40, 0.18, BIANCO2)
     box(f"{name}_Zoccolo2", col, x, y, z0 + 0.21, larg * 1.65, 0.34, 0.08, BIANCO)
     box(f"{name}_Nicchia", col, x, y - 0.02, z0 + 0.52, larg * 0.70, 0.16, 0.44, NICCHIA)
@@ -7037,16 +7218,23 @@ def _pinnacolo_crochettato(name, col, x, y, z0, alt, larg, n_croc=5):
         PIETRA, vertices=8)
     cone(f"{name}_Guglia", col, x, y, z0 + 0.26 + alt * 0.74, larg * 0.76, 0.014,
          alt * 0.52, BIANCO, vertices=8)
+    bm_cr = bmesh.new()
     for k in range(n_croc):
-        t = 0.06 + k * (0.92 / max(1, n_croc - 1))
+        t = 0.05 + k * (0.90 / max(1, n_croc - 1))
         z_k = z0 + 0.30 + alt * 0.46 + (alt * 0.50) * t
-        r_k = larg * 0.76 * (1.0 - t) + 0.015
-        for a_i in range(6):
-            ang = math.tau * a_i / 6.0 + (math.pi / 6.0 if k % 2 else 0.0)
-            cone(f"{name}_Croc_{k}_{a_i}", col,
-                 x + math.cos(ang) * r_k, y + math.sin(ang) * r_k * 0.82,
-                 z_k, 0.085 * (1.0 - 0.30 * t), 0.006, 0.30 * (1.0 - 0.30 * t),
-                 PIETRA, vertices=5, rot_y=math.pi / 2.0 - ang, rot_x=0.28)
+        r_k = larg * 0.76 * (1.0 - t) + 0.010
+        for a_i in range(4):
+            ang = math.tau * a_i / 4.0 + (math.radians(45) if k % 2 else 0.0)
+            base = Vector((x + math.cos(ang) * r_k, y + math.sin(ang) * r_k * 0.92, z_k))
+            # v3.8b: crocchette PIU' ADERENTI alla guglia (0,30 di sporgenza
+            # invece di 0,66) e piu' piccole: cosi' il pinnacolo legge come
+            # un pinnacolo fogliato e non come una pigna spinosa.
+            direz = Vector((math.cos(ang) * 0.30, math.sin(ang) * 0.30, 1.0)).normalized()
+            M = (Matrix.Translation(base)
+                 @ direz.to_track_quat("Z", "Y").to_matrix().to_4x4())
+            _bm_foglia(bm_cr, 0.26 * (1.0 - 0.40 * t), 0.075 * (1.0 - 0.35 * t),
+                       0.022 * (1.0 - 0.30 * t), M, piega=0.34)
+    _mesh_da_bmesh(f"{name}_Crocchette", col, bm_cr, PIETRA, uv_scale=(1.6, 1.6))
     # bocciolo terminale a goccia (il vecchio `finial` a quattro foglioline
     # letto in controluce sembrava una crocetta)
     bm_b = bmesh.new()
@@ -7116,14 +7304,21 @@ for side, z_top_t in ((-1, 22.30), (1, 22.60)):
             box(f"Torre_Specchiatura_Filo_{tag}_{z_p0:.0f}_{s_f}", D,
                 X(cx_m + s_f * 0.30), y_f - 0.062, (z_p0 + z_p1) * 0.5,
                 0.045, 0.09, z_p1 - z_p0, VERDE)
-    _lancetta_gotica(f"Lancetta_Alta_Sx_{tag}", D, X(cx_m - 0.92), y_f - 0.20,
-                     16.58, 0.98, 2.86, gable_h=0.78)
-    _lancetta_gotica(f"Lancetta_Alta_Dx_{tag}", D, X(cx_m + 0.92), y_f - 0.20,
-                     16.58, 0.98, 2.86, gable_h=0.78)
-    _lancetta_gotica(f"Lancetta_Bassa_Sx_{tag}", D, X(cx_m - 0.92), y_f - 0.20,
-                     13.68, 0.98, 2.44, gable_h=0.68)
-    _lancetta_gotica(f"Lancetta_Bassa_Dx_{tag}", D, X(cx_m + 0.92), y_f - 0.20,
-                     13.68, 0.98, 2.44, gable_h=0.68)
+    # v3.8 (miglioria 1): le quattro lancette ricevono il traforo vero
+    # (montante, oculo a quatrifoglio, ghiere acute) e il vano delle due
+    # alte non e' piu' nero pieno ma marmo rosato in ombra, come in foto.
+    _lancetta_gotica(f"Lancetta_Alta_Sx_{tag}", S, X(cx_m - 0.92), y_f - 0.20,
+                     16.58, 0.98, 2.86, gable_h=0.78, scura=True,
+                     traforo=True)
+    _lancetta_gotica(f"Lancetta_Alta_Dx_{tag}", S, X(cx_m + 0.92), y_f - 0.20,
+                     16.58, 0.98, 2.86, gable_h=0.78, scura=True,
+                     traforo=True)
+    _lancetta_gotica(f"Lancetta_Bassa_Sx_{tag}", S, X(cx_m - 0.92), y_f - 0.20,
+                     13.68, 0.98, 2.44, gable_h=0.68, scura=False,
+                     traforo=True)
+    _lancetta_gotica(f"Lancetta_Bassa_Dx_{tag}", S, X(cx_m + 0.92), y_f - 0.20,
+                     13.68, 0.98, 2.44, gable_h=0.68, scura=False,
+                     traforo=True)
     # registro di base: due monofore strette incassate (in foto il registro
     # basso ha aperture piu' piccole e piu' buie)
     for s_m in (-1, 1):
@@ -7177,6 +7372,32 @@ for side, z_top_t in ((-1, 22.30), (1, 22.60)):
                        14.92, 0.94, 0.58, 0.075, 0.20, BIANCO)
     finial(f"Torre_Madonna_Fiore_{tag}", G, X(cx_m), y_f - 0.44, 15.62, 0.28)
 
+    # --- TERZO REGISTRO: il muro sopra le due lancette alte era un
+    # rettangolo di marmo liscio; nella fotografia e' invece un registro
+    # di due arcate cieche con ghimberghe, come una piccola loggia murata.
+    # v3.8 (miglioria 1)
+    z_reg0 = 19.98
+    for idx_a, xo in enumerate((-0.92, 0.92)):
+        xa = X(cx_m + xo)
+        ha = 1.42
+        box(f"Torre_ArcoCieco_{tag}_{idx_a}", D, xa, y_f - 0.055,
+            z_reg0 + ha * 0.5, 0.86, 0.10, ha, SCURO)
+        box(f"Torre_ArcoCiecoPied_{tag}_{idx_a}_{-1}", S, X(cx_m + xo) - 0.47,
+            y_f - 0.10, z_reg0 + ha * 0.5, 0.13, 0.16, ha, BIANCO2)
+        box(f"Torre_ArcoCiecoPied_{tag}_{idx_a}_{1}", S, X(cx_m + xo) + 0.47,
+            y_f - 0.10, z_reg0 + ha * 0.5, 0.13, 0.16, ha, BIANCO2)
+        arch(f"Torre_ArcoCiecoGhiera_{tag}_{idx_a}", S, xa, y_f - 0.10,
+             z_reg0 + ha - 0.30, 0.40, 0.055, BIANCO, seg_u=18, pointed=0.62)
+        spioventi_modanati(f"Torre_ArcoCiecoGhimb_{tag}_{idx_a}", S, xa,
+                           y_f - 0.12, z_reg0 + ha + 0.02, 1.02, 0.34,
+                           0.065, 0.14, BIANCO)
+        for s_f in (-1, 1):
+            _crocchi_falda(f"Torre_ArcoCiecoCroc_{tag}_{idx_a}_{s_f}", S, s_f,
+                           xa, y_f - 0.15, z_reg0 + ha + 0.04, 1.02, 0.34,
+                           n=4, size=0.085)
+        finial(f"Torre_ArcoCiecoFiore_{tag}_{idx_a}", S, xa, y_f - 0.13,
+               z_reg0 + ha + 0.40, 0.16)
+
     # --- CORONAMENTO ------------------------------------------------
     # cornicione a due fili che chiude il corpo
     box(f"Torre_Cornicione_{tag}", G, X(cx_m), y_f - 0.10, z_top_t,
@@ -7187,37 +7408,114 @@ for side, z_top_t in ((-1, 22.30), (1, 22.60)):
         box(f"Torre_Cornicione_Dent_{tag}_{d_i}", D, X(xi_m + 0.09 + d_i * 0.18),
             y_f - 0.20, z_top_t - 0.12, 0.075, 0.10, 0.075, BIANCO)
 
-    # ghimberga frontale crochettata (la "fronte" gotica del torrione)
-    z_g = z_top_t + 0.24
-    gh_w, gh_h = w_m * 0.72, 1.70
-    prism(f"Torre_Ghimb_Campo_{tag}", S, X(cx_m), y_f + 0.22, z_g,
-          gh_w * 0.90, gh_h * 0.94, 0.14, BIANCO2)
-    spioventi_modanati(f"Torre_Ghimb_{tag}", G, X(cx_m), y_f - 0.02, z_g,
-                       gh_w + 0.22, gh_h + 0.06, 0.11, 0.28, BIANCO)
-    foglie_rampanti(f"Torre_GhimbFoglie_{tag}", G, X(cx_m), y_f - 0.06, z_g + 0.05,
-                    gh_w + 0.22, gh_h + 0.06, PIETRA, n=7, size=0.14)
-    finial(f"Torre_GhimbFiore_{tag}", G, X(cx_m), y_f - 0.02, z_g + gh_h + 0.14, 0.38)
-    # traforo a quatrifoglio al posto dell'oculo nero della prima stesura
-    rosetta_rilievo(f"Torre_Ghimb_Rosa_{tag}", D, X(cx_m), y_f - 0.10,
-                    z_g + 0.46, 0.22, petals=4)
+    # v3.8 (miglioria 1) — LA CORONA DEL TORRIONE.
+    # Prima era un timpano triangolare pieno con una crocetta (un quatrifoglio
+    # a quattro petali) in mezzo e, ai lati, due pinnacoli a coni lisci: da
+    # lontano leggeva come il frontone di una cappella di paese, non come la
+    # corona traforata del torrione senese.  Ora, come in fotografia:
+    #   1. una grande bifora APERTA (due lancette + oculo a quatrifoglio)
+    #      dentro un vano in ombra profondo 0,55 m, con le ghiere acute;
+    #   2. la ghimberga crochettata che la inquadra, con fiorone all'apice;
+    #   3. due pinnacoli fogliati sugli spigoli, piu' alti del corpo;
+    #   4. la lanterna ottagonale forata, con quattro ghimberghe, la guglia
+    #      e la statua sulla sommita' (il vecchio cilindro a "pedina" e'
+    #      diventato un tiburio traforato e leggibile in controluce).
+    z_bif0 = z_top_t + 0.30          # davanzale della bifora
+    z_bif1 = z_bif0 + 1.32           # imposta degli archetti
+    z_gh = z_top_t + 0.26
+    gh_w, gh_h = w_m * 0.92, 2.60
+    # v3.8b — il campo del ghimbergone e' MURATURA PIENA in marmo (prima non
+    # c'era, e fra le due cornici spioventi si vedeva attraverso: un triangolo
+    # nero al posto della testa del ghimbergone).  Sopra la muratura piena
+    # si aprono, come in fotografia, la bifora e il suo oculo traforato.
+    prism(f"Torre_Ghimb_Campo_{tag}", S, X(cx_m), y_f + 0.06, z_gh,
+          gh_w * 0.99, gh_h * 0.995, 0.20, BIANCO2)
+    # due lancette buie (vano in ombra) sopra il davanzale
+    for s_b in (-1, 1):
+        xb = X(cx_m + s_b * 0.72)
+        box(f"Torre_Bifora_Lancetta_{tag}_{s_b}", D, xb, y_f - 0.06,
+            z_bif0 + 0.72, 0.72, 0.06, 1.44, SCURO)
+        arch(f"Torre_Bifora_TestaLancetta_{tag}_{s_b}", D, xb, y_f - 0.06,
+             z_bif0 + 1.42, 0.36, 0.03, SCURO, seg_u=20, pointed=0.62)
+        arch(f"Torre_Bifora_GhieraInt_{tag}_{s_b}", S, xb, y_f - 0.10,
+             z_bif0 + 1.42, 0.39, 0.048, BIANCO, seg_u=22, pointed=0.60)
+        arch(f"Torre_Bifora_GhieraEst_{tag}_{s_b}", S, xb, y_f - 0.14,
+             z_bif0 + 1.44, 0.46, 0.038, BIANCO2, seg_u=22, pointed=0.58)
+        cyl(f"Torre_Bifora_Col_{tag}_{s_b}", S, xb, y_f - 0.10,
+            z_bif0 + 0.70, 0.040, 1.36, BIANCO2, vertices=10)
+        # davanzale e traversa: le aperture restano piccole, come in foto
+        box(f"Torre_Bifora_Davanzale_{tag}_{s_b}", S, xb, y_f - 0.10,
+            z_bif0 + 0.02, 1.00, 0.22, 0.12, BIANCO2)
+    # montante centrale con capitello
+    box(f"Torre_Bifora_Montante_{tag}", S, X(cx_m), y_f - 0.10,
+        z_bif0 + 0.62, 0.20, 0.22, 1.30, BIANCO)
+    box(f"Torre_Bifora_MontCap_{tag}", S, X(cx_m), y_f - 0.12,
+        z_bif0 + 1.30, 0.30, 0.26, 0.12, PIETRA)
+    # oculo a quatrifoglio nella testa del ghimbergone
+    z_oc = z_bif1 + 0.66
+    torus(f"Torre_Bifora_Oculo_{tag}", S, X(cx_m), y_f - 0.10, z_oc,
+          0.46, 0.048, BIANCO)
+    for k_l in range(4):
+        ang_l = math.tau * k_l / 4.0 + math.pi / 4.0
+        cyl(f"Torre_Bifora_Lobo_{tag}_{k_l}", D,
+            X(cx_m) + math.cos(ang_l) * 0.25, y_f - 0.11,
+            z_oc + math.sin(ang_l) * 0.25, 0.25, 0.05, SCURO,
+            vertices=12, rot_x=math.radians(90))
+    cyl(f"Torre_Bifora_LoboC_{tag}", D, X(cx_m), y_f - 0.11, z_oc,
+        0.25, 0.05, SCURO, vertices=12, rot_x=math.radians(90))
+    # ghimberga coronaria crochettata: solo cornici, nessun campo pieno
+    spioventi_modanati(f"Torre_Ghimb_{tag}", G, X(cx_m), y_f - 0.02, z_gh,
+                       gh_w + 0.26, gh_h + 0.06, 0.13, 0.30, BIANCO)
+    spioventi_modanati(f"Torre_Ghimb_Interno_{tag}", G, X(cx_m), y_f - 0.10,
+                       z_gh + 0.16, gh_w * 0.84, gh_h * 0.86, 0.055, 0.20,
+                       ROSA_C)
+    for s_g in (-1, 1):
+        _crocchi_falda(f"Torre_GhimbFoglie_{tag}_{s_g}", G, s_g, X(cx_m),
+                       y_f - 0.08, z_gh + 0.03, gh_w + 0.26, gh_h + 0.06,
+                       n=10, size=0.18)
+    finial(f"Torre_GhimbFiore_{tag}", G, X(cx_m), y_f - 0.02, z_gh + gh_h + 0.16, 0.40)
 
-    # pinnacoli crochettati sui due contrafforti d'angolo
-    for x_p, alt_p, lar_p in ((xi_m + 0.10, 2.30, 0.30), (xs_m - 0.10, 2.15, 0.32)):
+    # pinnacoli fogliati sugli spigoli (piu' alti del corpo, come in foto)
+    for x_p, alt_p, lar_p in ((xi_m + 0.16, 3.05, 0.30), (xs_m - 0.16, 2.85, 0.32)):
         _pinnacolo_crochettato(f"Torre_Pinnacolo_{tag}_{x_p:.2f}", G, X(x_p),
                                y_f - 0.18, z_top_t + 0.14, alt_p, lar_p)
 
-    # torretta ottagonale con monofora e statua, dietro la ghimberga
-    cyl(f"Torre_Torretta_{tag}", G, X(cx_m), 0.20, z_top_t + 0.92, 0.52, 1.40,
+    # lanterna ottagonale traforata con quattro ghimberghe, guglia e statua
+    z_lan0 = z_top_t + 0.55
+    cyl(f"Torre_Torretta_{tag}", G, X(cx_m), 0.30, z_lan0 + 0.78, 0.58, 1.56,
         BIANCO2, vertices=8)
-    for s_mf in (-1, 1):
-        box(f"Torre_Torretta_Monofora_{tag}_{s_mf}", D, X(cx_m) + s_mf * 0.30,
-            -0.16, z_top_t + 0.92, 0.14, 0.10, 0.52, NICCHIA)
-    cyl(f"Torre_Torretta_Cornice_{tag}", G, X(cx_m), 0.20, z_top_t + 1.68, 0.60, 0.15,
+    for a_l in range(4):
+        ang = math.tau * a_l / 4.0 + math.pi / 4.0
+        xm_ = X(cx_m) + math.cos(ang) * 0.45
+        box(f"Torre_Torretta_Monofora_{tag}_{a_l}", D, xm_,
+            0.30 + math.sin(ang) * 0.45, z_lan0 + 0.60, 0.20, 0.16, 0.86, SCURO)
+        spioventi_modanati(f"Torre_Torretta_Ghimb_{tag}_{a_l}", G, xm_,
+                           0.30 + math.sin(ang) * 0.62, z_lan0 + 1.02,
+                           0.66, 0.36, 0.05, 0.16, BIANCO)
+    cyl(f"Torre_Torretta_Cornice_{tag}", G, X(cx_m), 0.30, z_lan0 + 1.60, 0.68, 0.14,
         BIANCO, vertices=8)
-    cone(f"Torre_Torretta_Cuspide_{tag}", G, X(cx_m), 0.20, z_top_t + 2.10, 0.56, 0.05,
+    cyl(f"Torre_Torretta_Guglia_{tag}", G, X(cx_m), 0.30, z_lan0 + 2.24, 0.50, 1.16,
+        BIANCO2, vertices=8)
+    cone(f"Torre_Torretta_Cuspide_{tag}", G, X(cx_m), 0.30, z_lan0 + 3.10, 0.42, 0.03,
          0.72, PIETRA, vertices=8)
+    bm_cr_lan = bmesh.new()
+    for k_l in range(4):
+        t = 0.12 + k_l * 0.21
+        z_k = z_lan0 + 1.92 + 1.05 * t
+        r_k = 0.46 * (1.0 - t) + 0.02
+        for a_i in range(4):
+            ang = math.tau * a_i / 4.0
+            base_l = Vector((X(cx_m) + math.cos(ang) * r_k,
+                             0.30 + math.sin(ang) * r_k, z_k))
+            direz = Vector((math.cos(ang) * 0.62, math.sin(ang) * 0.62, 1.0)).normalized()
+            _bm_foglia(bm_cr_lan, 0.30 * (1.0 - 0.4 * t), 0.09 * (1.0 - 0.3 * t),
+                       0.024, Matrix.Translation(base_l)
+                       @ direz.to_track_quat("Z", "Y").to_matrix().to_4x4(),
+                       piega=0.22)
+    _mesh_da_bmesh(f"Torre_Torretta_Crocchette_{tag}", G, bm_cr_lan, PIETRA,
+                   uv_scale=(1.6, 1.6))
     statua_gotica_v26(
-        f"Torre_Statua_Sommitale_{tag}", ST, X(cx_m), 0.20, z_top_t + 2.42, 1.16,
+        f"Torre_Statua_Sommitale_{tag}", ST, X(cx_m), 0.30, z_lan0 + 3.34, 1.16,
         spec=dict(gesto="libro", barba=0.5, copricapo="capelli", yaw=-side * 0.10,
                   nod=0.05, seed=151 + (0 if side < 0 else 8), lato=side),
         material=PIETRA,
@@ -7476,7 +7774,7 @@ if "gltf" in EXPORT.get("formats", []) and not os.environ.get("CHIESA_NO_GLB"):
     except Exception as e:
         print(f"Export GLB non riuscito: {e}")
 
-print("Generazione v3.7 completata!")
+print("Generazione v3.8 completata!")
 sys.stdout.flush()
 sys.stderr.flush()
 if "bpy" in sys.modules and not bpy.app.binary_path:
