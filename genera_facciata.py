@@ -3388,7 +3388,10 @@ box("Corpo_Superiore_Centrale", S, 0.0, 0.38, 19.60, 12.10, 1.85, 8.95, BIANCO)
 # Muri di spalla continui dietro le loggette e le cuspidi laterali: saldati al
 # corpo centrale e ai torrioni esterni fino al retro piatto (Y = +1.30)
 for side in (-1, 1):
-    box(f"Corpo_Settore_Lat_{side}", S, side * 7.85, 0.20, 17.15, 5.70, 2.20, 4.20, BIANCO2)
+    # v3.7: il muro di spalla arretra a y = -0,30 per lasciare spazio al
+    # vano profondo del loggiato (prima arrivava a -0,90 e il loggiato
+    # restava un pannello appiattito sul filo della facciata)
+    box(f"Corpo_Settore_Lat_{side}", S, side * 7.85, 0.50, 17.15, 5.70, 1.60, 4.20, BIANCO2)
 
 # =============================================================================
 # 3. ORDINE INFERIORE DI GIOVANNI PISANO: CONTRAFFORTI BICROMI, 4 PILONI A
@@ -3431,49 +3434,131 @@ for side in (-1, 1):
 
 # --- 4 grandi piloni strombati a fascio di colonne (x = +-10.45 e +-3.85) ---
 def pilone_strombato(cx, central_side=False):
+    """Pilone a fascio di Giovanni Pisano, rifatto per assi verticali (v3.7).
+
+    Nella v3.6 il pilone era quattro colonne tortili dello stesso diametro
+    piu' un cilindro centrale, tutte alte fino a 5,30 m, sovrastate da un
+    blocco e da un cilindro d'imposta a 8,45 m: davanti alla fotografia
+    leggeva come un fascio di tubi, mentre nell'originale il pilone e' un
+    *candelabro* di marmo — una lesena centrale coperta di girali, sei
+    colonnine PIU' SOTTILI e scalate in profondita', capitello
+    corinzio-gotico, cornice d'imposta a tre fili — e sopra l'imposta il
+    pilastro riprende snello con la statua sotto il baldacchino.
+
+    Quote (m): zoccolo 0,00-0,90 · fusti 0,90-6,55 · capitelli 6,55-7,15 ·
+    abaco 7,15-7,55 · cornice d'imposta 7,55-8,45 (= Z_IMPOSTA, dove
+    nascono gli archi dei portali).
+    """
     tag = f"Pilone_{cx:+.2f}"
-    y0 = -1.52
-    # Zoccolo modanato a gradoni
-    box(f"{tag}_Basamento", P, cx, y0 + 0.15, 2.18, 1.55, 0.95, 0.52, BIANCO2)
-    # Colonna principale frontale scolpita a candelabro/fogliame + 4 colonne tortili laterali
-    cyl(f"{tag}_ColFrontale", P, cx, y0 - 0.18, 5.10, 0.21, 5.30, BIANCO, vertices=16)
-    for r_i in range(7):
-        torus(f"{tag}_Rilievo_{r_i}", P, cx, y0 - 0.18, 2.85 + r_i * 0.72, 0.19, 0.055, PIETRA)
-    for s in (-1, 1):
-        colonna_ritorta(
-            f"{tag}_Tort1_{s}", P, cx + s * 0.44, y0 - 0.06, 5.10, 0.155, 5.30,
-            # v3.6: rosato chiaro come le colonnine reali, non il rosa
-            # saturo "a palo da barbiere" della versione precedente
-            ROSA_C if s > 0 else BIANCO, turns=3.5, ridges=3
-        )
-        colonna_ritorta(
-            f"{tag}_Tort2_{s}", P, cx + s * 0.80, y0 + 0.08, 5.10, 0.145, 5.30,
-            BIANCO2, turns=-3.0, ridges=4
-        )
-    # Capitelli compositi a fogliame d'acanto + trabeazione d'imposta spezzata
-    box(f"{tag}_Capitelli", P, cx, y0 - 0.02, 7.95, 1.85, 0.88, 0.46, PIETRA)
-    box(f"{tag}_Imposta", P, cx, y0 - 0.08, Z_IMPOSTA, 1.98, 1.00, 0.52, BIANCO2)
-    box(f"{tag}_ImpostaRosa", P, cx, y0 - 0.12, Z_IMPOSTA + 0.32, 2.06, 1.06, 0.20, ROSA)
-    # Leone / grifone stiloforo sporgente di Giovanni Pisano
-    box(f"{tag}_LeoneCorpo", ST, cx, y0 - 0.28, Z_IMPOSTA + 0.66, 0.36, 0.62, 0.36, PIETRA)
-    sphere(f"{tag}_LeoneTesta", ST, cx, y0 - 0.58, Z_IMPOSTA + 0.82, 0.20, PIETRA)
-    # Pilastrino e grande statua di Profeta/Sibilla nel pennacchio fra le
-    # ghimberghe, in piedi sulla mensola del leone a quota d'imposta
-    # (v3.6: figura a tutto tondo come le statue reali dei piloni,
-    # non piu' la statuina a cono+sfera quasi invisibile fra le falde)
-    box(f"{tag}_ Contrafforte Alto", P, cx, -1.42, 12.15, 0.62, 0.44, 5.80, BIANCO)
-    # y ben davanti alle falde delle due ghimberghe, sul leone a sbalzo:
-    # in foto la statua sta nella valle fra le falde ma DAVANTI ad esse
+    yf = -2.03                       # filo frontale del candelabro (0,6 m
+                                     # davanti agli archivolti: in foto i
+                                     # piloni sono l'elemento piu' sporgente)
+    # --- zoccolo a due risalti con filo di serpentino
+    box(f"{tag}_Zoccolo1", P, cx, yf + 0.40, 0.44, 1.66, 1.26, 0.88, BIANCO2)
+    box(f"{tag}_Zoccolo2", P, cx, yf + 0.31, 0.90, 1.50, 1.10, 0.15, BIANCO)
+    box(f"{tag}_ZoccoloFilo", D, cx, yf + 0.16, 0.83, 1.56, 0.05, 0.06, VERDE)
+
+    # --- lesena centrale a girali: il "candelabro" vero del pilone
+    box(f"{tag}_Lesena", P, cx, yf + 0.11, 3.72, 0.32, 0.22, 5.68, BIANCO)
+    box(f"{tag}_LesenaFilo1", D, cx, yf + 0.01, 3.72, 0.05, 0.04, 5.60, ROSA_C)
+    box(f"{tag}_LesenaFilo2", D, cx, yf + 0.21, 3.72, 0.05, 0.04, 5.60, ROSA_C)
+    bm_gir = bmesh.new()
+    for k in range(9):
+        zk = 1.32 + k * 0.56
+        # spirale di foglie d'acanto che sale avvolgendosi attorno alla lesena
+        for s_f in (-1, 1):
+            _bm_foglia(
+                bm_gir, 0.40, 0.175, 0.075,
+                Matrix.Translation((cx + s_f * 0.075, yf - 0.015, zk - 0.16))
+                @ Matrix.Rotation(s_f * 0.62, 4, "Y")
+                @ Matrix.Rotation(-s_f * 0.18, 4, "X"),
+                piega=0.16 * s_f, gonfia=1.25,
+            )
+        _bm_rosetta(bm_gir, Matrix.Identity(4), cx, yf - 0.020, zk + 0.20,
+                    0.075, petali=4, spess=0.55)
+    _mesh_da_bmesh(f"{tag}_Girali", P, bm_gir, PIETRA, uv_scale=(1.2, 1.2))
+
+    # --- sei colonnine: due lisce, due tortili, due tortili opposte
+    _COLONNINE_PILONE = (
+        (-0.655, 0.072, -1.86, -1, 2.4),
+        (-0.500, 0.086, -1.93, 1, 2.8),
+        (-0.300, 0.104, -2.00, 0, 0.0),
+        (0.300, 0.104, -2.00, 0, 0.0),
+        (0.500, 0.086, -1.93, -1, 2.8),
+        (0.655, 0.072, -1.86, 1, 2.4),
+    )
+    for xo, rr, yy, verso, giri in _COLONNINE_PILONE:
+        xc = cx + xo
+        # base attica: plinto, toro e listello
+        cyl(f"{tag}_BasePlin_{xo:+.3f}", P, xc, yy, 0.965, rr * 1.62, 0.13, BIANCO2, vertices=14)
+        cyl(f"{tag}_BaseToro_{xo:+.3f}", P, xc, yy, 1.065, rr * 1.34, 0.075, BIANCO, vertices=14)
+        if giri:
+            colonna_ritorta(
+                f"{tag}_Tort_{xo:+.3f}", P, xc, yy, 3.72, rr, 5.34,
+                BIANCO if verso > 0 else ROSA_C, turns=giri, ridges=3,
+                ridge_amp=0.20,
+            )
+        else:
+            cyl(f"{tag}_Fusto_{xo:+.3f}", P, xc, yy, 3.72, rr, 5.34, BIANCO, vertices=14)
+            cyl(f"{tag}_Collarino_{xo:+.3f}", D, xc, yy, 4.55, rr * 1.10, 0.035, ROSA_C, vertices=14)
+        # capitello: collarino, calice fogliato e abaco
+        cyl(f"{tag}_Coll_{xo:+.3f}", P, xc, yy, 6.44, rr * 1.06, 0.075, BIANCO2, vertices=14)
+        cyl(f"{tag}_Calice_{xo:+.3f}", P, xc, yy, 6.56, rr * 1.26, 0.16, PIETRA, vertices=14)
+        for a_c in range(6):
+            ang_c = math.tau * a_c / 6.0
+            cone(
+                f"{tag}_FogliaCap_{xo:+.3f}_{a_c}", P,
+                xc + math.cos(ang_c) * rr * 0.98, yy + math.sin(ang_c) * rr * 0.86,
+                6.53, rr * 0.42, 0.012, 0.20, PIETRA, vertices=6,
+                rot_x=math.pi / 2.0 - ang_c,
+            )
+        box(f"{tag}_AbacoCol_{xo:+.3f}", P, xc, yy, 6.70, rr * 3.1, 0.20, 0.10, BIANCO2)
+
+    # --- capitello d'insieme, abaco e cornice d'imposta a tre fili
+    box(f"{tag}_Capitello", P, cx, yf + 0.16, 7.10, 1.46, 0.42, 0.34, PIETRA)
+    box(f"{tag}_Abaco", P, cx, yf + 0.14, 7.36, 1.58, 0.50, 0.16, BIANCO2)
+    box(f"{tag}_Imposta_Gola", D, cx, yf + 0.10, 7.62, 1.52, 0.44, 0.20, ROSA_C)
+    box(f"{tag}_Imposta_Toro", P, cx, yf + 0.06, 7.90, 1.64, 0.54, 0.24, BIANCO)
+    box(f"{tag}_Imposta_Cornice", P, cx, yf + 0.02, 8.26, 1.76, 0.60, 0.28, BIANCO2)
+    # dentelli sotto il cornicione d'imposta
+    for d_i in range(9):
+        box(f"{tag}_Dentello_{d_i}", D, cx - 0.76 + d_i * 0.19, yf - 0.24, 8.30,
+            0.10, 0.09, 0.10, BIANCO)
+
+    # --- leone stiloforo all'imposta (Giovanni Pisano), piu' piccolo e disteso
+    box(f"{tag}_LeoneCorpo", ST, cx, yf + 0.28, 8.62, 0.62, 0.30, 0.24, PIETRA)
+    sphere(f"{tag}_LeoneTesta", ST, cx - 0.02, yf + 0.10, 8.70, 0.13, PIETRA)
+    sphere(f"{tag}_LeoneGroppa", ST, cx, yf + 0.42, 8.66, 0.13, PIETRA)
+
+    # --- sopra l'imposta: pilastro snello, statua e baldacchino
+    box(f"{tag}_PilastroAlto", P, cx, -1.60, 11.05, 0.72, 0.46, 5.30, BIANCO)
+    box(f"{tag}_PilastroFilo", D, cx, -1.84, 11.05, 0.10, 0.05, 5.20, ROSA_C)
+    # mensola a tromba e statua a tutto tondo (in foto sta fra le falde ma
+    # davanti ad esse, sul leone dell'imposta)
+    box(f"{tag}_MensolaStatua", P, cx, -1.90, 8.86, 0.66, 0.52, 0.20, BIANCO2)
+    cone(f"{tag}_Mensolone", P, cx, -1.92, 8.62, 0.10, 0.30, 0.34, PIETRA, vertices=8)
     statua_gotica_v26(
-        f"{tag}_StatuaProfeta", ST, cx, y0 - 0.43, 9.30,
-        1.95 if central_side else 1.85,
+        f"{tag}_StatuaProfeta", ST, cx, -1.98, 8.98,
+        1.92 if central_side else 1.80,
         spec=dict(gesto="parla" if cx < 0 else "libro", barba=0.70,
                   copricapo="capelli", yaw=(0.14 if cx < 0 else -0.14),
                   nod=0.05, seed=int(abs(cx) * 10), lato=1 if cx > 0 else -1),
         material=PIETRA,
     )
-    spioventi_modanati(f"{tag}_Baldacchino", P, cx, y0 - 0.46, 11.48, 0.92, 0.82, 0.09, 0.44, BIANCO)
-    finial(f"{tag}_Pinnacolo", G, cx, y0 - 0.10, 14.95, 0.95)
+    # baldacchino a ghimberga con gattoni sopra la statua
+    spioventi_modanati(f"{tag}_Baldacchino", P, cx, -1.92, 11.02, 1.02, 0.86, 0.10, 0.34, BIANCO)
+    foglie_rampanti(f"{tag}_BaldacchinoFoglie", G, cx, -1.96, 11.06, 1.02, 0.86, PIETRA, n=4, size=0.17)
+    finial(f"{tag}_BaldacchinoFiore", G, cx, -1.94, 11.90, 0.46)
+    # secondo pinnacolo, in cima al pilastro, con gattoni
+    box(f"{tag}_Cuspide_Base", P, cx, -1.70, 13.78, 0.60, 0.40, 0.22, BIANCO2)
+    cone(f"{tag}_Cuspide", P, cx, -1.70, 14.46, 0.30, 0.03, 1.20, PIETRA, vertices=8)
+    for k_c in range(5):
+        tc = 0.10 + k_c * 0.18
+        for s_c in (-1, 1):
+            cone(f"{tag}_CuspideGattone_{k_c}_{s_c}", P,
+                 cx + s_c * (0.30 * (1.0 - tc) + 0.02), -1.78, 13.98 + 1.05 * tc,
+                 0.055, 0.006, 0.20, PIETRA, vertices=5, rot_y=s_c * math.radians(46))
+    finial(f"{tag}_CuspideFiore", G, cx, -1.70, 15.12, 0.50)
 
 
 # NOTA v3.6: i piloni sono istanziati piu' sotto, subito prima dei
@@ -4030,120 +4115,225 @@ def campo_ghimberga(name, col, cx, y_front, depth, cz_arco, r_arco,
 
 
 def portale_pisano(cx, door_w, door_h, r_ext, gh_base, gh_apex, door_mat, central=False):
+    """Portale di Giovanni Pisano, rifatto sulla fotografia (v3.7).
+
+    Nella v3.6 il portale era un tubo per ogni ghiera (cinque archivolti
+    tondi, lisci e tutti larghi uguali), una semiluna piattissima sopra un
+    architrave liscio, e le porte alte 5,65 m che arrivavano a 7,60 m —
+    contro i 4,4 m delle porte vere.  Qui:
+
+      1. porte di altezza reale (4,6 m la centrale, 4,1 m le laterali) con
+         specchiature in rilievo, cornice bronzea e lastre di marmo con
+         quatrefogli ai lati — nella foto fra porta e pilone ci sono
+         pannelli chiari con un medaglione a quatrefoglio;
+      2. stipiti a tre colonnine binate con basi e capitelli, alternati
+         bianco / rosato senese;
+      3. architrave modanato + fregio di statuette su fondo d'ombra +
+         cornicione a dentelli, il tutto fra la porta e l'imposta;
+      4. lunetta emisferica con la raggiera bicroma bianco/serpentino e il
+         sole raggiante di San Bernardino (centrale) o la ghirlanda
+         (laterali);
+      5. sette archivolti sottili e concentrici, alternati lisci, tortili
+         e intagliati, ciascuno arretrato rispetto al precedente, cosi'
+         la strombatura ha gradini d'ombra veri e non un tubo unico.
+    """
     tag = "Centrale" if central else ("Sinistro" if cx < 0 else "Destro")
-    front = -1.32
+    front = -1.36
+    z0 = 1.95
+    z_top = z0 + door_h
+    r_lun = max(1.10, 0.56 * door_w)      # raggio interno della lunetta
+    hw_d = door_w * 0.5
 
-    # 1. Mostra marmorea aperta attorno al vano (2 stipiti + sopraluce, SENZA coprire la porta!)
-    show_w = door_w + (0.85 if central else 1.40)
-    jamb_w = (show_w - door_w) * 0.5
-    for s_j in (-1, 1):
-        box(
-            f"Stipite_Mostra_{tag}_{s_j}", P,
-            cx + s_j * (door_w * 0.5 + jamb_w * 0.5), front - 0.14, 1.95 + door_h * 0.5,
-            jamb_w, 0.24, door_h, BIANCO
-        )
-    # Vano ombroso e portone ben visibile con texture ad alta risoluzione
-    box(f"Vano_Porta_{tag}", P, cx, front + 0.08, 1.95 + door_h * 0.5, door_w + 0.10, 0.20, door_h + 0.06, SCURO)
-    box(f"Porta_{tag}", P, cx, front - 0.08, 1.95 + door_h * 0.5, door_w, 0.10, door_h, door_mat, fit_uv=True)
-    # Battente centrale sottile in rilievo
-    box(f"Battente_{tag}", P, cx, front - 0.14, 1.95 + door_h * 0.5, 0.06, 0.04, door_h,
-        BRONZO if central else LEGNO_S)
-
-    # Architrave scolpito e fregio a mensole sopra il portone (sotto la lunetta!)
-    z_lint = 2.02 + door_h + 0.24
-    box(f"Architrave_{tag}", P, cx, front - 0.16, z_lint, show_w + 0.15, 0.30, 0.44, PIETRA)
-    if not central:
-        # Nei portali laterali, fascia marmorea bianca e fregio scolpito fra porta e imposta
-        box(f"Sopraluce_Marmo_{tag}", P, cx, front - 0.12, 7.38, show_w, 0.24, 1.48, BIANCO)
-        for m_i in range(5):
-            box(f"Metopa_{tag}_{m_i}", P, cx + (m_i - 2) * 0.62, front - 0.20, 7.62, 0.44, 0.08, 0.48, PIETRA)
-    for d_i in range(9):
-        box(f"Mensolina_{tag}_{d_i}", P, cx + (d_i - 4) * (show_w / 9.0), front - 0.22,
-            Z_IMPOSTA - 0.16, 0.18, 0.18, 0.20, BIANCO)
-
-    # 2. Lunetta sopra la quota d'imposta Z_IMPOSTA (mai tagliata da alcun cornicione!)
-    # v3.6: vera semiluna con corda sull'imposta (prima un disco intero
-    # centrato 4 m troppo in alto per la vecchia quota di config).
-    r_in = r_ext - 1.52
-    semiluna(f"Lunetta_Fondo_{tag}", P, cx, front - 0.06, Z_IMPOSTA + 0.06,
-             r_in + 0.12, 0.16, BIANCO2)
+    # === 1. Porta, cornice bronzea e specchiature ==========================
+    box(f"Mostra_Fondo_{tag}", P, cx, front + 0.16, z0 + door_h * 0.5,
+        door_w + 0.34, 0.26, door_h + 0.12, NICCHIA)
+    box(f"Porta_{tag}", P, cx, front - 0.04, z0 + door_h * 0.5,
+        door_w, 0.10, door_h, door_mat, fit_uv=True)
     if central:
-        # Raggiera bicroma bianco / verde-nero + Sole raggiante bronzeo di San Bernardino
-        n_rays_bg = 15
-        for k in range(n_rays_bg):
-            a = math.pi * (0.06 + 0.88 * k / (n_rays_bg - 1))
-            box(
-                f"Spicchio_Lunetta_{k}", P,
-                cx + math.cos(a) * (r_in * 0.62), front - 0.07,
-                Z_IMPOSTA + 0.15 + math.sin(a) * (r_in * 0.62),
-                0.24, 0.06, r_in * 0.95,
-                VERDE if k % 2 == 1 else BIANCO,
-                rot_y=(math.pi / 2.0 - a)
-            )
-        arch("Cornice_Interna_Sole", P, cx, front - 0.09, Z_IMPOSTA + 0.20, r_in * 0.92, 0.09, ROSA)
-        cyl("Disco_Sole_IHS", P, cx, front - 0.16, Z_IMPOSTA + 0.78, 0.44, 0.12,
-            BRONZO_D, vertices=24, rot_x=math.radians(90))
-        for a_i in range(16):
-            ang = a_i * 2.0 * math.pi / 16.0
+        # velo scuro in bronzo brunito DAVANTI alla lastra: nella fotografia
+        # il portone centrale e' quasi nero, non verde-oliva come usciva dal
+        # solo materiale PBR (il velo deve stare davanti, non dentro la lastra)
+        box(f"Porta_Velo_{tag}", P, cx, front - 0.095, z0 + door_h * 0.5,
+            door_w * 0.998, 0.015, door_h * 0.996, MATS.get("Bronzo_Portale_Scuro", PATINA))
+        for s_b in (-1, 1):
+            for riga in range(3):
+                box(f"Formella_{tag}_{s_b}_{riga}", P,
+                    cx + s_b * door_w * 0.235, front - 0.108,
+                    z0 + door_h * (0.20 + riga * 0.28),
+                    door_w * 0.32, 0.016, door_h * 0.21,
+                    MATS.get("Bronzo_Portale_Scuro", PATINA))
+    # due battenti e quattro specchiature in rilievo per battente
+    box(f"Battente_{tag}", P, cx, front - 0.10, z0 + door_h * 0.5,
+        0.05, 0.035, door_h * 0.99, BRONZO if central else LEGNO_S)
+    if not central:
+        for s_b in (-1, 1):
+            for riga in range(4):
+                box(f"Specchiatura_{tag}_{s_b}_{riga}", P,
+                    cx + s_b * door_w * 0.235, front - 0.095,
+                    z0 + door_h * (0.135 + riga * 0.243),
+                    door_w * 0.385, 0.03, door_h * 0.185, LEGNO_S)
+    # cornice bronzea attorno alla porta
+    box(f"CornicePorta_Sup_{tag}", P, cx, front - 0.09, z_top + 0.06,
+        door_w + 0.20, 0.13, 0.12, BRONZO_D if central else PIETRA)
+    for s_b in (-1, 1):
+        box(f"CornicePorta_Lat_{tag}_{s_b}", P, cx + s_b * (hw_d + 0.07),
+            front - 0.09, z0 + door_h * 0.5, 0.13, 0.13, door_h, BRONZO_D if central else PIETRA)
+
+    # === 2. Stipiti: tre colonnine binate per lato ========================
+    for s_j in (-1, 1):
+        for idx_c, (dxt, rr, yy, mat_c) in enumerate((
+            (0.10, 0.078, front - 0.26, BIANCO),
+            (0.22, 0.062, front - 0.18, ROSA_C),
+            (0.33, 0.052, front - 0.10, BIANCO2),
+        )):
+            xc = cx + s_j * (hw_d + dxt)
+            cyl(f"ColStipite_Plin_{tag}_{s_j}_{idx_c}", P, xc, yy, z0 + 0.05,
+                rr * 1.7, 0.10, BIANCO2, vertices=12)
+            if idx_c == 0:
+                colonna_ritorta(f"ColStipite_{tag}_{s_j}_{idx_c}", P, xc, yy,
+                                z0 + 0.10 + (door_h - 0.6) * 0.5, rr, door_h - 0.6,
+                                mat_c, turns=2.6, ridges=3, ridge_amp=0.22)
+            else:
+                cyl(f"ColStipite_{tag}_{s_j}_{idx_c}", P, xc, yy,
+                    z0 + 0.10 + (door_h - 0.6) * 0.5, rr, door_h - 0.6, mat_c, vertices=12)
+            cyl(f"CapStipite_{tag}_{s_j}_{idx_c}", P, xc, yy, z0 + door_h - 0.44,
+                rr * 1.35, 0.11, PIETRA, vertices=12)
+            box(f"AbacoStipite_{tag}_{s_j}_{idx_c}", P, xc, yy,
+                z0 + door_h - 0.30, rr * 3.0, 0.16, 0.075, BIANCO2)
+        # lesena esterna e lastra con quatrefogli (in foto fra porta e pilone)
+        box(f"LesenaStipite_{tag}_{s_j}", P, cx + s_j * (hw_d + 0.42), front - 0.02,
+            z0 + door_h * 0.52, 0.15, 0.20, door_h + 0.10, BIANCO)
+        for k_q in range(6):
+            rosetta_rilievo(f"Quatrifoglio_Porta_{tag}_{s_j}_{k_q}", P,
+                            cx + s_j * (hw_d + 0.42), front - 0.14,
+                            z0 + 0.55 + k_q * (door_h - 0.7) / 5.0, 0.070, petals=4)
+
+    # === 3. Architrave, fregio di statuette e cornicione a dentelli =======
+    z_arch = z_top + 0.07
+    box(f"Architrave_{tag}", P, cx, front - 0.22, z_arch,
+        door_w + 1.02, 0.42, 0.46, PIETRA)
+    box(f"Architrave_Filo_{tag}", D, cx, front - 0.40, z_arch - 0.20,
+        door_w + 1.02, 0.06, 0.055, ROSA_C)
+    # v3.7: fregio basso (0,55 m) con figure fitte su fondo in mezz'ombra,
+    # non una fila di sbarre bianche su nero che leggeva come uno steccato
+    z_fre0, z_fre1 = z_arch + 0.30, z_arch + 0.85
+    box(f"Fregio_Fondo_{tag}", P, cx, front - 0.08, (z_fre0 + z_fre1) * 0.5,
+        door_w + 1.02, 0.20, z_fre1 - z_fre0, NICCHIA)
+    n_fig = 19 if central else 14
+    passo_f = (door_w + 0.74) / n_fig
+    for k_f in range(n_fig):
+        x_f = cx - (n_fig - 1) * 0.5 * passo_f + k_f * passo_f
+        box(f"Fregio_Figura_{tag}_{k_f}", P, x_f, front - 0.19,
+            z_fre0 + (z_fre1 - z_fre0) * 0.42, passo_f * 0.62, 0.11,
+            (z_fre1 - z_fre0) * 0.74, PIETRA)
+        sphere(f"Fregio_Testa_{tag}_{k_f}", P, x_f, front - 0.22,
+               z_fre0 + (z_fre1 - z_fre0) * 0.88, passo_f * 0.24, PIETRA)
+    box(f"Fregio_Cornice_{tag}", P, cx, front - 0.12, z_fre1 + 0.07,
+        door_w + 1.06, 0.28, 0.11, BIANCO2)
+    for d_i in range(n_fig):
+        box(f"Fregio_Dentello_{tag}_{d_i}", D,
+            cx - (door_w + 0.86) * 0.5 + (d_i + 0.5) * (door_w + 0.86) / n_fig,
+            front - 0.26, z_fre1 + 0.01, 0.055, 0.055, 0.055, BIANCO)
+    # fascia d'imposta su cui nascono gli archi (sottile: e' una modanatura)
+    box(f"Imposta_Portale_{tag}", P, cx, front + 0.04, Z_IMPOSTA - 0.13,
+        door_w + 1.08, 0.46, 0.15, BIANCO2)
+
+    # === 4. Lunetta: raggiera bicroma e sole / ghirlanda ==================
+    semiluna(f"Lunetta_Fondo_{tag}", P, cx, front + 0.10, Z_IMPOSTA,
+             r_lun + 0.10, 0.18, BIANCO2)
+    # la raggiera bicroma e' un ANELLO fra 0,62 e 1,00 del raggio: il centro
+    # resta un catino chiaro su cui poggia il sole, come in fotografia
+    # (nella v3.6 gli spicchi partivano dal centro e leggevano come una conchiglia)
+    n_rays_bg = 35
+    for k in range(n_rays_bg):
+        a = math.pi * (0.015 + 0.97 * k / (n_rays_bg - 1))
+        box(
+            f"Spicchio_Lunetta_{tag}_{k}", P,
+            cx + math.cos(a) * (r_lun * 0.80), front + 0.06,
+            Z_IMPOSTA + 0.05 + math.sin(a) * (r_lun * 0.80),
+            0.058, 0.045, r_lun * 0.40,
+            VERDE if k % 2 == 1 else BIANCO,
+            rot_y=(math.pi / 2.0 - a)
+        )
+    cyl(f"Lunetta_Catino_{tag}", P, cx, front + 0.13, Z_IMPOSTA + 0.04,
+        r_lun * 0.66, 0.05, ROSA_C, vertices=40, rot_x=math.radians(90))
+    arch(f"Lunetta_Ghiera_{tag}", P, cx, front - 0.02, Z_IMPOSTA + 0.04,
+         r_lun * 0.99, 0.075, ROSA_C, seg_u=34)
+    arch(f"Lunetta_GhieraInt_{tag}", P, cx, front + 0.04, Z_IMPOSTA + 0.03,
+         r_lun * 0.92, 0.045, BIANCO, seg_u=32)
+    if central:
+        # sole raggiante di San Bernardino con tavoletta IHS
+        cyl(f"Disco_Sole_IHS", P, cx, front - 0.06, Z_IMPOSTA + 0.86, 0.42, 0.10,
+            BRONZO_D, vertices=28, rot_x=math.radians(90))
+        box(f"Tavoletta_IHS", P, cx, front - 0.13, Z_IMPOSTA + 0.86, 0.30, 0.05, 0.24,
+            MATS.get("Bronzo_Verde", BRONZO_D))
+        for a_i in range(24):
+            ang = a_i * math.tau / 24.0
+            l_ray = 0.50 if a_i % 2 == 0 else 0.34
             cone(
                 f"Fiamma_Sole_{a_i}", P,
-                cx + math.cos(ang) * 0.70, front - 0.16,
-                Z_IMPOSTA + 0.78 + math.sin(ang) * 0.70,
-                0.085, 0.01, 0.56, BRONZO_D, vertices=6,
+                cx + math.cos(ang) * (0.46 + l_ray * 0.5), front - 0.06,
+                Z_IMPOSTA + 0.86 + math.sin(ang) * (0.46 + l_ray * 0.5),
+                0.055, 0.006, l_ray, BRONZO_D, vertices=5,
                 rot_y=math.pi / 2.0 - ang
             )
     else:
-        # Ghirlanda circolare scolpita nelle lunette laterali, sopra il
-        # piccolo timpano inciso che in foto la sorregge (v3.6)
-        arch(f"Lunetta_Rosa_{tag}", P, cx, front - 0.07, Z_IMPOSTA + 0.16, r_in * 0.86, 0.09, ROSA_C)
-        spioventi_modanati(f"Lunetta_Timpanetto_{tag}", P, cx, front - 0.13,
-                           Z_IMPOSTA + 0.10, r_in * 1.04, 0.52, 0.065, 0.07, PIETRA)
-        torus(f"Ghirlanda_{tag}", P, cx, front - 0.12, Z_IMPOSTA + 0.84, 0.40, 0.09, PIETRA)
+        torus(f"Ghirlanda_{tag}", P, cx, front - 0.04, Z_IMPOSTA + r_lun * 0.46,
+              r_lun * 0.36, 0.085, PIETRA)
+        for k_g in range(10):
+            ang = math.tau * k_g / 10.0
+            sphere(f"Ghirlanda_Foglia_{tag}_{k_g}", P,
+                   cx + math.cos(ang) * r_lun * 0.36, front - 0.08,
+                   Z_IMPOSTA + r_lun * 0.46 + math.sin(ang) * r_lun * 0.36,
+                   0.075, PIETRA, sy=0.8)
 
-    # 3. Strombatura profonda a 5 ordini concentrici di archivolti bianchi e rosa
-    cz_arch = Z_IMPOSTA + 0.15
-    # v3.6: fasce rosato chiaro senese alternate al bianco, come le
-    # ghiere reali (il ROSA saturo leggeva come plastica salmone)
-    rings_spec = [
-        (r_in + 0.12, 0.13, -0.08, ROSA_C, False),
-        (r_in + 0.42, 0.15, -0.16, BIANCO, True),
-        (r_in + 0.76, 0.16, -0.24, ROSA_C, False),
-        (r_in + 1.12, 0.16, -0.32, PIETRA, True),
-        (r_ext - 0.08, 0.17, -0.40, BIANCO2, False),
-    ]
-    for idx, (rr, min_r, dy, mat_a, twisted) in enumerate(rings_spec):
-        if twisted:
-            arco_ritorto(f"Archivolto_{tag}_{idx}", P, cx, front + dy - 0.42, cz_arch, rr, min_r, mat_a)
+    # === 5. Sette archivolti concentrici, arretrati a gradini =============
+    cz_arch = Z_IMPOSTA
+    n_an = 7
+    span_a = max(0.55, r_ext - (r_lun + 0.16))
+    y_out, y_in = front - 0.16, front + 0.20
+    for k in range(n_an):
+        r_k = r_lun + 0.16 + span_a * (k + 0.5) / n_an
+        m_k = span_a / n_an * 0.60
+        y_k = y_in - (y_in - y_out) * (k / (n_an - 1.0))
+        mat_k = (BIANCO, ROSA_C, BIANCO2, PIETRA, BIANCO, BIANCO2, ROSA_C)[k]
+        if k in (1, 4):
+            arco_ritorto(f"Archivolto_{tag}_{k}", P, cx, y_k - 0.06, cz_arch,
+                         r_k, m_k, mat_k, seg_u=40, seg_v=12, ribs=5,
+                         turns=2.4, amp=0.26)
         else:
-            arch(f"Archivolto_{tag}_{idx}", P, cx, front + dy - 0.42, cz_arch, rr, min_r, mat_a, seg_u=38)
-    # Fasce scolpite: rosette separate, non una superficie liscia continua.
-    for band, rr in enumerate((r_in + 0.42, r_in + 1.12)):
-        for k in range(29):
-            a = math.pi * (k + 0.5) / 29
+            arch(f"Archivolto_{tag}_{k}", P, cx, y_k - 0.06, cz_arch,
+                 r_k, m_k, mat_k, seg_u=44)
+        # filetto d'ombra fra un anello e l'altro
+        if k < n_an - 1:
+            arch(f"Archivolto_Filo_{tag}_{k}", D, cx, y_k - 0.02, cz_arch,
+                 r_k + m_k * 1.05, 0.022, PATINA, seg_u=40)
+    # ghiere intagliate: rosette sulle due fasce portanti
+    for band, rr in ((1, r_lun + 0.16 + span_a * 1.5 / n_an),
+                     (5, r_lun + 0.16 + span_a * 5.5 / n_an)):
+        for k in range(31):
+            a = math.pi * (k + 0.5) / 31
             rosetta_rilievo(f"Fogliame_Archivolto_{tag}_{band}_{k}", P,
-                           cx + rr * math.cos(a), front - 0.94,
-                           cz_arch + rr * math.sin(a), 0.115, petals=5)
-    # Chiave di volta scolpita
-    sphere(f"Chiave_Volta_{tag}", P, cx, front - 0.94, cz_arch + r_ext - 0.05, 0.22, PIETRA)
+                            cx + rr * math.cos(a), front - 0.62,
+                            cz_arch + rr * math.sin(a), 0.098, petals=5)
+    # chiave di volta e mensole d'imposta
+    sphere(f"Chiave_Volta_{tag}", P, cx, front - 0.60, cz_arch + r_ext - 0.02, 0.20, PIETRA)
+    for s_m in (-1, 1):
+        box(f"Mensola_Imposta_{tag}_{s_m}", P, cx + s_m * (r_ext - 0.10),
+            front - 0.42, cz_arch + 0.06, 0.30, 0.34, 0.26, PIETRA)
 
-    # 4. Grande ghimberga triangolare ripida svettante oltre Z_GALLERIA
+    # === 6. Ghimberga: pennacchio sopra l'estradosso, cornice e apice =====
     gh_w = r_ext * 2.0 + 0.15
     gh_h = gh_apex - gh_base
-    # v3.6: il campo NON e' piu' un prisma triangolare pieno piazzato
-    # DAVANTI alla lunetta (che la nascondeva e faceva finire l'arco
-    # "dentro" il triangolo): e' il pennacchio fra spioventi ed
-    # estradosso dell'archivolto, arretrato dietro le ghiere.  Una
-    # ghiera rosata e un listello interno seguono estradosso e falde
-    # come il campo inciso della fotografia.
     campo_ghimberga(f"Ghimberga_Campo_{tag}", P, cx, -1.60, 0.26,
                     cz_arch, r_ext + 0.06, gh_base, gh_w * 0.5,
                     gh_base + gh_h, BIANCO2)
     arch(f"Ghimberga_FilettoArco_{tag}", P, cx, -1.72, cz_arch,
          r_ext + 0.30, 0.065, ROSA_C, seg_u=38)
-    spioventi_modanati(f"Ghimberga_Cornice_{tag}", P, cx, -1.72, gh_base, gh_w, gh_h, 0.26, 0.36, BIANCO)
-    foglie_rampanti(f"Ghimberga_Foglie_{tag}", P, cx, -1.76, gh_base, gh_w, gh_h, PIETRA, n=11, size=0.30)
-
-    # Tralci nei due pennacchi, sopra l'estradosso e dentro gli spioventi.
+    spioventi_modanati(f"Ghimberga_Cornice_{tag}", P, cx, -1.72, gh_base, gh_w, gh_h,
+                       0.26, 0.36, BIANCO)
+    foglie_rampanti(f"Ghimberga_Foglie_{tag}", P, cx, -1.76, gh_base, gh_w, gh_h,
+                    PIETRA, n=11, size=0.30)
     for side in (-1, 1):
         for row in range(4):
             t = 0.38 + row * 0.12
@@ -4151,25 +4341,20 @@ def portale_pisano(cx, door_w, door_h, r_ext, gh_base, gh_apex, door_mat, centra
             zz = gh_base + gh_h * t
             if math.hypot(xx - cx, zz - cz_arch) > r_ext + 0.16:
                 rosetta_rilievo(f"Tralcio_Ghimberga_{tag}_{side}_{row}",
-                               P, xx, -1.66, zz, 0.25)
-    # listello interno rosato appena a filo del campo (v3.6: prima
-    # galleggiava 0,3 m davanti al triangolo pieno)
+                                P, xx, -1.66, zz, 0.25)
     spioventi_modanati(f"Ghimberga_ListelloInterno_{tag}", P, cx, -1.66,
                        gh_base + 0.30, gh_w * 0.85, gh_h * 0.85,
                        0.065, 0.10, ROSA_C)
-
-    # Medaglione circolare scolpito col busto nel pennacchio, fra
-    # estradosso e apice (v3.6: appoggiato sul campo, non sospeso)
+    # medaglione col busto nel pennacchio
     z_med = gh_base + gh_h * 0.56
     torus(f"Medaglione_Cornice_{tag}", P, cx, -1.67, z_med, 0.56, 0.11, BIANCO)
-    cyl(f"Medaglione_Fondo_{tag}", P, cx, -1.65, z_med, 0.50, 0.08, ROSA_C, vertices=24, rot_x=math.radians(90))
-    cone(f"Medaglione_Busto_{tag}", P, cx, -1.72, z_med - 0.12, 0.24, 0.14, 0.38, PIETRA, vertices=10)
+    cyl(f"Medaglione_Fondo_{tag}", P, cx, -1.65, z_med, 0.50, 0.08, ROSA_C,
+        vertices=24, rot_x=math.radians(90))
+    cone(f"Medaglione_Busto_{tag}", P, cx, -1.72, z_med - 0.12, 0.24, 0.14, 0.38,
+         PIETRA, vertices=10)
     sphere(f"Medaglione_Testa_{tag}", P, cx, -1.73, z_med + 0.16, 0.15, PIETRA)
 
-    # Statua di coronamento sul vertice della ghimberga.
-    # v2.6: al centro e' il Redentore che si staglia davanti al vetro del rosone,
-    # come in fotografia — figura intera panneggiata, benedizione con la destra,
-    # libro nella sinistra.
+    # statua di coronamento sul vertice della ghimberga
     if central:
         box("Piedistallo_Redentore", ST, cx, -1.66, gh_apex - 0.32, 0.46, 0.34, 0.16, BIANCO2)
         statua_gotica_v26(
@@ -4186,12 +4371,14 @@ def portale_pisano(cx, door_w, door_h, r_ext, gh_base, gh_apex, door_mat, centra
         )
 
 
-for px_pier, is_c in [(-10.45, False), (-3.85, True), (3.85, True), (10.45, False)]:
+for px_pier, is_c in [(-10.45, False), (-4.15, True), (4.15, True), (10.45, False)]:
     pilone_strombato(px_pier, central_side=is_c)
 
-portale_pisano(-X_PORT_L, W_PORT_L, 4.55, 3.30, 10.25, 15.90, LEGNO, central=False)
-portale_pisano(0.0, W_PORT_C, H_PORTALI, 3.85, 10.55, 16.40, BRONZO, central=True)
-portale_pisano(X_PORT_L, W_PORT_L, 4.55, 3.30, 10.25, 15.90, LEGNO, central=False)
+portale_pisano(-X_PORT_L, W_PORT_L, 4.10, 2.48, 10.30, 15.55, LEGNO, central=False)
+portale_pisano(0.0, W_PORT_C, H_PORTALI, 3.95, 10.55, 16.40, BRONZO, central=True)
+portale_pisano(X_PORT_L, W_PORT_L, 4.10, 2.48, 10.30, 15.55, LEGNO, central=False)
+
+
 
 # --- Specchiature marmoree incorniciate e rosoni scolpiti nei 6 timpani murari ---
 spandrel_positions = [
@@ -6643,194 +6830,406 @@ def cuspide_laterale_mosaico_v30(tag, cx, side, z_base, w, h, mos_mat):
 
 
 # =============================================================================
-# 7. SETTORI LATERALI INTERNI (cx = +-8.05 m): LOGGETTA GOTICA A 5 ARCHETTI
-#    ACUTI SU COLONNINE BINATE + CUSPIDI DORATE CON STATUA
+# 7. SETTORI LATERALI INTERNI (loggetta gotica sotto i frontoni dei mosaici)
+# -----------------------------------------------------------------------------
+# v3.7 — La loggetta della v3.6 era una fila di cinque arcatelle minuscole
+# (0,78 m di luce) tutte appiattite sul filo della facciata, con una parete
+# chiara dietro e quattro statuine piccole: davanti alla fotografia leggeva
+# come un pannello a rilievo, non come un loggiato.  Nell'originale il
+# loggiato e' un *vano profondo e buio* con colonnine binate sottili, quattro
+# arcate alte (1,15 m di luce, 1,1 m di freccia) e statue a figura intera
+# messe in controluce davanti al fondo nero.  Qui il vano viene scavato
+# davvero (1,1 m di profondita', fondo quasi nero, spallette e soffitto),
+# il parapetto e' una balaustra con cornice e filo d'ombra, le arcate hanno
+# doppia ghiera e gattoni, e sopra ogni colonna torna la ghimberga con
+# fiorone come in fotografia.
 # =============================================================================
 for side in (-1, 1):
-    cx = side * X_LAT
     tag = "Sx" if side < 0 else "Dx"
     mos_mat = MOS_SX if side < 0 else MOS_DX
+    cx_log = side * 7.70                 # asse del loggiato: in fotografia e'
+                                        # spostato verso l'interno rispetto al
+                                        # frontone del mosaico
+    w_log = 4.45
+    y_front = -1.46                      # filo delle colonnine
+    y_fondo = -0.31                      # fondo del vano (1,15 m di profondita')
+    z_par0, z_par1 = 15.55, 16.02        # parapetto
+    z_imp = 17.32                        # imposta delle arcate
+    z_sof = 19.02                        # soffitto del vano
 
-    # Vano ombroso profondo della loggia (z = 15.25..18.40 m) ben scuro come nella foto
-    w_loggia = 4.25
-    box(f"Loggia_Fondo_Scuro_{tag}", R, cx, -0.62, 16.85, w_loggia, 0.24, 3.15, SCURO)
-    box(f"Loggia_Parapetto_{tag}", R, cx, -1.46, 15.52, w_loggia, 0.36, 0.46, BIANCO2)
+    # --- vano scavato: parete di fondo CHIARA (i pennacchi fra gli archi
+    # sono in luce nella fotografia) e, per ogni campata, un'apertura ad
+    # arco in ombra: cosi' i vani bui hanno la forma dell'arco e non un
+    # rettangolo nero dietro le colonnine
+    box(f"Loggia_Fondo_{tag}", R, cx_log, y_fondo, (z_par1 + z_sof) * 0.5,
+        w_log - 0.16, 0.10, z_sof - z_par1, NICCHIA)
+    box(f"Loggia_Soffitto_{tag}", R, cx_log, (y_front + y_fondo) * 0.5, z_sof,
+        w_log - 0.10, abs(y_fondo - y_front), 0.12, PATINA)
+    for s_j in (-1, 1):
+        box(f"Loggia_Spalletta_{tag}_{s_j}", R,
+            cx_log + s_j * (w_log * 0.5 - 0.05), (y_front + y_fondo) * 0.5,
+            (z_par1 + z_sof) * 0.5, 0.10, abs(y_fondo - y_front),
+            z_sof - z_par1, NICCHIA)
+    # pedana in ombra dietro il parapetto
+    box(f"Loggia_Pedana_{tag}", R, cx_log, y_fondo + 0.45, z_par1 - 0.02,
+        w_log - 0.14, 0.90, 0.10, NICCHIA)
 
-    n_archi = 5
-    step_a = w_loggia / n_archi
+    # --- balaustra: parapetto, cornice a due fili e filo d'ombra
+    box(f"Loggia_Parapetto_{tag}", R, cx_log, y_front + 0.16, (z_par0 + z_par1) * 0.5,
+        w_log + 0.10, 0.36, z_par1 - z_par0, BIANCO2)
+    box(f"Loggia_Para_Cornice_{tag}", R, cx_log, y_front + 0.02, z_par1 + 0.05,
+        w_log + 0.22, 0.46, 0.12, BIANCO)
+    box(f"Loggia_Para_Ombra_{tag}", D, cx_log, y_front - 0.18, z_par1 - 0.03,
+        w_log + 0.20, 0.05, 0.055, VERDE)
+    for k_b in range(23):
+        box(f"Loggia_Balaustrino_{tag}_{k_b}", R,
+            cx_log - w_log * 0.5 + 0.12 + k_b * (w_log - 0.24) / 22.0,
+            y_front + 0.01, z_par0 + 0.20, 0.075, 0.10, 0.32, BIANCO)
+
+    # --- cinque piedritti a colonnine binate + quattro arcate acute
+    n_archi = 4
+    step_l = w_log / n_archi
     for i in range(n_archi + 1):
-        col_x = cx - w_loggia * 0.5 + i * step_a
-        for dy_c in (-1.48, -1.18):
-            cyl(f"Colonnina_Loggia_{tag}_{i}_{dy_c:.2f}", R, col_x, dy_c, 16.58, 0.085, 1.68, BIANCO, vertices=12)
-        box(f"Capitello_Loggia_{tag}_{i}", R, col_x, -1.34, 17.45, 0.26, 0.52, 0.18, PIETRA)
-        if 0 < i < n_archi:
-            finial(f"Pinnacolino_Loggia_{tag}_{i}", G, col_x, -1.48, 17.95, 0.52)
+        col_x = cx_log - w_log * 0.5 + i * step_l
+        box(f"Loggia_Piedritto_{tag}_{i}", R, col_x, y_front + 0.10, z_par1 + 0.13,
+            0.24, 0.30, 0.26, BIANCO2)
+        for s_c in (-1, 1):
+            cyl(f"Loggia_Col_{tag}_{i}_{s_c}", R, col_x + s_c * 0.062,
+                y_front - 0.02 - 0.06 * (s_c > 0), 16.60, 0.048, 1.32, BIANCO, vertices=10)
+            cyl(f"Loggia_BaseCol_{tag}_{i}_{s_c}", R, col_x + s_c * 0.062,
+                y_front - 0.02 - 0.06 * (s_c > 0), 16.26, 0.070, 0.10, BIANCO2, vertices=10)
+        box(f"Loggia_Capitello_{tag}_{i}", R, col_x, y_front - 0.02, z_imp - 0.07,
+            0.26, 0.22, 0.14, PIETRA)
+        for k_f in range(3):
+            sphere(f"Loggia_CapFoglia_{tag}_{i}_{k_f}", R,
+                   col_x + (k_f - 1) * 0.070, y_front - 0.14, z_imp - 0.08,
+                   0.038, PIETRA, sy=0.8)
+        # mensola e ghimberga con gattoni sopra la colonna
+        spioventi_modanati(f"Loggia_Ghimb_{tag}_{i}", R, col_x, -1.56, z_sof - 0.02,
+                           0.72, 0.58, 0.075, 0.18, BIANCO)
+        foglie_rampanti(f"Loggia_GhimbFoglie_{tag}_{i}", G, col_x, -1.60,
+                        z_sof + 0.02, 0.72, 0.58, PIETRA, n=3, size=0.10)
+        finial(f"Loggia_Fiorone_{tag}_{i}", G, col_x, -1.58, z_sof + 0.60, 0.34)
 
     for i in range(n_archi):
-        ax = cx - w_loggia * 0.5 + (i + 0.5) * step_a
-        arch(
-            f"Archetto_Loggia_{tag}_{i}", R, ax, -1.46, 17.44,
-            step_a * 0.48, 0.08, BIANCO, seg_u=20, pointed=0.45
-        )
-        spioventi_modanati(
-            f"Ghim_Loggia_{tag}_{i}", R, ax, -1.50, 17.54,
-            step_a * 0.98, 0.78, 0.07, 0.20, BIANCO
-        )
-        cone(f"Fiorone_Loggia_{tag}_{i}", R, ax, -1.52, 18.40, 0.05, 0.01, 0.18, PIETRA, vertices=6)
+        ax = cx_log - w_log * 0.5 + (i + 0.5) * step_l
+        # apertura in ombra della campata (parete piena sopra l'arco)
+        box(f"Loggia_Buio_{tag}_{i}", R, ax, y_fondo + 0.09, (z_par1 + z_imp) * 0.5 - 0.30,
+            step_l - 0.30, 0.06, z_imp - z_par1 + 0.60, SCURO)
+        prism(f"Loggia_BuioTesta_{tag}_{i}", R, ax, y_fondo + 0.09, z_imp + 0.28,
+              step_l - 0.30, step_l * 0.5 * 0.90, 0.06, SCURO)
+        arch(f"Loggia_Arco_{tag}_{i}", R, ax, y_front - 0.06, z_imp,
+             step_l * 0.5, 0.055, BIANCO, seg_u=26, pointed=0.92)
+        arch(f"Loggia_ArcoFilo_{tag}_{i}", R, ax, y_front - 0.02, z_imp + 0.02,
+             step_l * 0.5 + 0.075, 0.030, ROSA_C, seg_u=26, pointed=0.92)
+        arch(f"Loggia_ArcoEst_{tag}_{i}", R, ax, y_front + 0.03, z_imp + 0.04,
+             step_l * 0.5 + 0.125, 0.036, BIANCO2, seg_u=26, pointed=0.92)
+        finial(f"Loggia_ArcoFiore_{tag}_{i}", G, ax, y_front - 0.04,
+               z_imp + step_l * 0.5 * 1.92 + 0.02, 0.14)
+    # fascia piena fra gli archi e il soffitto, con quatrefogli intagliati
+    box(f"Loggia_Fregio_{tag}", R, cx_log, -1.30, z_sof - 0.22, w_log, 0.24, 0.30, BIANCO2)
+    for k_q in range(9):
+        rosetta_rilievo(f"Loggia_Quatrifoglio_{tag}_{k_q}", R,
+                        cx_log - w_log * 0.5 + 0.28 + k_q * (w_log - 0.56) / 8.0,
+                        -1.44, z_sof - 0.22, 0.062, petals=4)
 
-    for dx_s in (-1.45, 0.95):
-        statue(f"Statua_Loggia_{tag}_{dx_s:+.2f}", ST, cx + side * dx_s, -1.68, Z_GALLERIA + 0.18, 1.34, PIETRA)
+    # --- statue a figura intera in controluce davanti al fondo nero
+    for k_s in range(n_archi):
+        sx_s = cx_log - w_log * 0.5 + (k_s + 0.5) * step_l
+        box(f"Loggia_Piedistallo_{tag}_{k_s}", R, sx_s, -1.08, 16.12,
+            0.36, 0.28, 0.24, BIANCO2)
+        statua_gotica_v26(
+            f"Statua_Loggia_{tag}_{k_s}", ST, sx_s, -1.10, 16.24, 1.56,
+            spec=dict(gesto=("libro", "parla", "rotolo", "petto")[k_s],
+                      barba=(0.55, 0.80, 0.35, 0.65)[k_s],
+                      copricapo=("capelli", "capelli_lunghi", "berretta", "cappuccio")[k_s],
+                      yaw=-side * (0.16 + 0.06 * k_s), nod=0.06,
+                      seed=71 + k_s * 5 + (0 if side < 0 else 2), lato=-side),
+            material=PIETRA,
+        )
 
     # Trabeazione e cuspide laterale: H/W = 0,93 come nel dettaglio
     # frontale; la v3.0 rifa' gattoni, cornice, mosaici, base e apice.
-    box(f"Trabeazione_Cuspide_{tag}", R, cx, -1.02, Z_CUSP_LAT, w_loggia + 0.15, 0.62, 0.38, BIANCO2)
-    box(f"Trabeazione_Cuspide_Toro_{tag}", D, cx, -1.36, Z_CUSP_LAT + 0.16,
-        w_loggia + 0.22, 0.14, 0.055, BIANCO)
+    # la cuspide del mosaico resta sull'asse dei settori laterali (x = X_LAT):
+    # e' la parte che nella v3.6 era gia' fedele e non va spostata
+    cx_mos = side * X_LAT
+    w_mos = DIM.get("larghezza_cuspidi_mosaico", 4.02)
+    box(f"Trabeazione_Cuspide_{tag}", R, cx_mos, -1.02, Z_CUSP_LAT, w_mos + 0.35, 0.62, 0.38, BIANCO2)
+    box(f"Trabeazione_Cuspide_Toro_{tag}", D, cx_mos, -1.36, Z_CUSP_LAT + 0.16,
+        w_mos + 0.45, 0.14, 0.055, BIANCO)
     cuspide_laterale_mosaico_v30(
-        tag, cx, side,
+        tag, cx_mos, side,
         z_base=Z_CUSP_LAT + 0.30,
-        w=DIM.get("larghezza_cuspidi_mosaico", 3.85),
-        h=DIM.get("altezza_cuspidi_mosaico", 3.58),
+        w=w_mos,
+        h=DIM.get("altezza_cuspidi_mosaico", 3.53),
         mos_mat=mos_mat,
     )
 
+
 # =============================================================================
-# 8. TORRIONI GOTICI ANGOLARI ESTERNI A DUE CAMPATE (x = +-12.7 m):
-#    BIFORE ACUTE BICROME, STATUE IN TABERNACOLO, DOCCIONI E LANTERNA OTTAGONALE
+# 8. TORRIONI GOTICI ANGOLARI ESTERNI — rifatti sulla fotografia (v3.7)
+# -----------------------------------------------------------------------------
+# Nella v3.6 il torrione era un parallelepipedo di 4,65 x 2,65 m con una
+# finestrella nera da 0,68 m, lesene piatte, una nicchia rosa con una
+# statuina e, in cima, un cilindro ottagonale con un cono e quattro coni
+# lisci: davanti alla fotografia leggeva come un *campanile da presepe*
+# appiccicato al fianco della facciata.  Nell'originale il torrione e' una
+# massa gotica piena, alta quasi come la galleria:
+#
+#   1. corpo unico a tre registri, con fascia bicroma di base, cornici a
+#      dentelli e lesene d'angolo: non una parete liscia;
+#   2. quattro LANCETTE GOTICHE alte e incassate (due per registro), con
+#      vano in ombra, colonnine binate, doppia ghiera acuta e ghimberga
+#      crochettata — non finestrelle piatte;
+#   3. tabernacoli con statue a figura intera sotto baldacchino sui due
+#      contrafforti d'angolo, piu' una Madonna su mensola aggettante;
+#   4. coronamento a grappolo: grande ghimberga frontale crochettata,
+#      due pinnacoli d'angolo a sezione ottagonale interamente fogliati e
+#      una torretta ottagonale con monofora e statua (via i coni lisci e
+#      il cilindro a "pedina");
+#   5. doccioni sottili e inclinati sugli spigoli, come i draghi della foto.
 # =============================================================================
-for side in (-1, 1):
+
+def _lancetta_gotica(name, col, cx, y_face, z0, w, h, gable_h=0.85,
+                     gable=True, scura=True):
+    """Lancetta gotica senese incassata: vano in ombra, spallette, ghiere,
+    colonnine binate e ghimberga crochettata."""
+    h_testa = w * 0.80
+    z_imp = z0 + h - h_testa
+    box(f"{name}_Vano", col, cx, y_face + 0.24, z0 + (h - h_testa) * 0.5,
+        w, 0.06, h - h_testa, SCURO if scura else NICCHIA)
+    prism(f"{name}_VanoTesta", col, cx, y_face + 0.24, z_imp, w, h_testa, 0.06,
+          SCURO if scura else NICCHIA)
+    for s_v in (-1, 1):
+        box(f"{name}_Spalletta_{s_v}", col, cx + s_v * w * 0.5, y_face + 0.12,
+            z0 + (h - h_testa) * 0.5, 0.055, 0.26, h - h_testa, NICCHIA)
+    # tre colonnine nel vano (binate ai lati, una in asse) come nei trafori
+    # senesi: nella prima stesura stavano a 0,10 m l'una dall'altra e
+    # leggevano come i pioli di una scala
+    for s_c in (-1, 1):
+        cyl(f"{name}_Col_{s_c}", col, cx + s_c * (w * 0.30), y_face + 0.18,
+            z0 + (h - h_testa) * 0.5, 0.038, h - h_testa, BIANCO2, vertices=10)
+        box(f"{name}_Cap_{s_c}", col, cx + s_c * (w * 0.30), y_face + 0.16,
+            z_imp - 0.07, 0.11, 0.13, 0.09, PIETRA)
+    arch(f"{name}_Ghiera", col, cx, y_face + 0.03, z_imp, w * 0.5, 0.070,
+         BIANCO, seg_u=24, pointed=0.60)
+    arch(f"{name}_GhieraRosa", col, cx, y_face - 0.01, z_imp + 0.015,
+         w * 0.5 + 0.078, 0.022, ROSA_C, seg_u=24, pointed=0.60)
+    arch(f"{name}_GhieraEst", col, cx, y_face + 0.07, z_imp + 0.010,
+         w * 0.5 + 0.135, 0.034, BIANCO2, seg_u=24, pointed=0.60)
+    if gable:
+        z_g = z_imp + h_testa * 0.86
+        spioventi_modanati(f"{name}_Ghimb", col, cx, y_face - 0.02, z_g,
+                           w * 1.62, gable_h, 0.085, 0.22, BIANCO)
+        foglie_rampanti(f"{name}_GhimbFoglie", col, cx, y_face - 0.06, z_g + 0.03,
+                        w * 1.62, gable_h, PIETRA, n=4, size=0.11)
+        finial(f"{name}_Fiore", col, cx, y_face - 0.04, z_g + gable_h + 0.06, 0.30)
+
+
+def _pinnacolo_crochettato(name, col, x, y, z0, alt, larg, n_croc=5):
+    """Pinnacolo a sezione ottagonale interamente crochettato (v3.7)."""
+    box(f"{name}_Zoccolo", col, x, y, z0 + 0.09, larg * 2.05, 0.40, 0.18, BIANCO2)
+    box(f"{name}_Zoccolo2", col, x, y, z0 + 0.21, larg * 1.65, 0.34, 0.08, BIANCO)
+    box(f"{name}_Nicchia", col, x, y - 0.02, z0 + 0.52, larg * 0.70, 0.16, 0.44, NICCHIA)
+    cyl(f"{name}_Fusto", col, x, y, z0 + 0.26 + alt * 0.22, larg * 0.78,
+        alt * 0.44, BIANCO, vertices=8)
+    cyl(f"{name}_Gola", col, x, y, z0 + 0.26 + alt * 0.46, larg * 0.88, 0.10,
+        PIETRA, vertices=8)
+    cone(f"{name}_Guglia", col, x, y, z0 + 0.26 + alt * 0.74, larg * 0.76, 0.014,
+         alt * 0.52, BIANCO, vertices=8)
+    for k in range(n_croc):
+        t = 0.06 + k * (0.92 / max(1, n_croc - 1))
+        z_k = z0 + 0.30 + alt * 0.46 + (alt * 0.50) * t
+        r_k = larg * 0.76 * (1.0 - t) + 0.015
+        for a_i in range(6):
+            ang = math.tau * a_i / 6.0 + (math.pi / 6.0 if k % 2 else 0.0)
+            cone(f"{name}_Croc_{k}_{a_i}", col,
+                 x + math.cos(ang) * r_k, y + math.sin(ang) * r_k * 0.82,
+                 z_k, 0.085 * (1.0 - 0.30 * t), 0.006, 0.30 * (1.0 - 0.30 * t),
+                 PIETRA, vertices=5, rot_y=math.pi / 2.0 - ang, rot_x=0.28)
+    # bocciolo terminale a goccia (il vecchio `finial` a quattro foglioline
+    # letto in controluce sembrava una crocetta)
+    bm_b = bmesh.new()
+    _bm_lathe(bm_b, Matrix.Translation((x, y, z0 + 0.26 + alt * 0.96)),
+              ((0.0, larg * 0.30), (0.05, larg * 0.34), (0.13, larg * 0.20),
+               (0.22, larg * 0.02)), seg=8, sy=0.92)
+    _mesh_da_bmesh(f"{name}_Bocciolo", col, bm_b, PIETRA, uv_scale=(0.6, 0.6))
+
+
+# --- convergenza del coronamento: x dell'asse, y del fronte, quota d'inizio
+#     (il torrione sinistro e' leggermente piu' basso di quello destro, come
+#     nella fotografia)
+for side, z_top_t in ((-1, 22.30), (1, 22.60)):
     tag = "Sx" if side < 0 else "Dx"
-    xi = side * 11.15
-    xe = side * 13.55
-    z_top_tower = 21.65 if side < 0 else 22.35  # leggera asimmetria reale Sx/Dx nella foto!
-    h_tower = z_top_tower - Z_IMPOSTA
+    z_imp_t = Z_IMPOSTA
 
-    # Corpo murario articolato delle due campate fino a z_top_tower
-    box(f"Torre_Campata_Int_{tag}", S, xi, -0.05, Z_IMPOSTA + h_tower * 0.5, 2.75, 2.65, h_tower, BIANCO)
-    box(f"Torre_Campata_Est_{tag}", S, xe, -0.15, Z_IMPOSTA + (h_tower - 0.5) * 0.5, 2.35, 2.85, h_tower - 0.5, BIANCO2)
+    def X(v, _s=side):
+        return _s * v
 
-    # Fitte lesene e nervature gotiche verticali (elimina ogni parete piatta!)
-    for lx_off in (-1.08, -0.50, 0.0, 0.50, 1.08):
-        box(
-            f"Lesena_Torre_{tag}_{lx_off:+.2f}", G, side * 12.35 + lx_off * 2.05, -1.56,
-            Z_IMPOSTA + h_tower * 0.5, 0.22, 0.26, h_tower,
-            BIANCO2 if abs(lx_off) == 0.50 else BIANCO
-        )
-    # Marcapiani orizzontali scolpiti sul torrione
-    for zm_t in (12.85, 17.65):
-        box(f"Marcapiano_Torre_{tag}_{zm_t}", G, side * 12.35, -0.35, zm_t, 4.65, 2.65, 0.16, BIANCO2)
+    xi_m, xs_m = 10.95, 14.85           # filo interno ed esterno del corpo
+    w_m = xs_m - xi_m
+    cx_m = (xi_m + xs_m) * 0.5
+    y_f = -1.44                         # fronte del corpo
 
-    # Tre ordini di lancette nella campata interna (v3.6): strette e
-    # INCASSATE dietro stipiti e ghiere, non lastre nere da 0,96 m
-    # appiccicate in aggetto.  In foto l'ordine basso e' una lancetta
-    # CIECA con fondo in marmo chiaro; gli altri due sono vani scuri
-    # divisi dalla colonnina tortile.
-    for idx_w, (zw0, wh, cieca) in enumerate([(9.35, 3.30, True), (13.45, 3.55, False), (17.95, 3.35, False)]):
-        fondo_w = NICCHIA if cieca else SCURO
-        box(f"Finestra_Vano_{tag}_{idx_w}", D, xi, -1.44, zw0 + wh * 0.45, 0.68, 0.14, wh * 0.85, fondo_w)
-        prism(f"Finestra_ArcoScuro_{tag}_{idx_w}", D, xi, -1.44, zw0 + wh * 0.86, 0.68, 0.60, 0.14, fondo_w)
-        # stipiti bianchi ai lati del vano e davanzale alla base
-        for s_j in (-1, 1):
-            box(f"Stipite_Fin_{tag}_{idx_w}_{s_j}", D, xi + s_j * 0.42, -1.56,
-                zw0 + wh * 0.44, 0.13, 0.20, wh * 0.84, BIANCO)
-        box(f"Davanzale_Fin_{tag}_{idx_w}", D, xi, -1.58, zw0 + 0.04, 1.05, 0.24, 0.14, BIANCO2)
-        colonna_ritorta(f"Mullion_Torre_{tag}_{idx_w}", D, xi, -1.64, zw0 + wh * 0.42, 0.085, wh * 0.80, BIANCO, turns=3.0)
-        arch(f"Arco_Fin_Bianco_{tag}_{idx_w}", D, xi, -1.78, zw0 + wh * 0.84, 0.42, 0.085, BIANCO, seg_u=18, pointed=0.50)
-        arch(f"Arco_Fin_Rosa_{tag}_{idx_w}", D, xi, -1.72, zw0 + wh * 0.86, 0.54, 0.070, ROSA_C, seg_u=18, pointed=0.50)
-        # ghimberghetta solo sui due ordini bassi: in alto chiude il
-        # coronamento ogivale, senza il terzo triangolo sovrapposto
-        if idx_w < 2:
-            spioventi_modanati(f"Ghim_Fin_{tag}_{idx_w}", D, xi, -1.82, zw0 + wh * 0.86, 1.45, 1.02, 0.11, 0.24, BIANCO)
-            finial(f"Ghim_Fin_Fin_{tag}_{idx_w}", G, xi, -1.82, zw0 + wh * 0.86 + 1.04, 0.42)
+    # --- corpo murario unico, con il fianco esterno arretrato (prospettiva)
+    box(f"Torre_Corpo_{tag}", S, X(cx_m), 0.02, (z_imp_t + z_top_t) * 0.5,
+        w_m, 2.44, z_top_t - z_imp_t, BIANCO)
+    box(f"Torre_Fianco_{tag}", S, X(xs_m + 0.18), 0.42, (z_imp_t + z_top_t) * 0.5,
+        0.40, 1.70, z_top_t - z_imp_t - 0.6, BIANCO2)
 
-    # Tre ordini di tabernacoli con grandi statue sul contrafforte
-    # d'angolo esterno (v3.6): figure a tutto tondo alte 1,88 m su
-    # mensole AGGETTANTI con sottostante mensolone a tromba, pilastrini
-    # laterali e baldacchino — in foto le statue escono dalla parete
-    # con tutto il loro plinto a sbalzo, non sono figurine incollate
-    # su un rettangolo rosa.
-    gesti_torre = ("rotolo", "parla", "libro")
-    for idx_st, z_st in enumerate((8.95, 13.05, 17.55)):
-        box(f"Nicchia_Torre_{tag}_{idx_st}", D, xe, -1.60, z_st + 1.05, 0.82, 0.16, 2.05, NICCHIA)
-        box(f"Mensola_Torre_{tag}_{idx_st}", D, xe, -1.74, z_st - 0.07, 0.88, 0.58, 0.16, BIANCO2)
-        cone(f"Mensolone_Torre_{tag}_{idx_st}", D, xe, -1.72, z_st - 0.34,
-             0.05, 0.22, 0.40, PIETRA, vertices=8)
+    # --- fascia bicroma di base: corsi di serpentino sottili e distanziati
+    for k_f in range(7):
+        z_f = z_imp_t + 0.28 + k_f * 0.36
+        box(f"Torre_Fascia_{tag}_{k_f}", D, X(cx_m), y_f - 0.07, z_f,
+            w_m + 0.02, 0.06, 0.115, VERDE)
+    # cornici a dentelli fra i registri, ciascuna alla propria quota
+    for z_c in (13.40, 16.35, 19.85):
+        box(f"Torre_Cornice_{tag}_{z_c:.2f}", G, X(cx_m), y_f - 0.07, z_c,
+            w_m + 0.14, 0.20, 0.14, BIANCO2)
+        n_d = int(w_m / 0.19)
+        for d_i in range(n_d):
+            box(f"Torre_Dentello_{tag}_{z_c:.0f}_{d_i}", D,
+                X(xi_m + 0.10 + d_i * 0.19), y_f - 0.17, z_c - 0.10,
+                0.080, 0.10, 0.070, BIANCO)
+    # lesene che articolano la parete fra le campate
+    for x_l in (xi_m + 0.30, cx_m, xs_m - 0.30):
+        box(f"Torre_Lesena_{tag}_{x_l:.2f}", S, X(x_l), y_f - 0.06,
+            (z_imp_t + z_top_t) * 0.5, 0.20, 0.14, z_top_t - z_imp_t - 0.20, BIANCO2)
+
+    # --- contrafforti d'angolo: base a scarpa, fusto e capitello
+    for x_b, w_b in ((xi_m + 0.10, 0.46), (xs_m - 0.10, 0.52)):
+        box(f"Torre_Contrafforte_{tag}_{x_b:.2f}", S, X(x_b), y_f - 0.24,
+            (z_imp_t + 21.9) * 0.5, w_b, 0.34, 21.9 - z_imp_t, BIANCO)
+        box(f"Torre_Contrafforte_Scarpa_{tag}_{x_b:.2f}", S, X(x_b), y_f - 0.30,
+            z_imp_t + 0.55, w_b + 0.14, 0.42, 1.10, BIANCO2)
+        for z_k in (11.30, 15.10, 18.80):
+            box(f"Torre_Contrafforte_Cap_{tag}_{x_b:.2f}_{z_k}", D, X(x_b),
+                y_f - 0.30, z_k, w_b + 0.16, 0.26, 0.14, BIANCO2)
+
+    # --- quattro lancette: due alte sul registro superiore, due basse
+    # pannello in marmo rosato fra le due finestre di ogni registro: in foto
+    # la specchiatura centrale del torrione e' salmone, non bianca
+    for z_p0, z_p1 in ((13.62, 16.18), (16.55, 19.70)):
+        box(f"Torre_Specchiatura_{tag}_{z_p0:.0f}", D, X(cx_m), y_f - 0.055,
+            (z_p0 + z_p1) * 0.5, 0.56, 0.10, z_p1 - z_p0, RIGATO, fit_uv=True)
+        for s_f in (-1, 1):
+            box(f"Torre_Specchiatura_Filo_{tag}_{z_p0:.0f}_{s_f}", D,
+                X(cx_m + s_f * 0.30), y_f - 0.062, (z_p0 + z_p1) * 0.5,
+                0.045, 0.09, z_p1 - z_p0, VERDE)
+    _lancetta_gotica(f"Lancetta_Alta_Sx_{tag}", D, X(cx_m - 0.92), y_f - 0.20,
+                     16.58, 0.98, 2.86, gable_h=0.78)
+    _lancetta_gotica(f"Lancetta_Alta_Dx_{tag}", D, X(cx_m + 0.92), y_f - 0.20,
+                     16.58, 0.98, 2.86, gable_h=0.78)
+    _lancetta_gotica(f"Lancetta_Bassa_Sx_{tag}", D, X(cx_m - 0.92), y_f - 0.20,
+                     13.68, 0.98, 2.44, gable_h=0.68)
+    _lancetta_gotica(f"Lancetta_Bassa_Dx_{tag}", D, X(cx_m + 0.92), y_f - 0.20,
+                     13.68, 0.98, 2.44, gable_h=0.68)
+    # registro di base: due monofore strette incassate (in foto il registro
+    # basso ha aperture piu' piccole e piu' buie)
+    for s_m in (-1, 1):
+        box(f"Torre_Monofora_{tag}_{s_m}", D, X(cx_m + s_m * 0.92), y_f - 0.14,
+            10.30, 0.46, 0.10, 1.60, SCURO)
+        prism(f"Torre_MonoforaTesta_{tag}_{s_m}", D, X(cx_m + s_m * 0.92), y_f - 0.14,
+              11.10, 0.46, 0.36, 0.10, SCURO)
+        arch(f"Torre_MonoforaGhiera_{tag}_{s_m}", D, X(cx_m + s_m * 0.92), y_f - 0.16,
+             11.10, 0.27, 0.055, BIANCO, seg_u=18, pointed=0.55)
+
+    # --- tabernacoli con statue sui due contrafforti d'angolo
+    for idx_t, (x_t, z_t) in enumerate(((xi_m + 0.10, 10.15), (xs_m - 0.10, 10.15),
+                                        (xi_m + 0.10, 13.55), (xs_m - 0.10, 13.55))):
+        box(f"Torre_Tabernacolo_{tag}_{idx_t}", D, X(x_t), y_f - 0.02,
+            z_t + 0.86, 0.86, 0.12, 1.62, NICCHIA)
+        box(f"Torre_Tab_Mensola_{tag}_{idx_t}", D, X(x_t), y_f - 0.34, z_t - 0.03,
+            0.92, 0.46, 0.15, BIANCO2)
+        cone(f"Torre_Tab_Tromba_{tag}_{idx_t}", D, X(x_t), y_f - 0.36, z_t - 0.24,
+             0.07, 0.26, 0.28, PIETRA, vertices=8)
         for s_p in (-1, 1):
-            cyl(f"Pilastrino_Tab_{tag}_{idx_st}_{s_p}", D, xe + s_p * 0.47, -1.70,
-                z_st + 1.02, 0.055, 1.98, BIANCO, vertices=8)
+            cyl(f"Torre_Tab_Pil_{tag}_{idx_t}_{s_p}", D, X(x_t) + s_p * 0.45,
+                y_f - 0.16, z_t + 0.86, 0.045, 1.72, BIANCO, vertices=8)
         statua_gotica_v26(
-            f"Statua_Torrione_{tag}_{idx_st}", ST, xe, -1.84, z_st, 1.88,
-            spec=dict(gesto=gesti_torre[idx_st], barba=0.65,
-                      copricapo="capelli", yaw=0.10 * side,
-                      nod=0.05, seed=31 + idx_st * 7 + (0 if side < 0 else 3),
-                      lato=side),
+            f"Torre_Tab_Statua_{tag}_{idx_t}", ST, X(x_t), y_f - 0.42, z_t, 1.62,
+            spec=dict(gesto=("libro", "parla", "rotolo", "petto")[idx_t],
+                      barba=(0.60, 0.45, 0.78, 0.30)[idx_t],
+                      copricapo=("capelli", "berretta", "capelli_lunghi", "mitra")[idx_t],
+                      yaw=-side * 0.14, nod=0.05,
+                      seed=101 + idx_t * 9 + (0 if side < 0 else 4), lato=side),
             material=PIETRA,
         )
-        spioventi_modanati(f"Baldacch_Torre_{tag}_{idx_st}", G, xe, -1.78, z_st + 2.06, 1.34, 0.88, 0.11, 0.32, BIANCO)
-        finial(f"Baldacch_Fin_{tag}_{idx_st}", G, xe, -1.78, z_st + 2.94, 0.50)
+        spioventi_modanati(f"Torre_Tab_Baldacchino_{tag}_{idx_t}", G, X(x_t),
+                           y_f - 0.16, z_t + 1.66, 1.08, 0.72, 0.085, 0.24, BIANCO)
+        foglie_rampanti(f"Torre_Tab_Foglie_{tag}_{idx_t}", G, X(x_t), y_f - 0.20,
+                        z_t + 1.69, 1.08, 0.72, PIETRA, n=3, size=0.09)
+        finial(f"Torre_Tab_Fiore_{tag}_{idx_t}", G, X(x_t), y_f - 0.16,
+               z_t + 2.38, 0.30)
 
-    # 4 doccioni sporgenti sul profilo esterno (v3.6): CORTI, grossi e
-    # inclinati in avanti/basso come i draghi reali — la vecchia
-    # gargolla monumentale era una stecca orizzontale di 1,95 m con
-    # raggio 0,22 m che da frontale leggeva come un palo nel vuoto.
-    gargoyle_specs = [
-        (10.2, 1.15, 0.24),
-        (13.55, 1.60, 0.31),
-        (17.7, 1.20, 0.25),
-        (20.9, 1.05, 0.22),
-    ]
-    for idx_g, (zg, gl, gr) in enumerate(gargoyle_specs):
-        # innesto sulla faccia LATERALE del contrafforte (y=-0,55) e
-        # corpo tozzo inclinato: di fronte si staglia sul cielo come il
-        # grande drago della foto, senza la piastra d'innesto in vista
-        gargolla(
-            f"Gargolla_Torre_{tag}_{idx_g}", D, xe + side * (1.00 + gl * 0.28), -0.55, zg,
-            side, gl, gr, PIETRA, pitch_deg=-24.0
-        )
-
-    # Coronamento del torrione: lanterna ottagonale a gradoni piu' alta delle cuspidi laterali (~25.0-25.8 m)
-    box(f"Cornicione_Torre_{tag}", G, side * 12.70, -0.25, z_top_tower, 4.35, 2.65, 0.20, BIANCO2)
-    # Coronamento a ghimberga: la finestra termina con un profilo acuto,
-    # non con la grande mensola orizzontale della versione precedente.
-    for band, inset in enumerate((0.0, 0.24)):
-        spioventi_modanati(f"Coronamento_Ogivale_{tag}_{band}", G,
-                           xi, -1.99 - band * 0.04, z_top_tower - 0.85 + inset,
-                           2.85 - inset * 2, 2.15 - inset * 1.4,
-                           0.13 if band == 0 else 0.075, 0.22, BIANCO)
-    foglie_rampanti(f"Coronamento_Foglie_{tag}", G, xi, -2.06,
-                    z_top_tower - 0.85, 2.85, 2.15, n=6, size=0.18)
-    for dx in (-1.37, 1.37):
-        cyl(f"Coronamento_Colonnina_{tag}_{dx}", G,
-            xi + dx, -1.90, z_top_tower - 1.20, 0.095, 1.45, BIANCO)
-        finial(f"Coronamento_Guglia_{tag}_{dx}", G,
-               xi + dx, -1.90, z_top_tower - 0.45, 0.65)
-    # v3.6: coronamento a grappolo PIENO sul fronte, come in foto.
-    # Via la "lanterna" cilindrica a due gradoni arretrata a y=-0,55
-    # (una pedina dietro il cornicione) e le tre edicolette con
-    # spilloni: torretta ottagonale con monofora e cuspide sulla
-    # campata interna, pinnacoli pieni ai lati e statua sommitale
-    # sulla campata d'angolo.
-    cyl(f"Torretta_Base_{tag}", G, xi, -0.95, z_top_tower + 0.62, 0.52, 1.15, BIANCO2, vertices=8)
-    box(f"Torretta_Monofora_{tag}", G, xi, -1.44, z_top_tower + 0.68, 0.22, 0.10, 0.62, SCURO)
-    cone(f"Torretta_Cuspide_{tag}", G, xi, -0.95, z_top_tower + 1.70, 0.50, 0.05, 1.00, PIETRA, vertices=8)
-    finial(f"Torretta_Pinnacolo_{tag}", G, xi, -0.95, z_top_tower + 2.20, 0.62)
-    for s_pin, dx_pin, dz_pin in ((-1, 1.08, 0.0), (1, 1.08, -0.22)):
-        px_p = xi + s_pin * dx_pin
-        zp_p = z_top_tower + dz_pin
-        cyl(f"Pinn_Fusto_{tag}_{s_pin}", G, px_p, -1.30, zp_p + 0.48, 0.17, 0.92, BIANCO, vertices=8)
-        cone(f"Pinn_Cuspide_{tag}_{s_pin}", G, px_p, -1.30, zp_p + 1.30, 0.21, 0.02, 0.78, PIETRA, vertices=8)
-        sphere(f"Pinn_Bottone_{tag}_{s_pin}", G, px_p, -1.30, zp_p + 1.72, 0.075, PIETRA)
-    for s_pin in (-1, 1):
-        px_p = xe + s_pin * 0.78
-        cyl(f"PinnEst_Fusto_{tag}_{s_pin}", G, px_p, -1.25, z_top_tower + 0.42, 0.15, 0.80, BIANCO, vertices=8)
-        cone(f"PinnEst_Cuspide_{tag}_{s_pin}", G, px_p, -1.25, z_top_tower + 1.12, 0.19, 0.02, 0.66, PIETRA, vertices=8)
+    # --- Madonna su mensola aggettante fra i due tabernacoli alti
+    box(f"Torre_Madonna_Mensola_{tag}", D, X(cx_m), y_f - 0.40, 13.35,
+        0.50, 0.62, 0.18, BIANCO2)
+    cone(f"Torre_Madonna_Tromba_{tag}", D, X(cx_m), y_f - 0.44, 13.12,
+         0.08, 0.24, 0.34, PIETRA, vertices=8)
     statua_gotica_v26(
-        f"Statua_Sommitale_Torrione_{tag}", ST, xe, -1.35, z_top_tower + 0.12, 1.50,
-        spec=dict(gesto="libro", barba=0.6, copricapo="capelli",
-                  yaw=-0.12 * side, nod=0.05, seed=47 if side < 0 else 53,
-                  lato=side),
+        f"Torre_Madonna_{tag}", ST, X(cx_m), y_f - 0.52, 13.44, 1.34,
+        spec=dict(gesto="petto", barba=0.0, copricapo="velo", yaw=-side * 0.10,
+                  nod=0.06, seed=131 + (0 if side < 0 else 6), lato=side),
         material=PIETRA,
     )
+    spioventi_modanati(f"Torre_Madonna_Cielo_{tag}", G, X(cx_m), y_f - 0.44,
+                       14.92, 0.94, 0.58, 0.075, 0.20, BIANCO)
+    finial(f"Torre_Madonna_Fiore_{tag}", G, X(cx_m), y_f - 0.44, 15.62, 0.28)
+
+    # --- CORONAMENTO ------------------------------------------------
+    # cornicione a due fili che chiude il corpo
+    box(f"Torre_Cornicione_{tag}", G, X(cx_m), y_f - 0.10, z_top_t,
+        w_m + 0.20, 0.30, 0.12, BIANCO2)
+    box(f"Torre_Cornicione2_{tag}", G, X(cx_m), y_f - 0.05, z_top_t + 0.21,
+        w_m + 0.06, 0.26, 0.07, BIANCO)
+    for d_i in range(int(w_m / 0.18)):
+        box(f"Torre_Cornicione_Dent_{tag}_{d_i}", D, X(xi_m + 0.09 + d_i * 0.18),
+            y_f - 0.20, z_top_t - 0.12, 0.075, 0.10, 0.075, BIANCO)
+
+    # ghimberga frontale crochettata (la "fronte" gotica del torrione)
+    z_g = z_top_t + 0.24
+    gh_w, gh_h = w_m * 0.72, 1.70
+    prism(f"Torre_Ghimb_Campo_{tag}", S, X(cx_m), y_f + 0.22, z_g,
+          gh_w * 0.90, gh_h * 0.94, 0.14, BIANCO2)
+    spioventi_modanati(f"Torre_Ghimb_{tag}", G, X(cx_m), y_f - 0.02, z_g,
+                       gh_w + 0.22, gh_h + 0.06, 0.11, 0.28, BIANCO)
+    foglie_rampanti(f"Torre_GhimbFoglie_{tag}", G, X(cx_m), y_f - 0.06, z_g + 0.05,
+                    gh_w + 0.22, gh_h + 0.06, PIETRA, n=7, size=0.14)
+    finial(f"Torre_GhimbFiore_{tag}", G, X(cx_m), y_f - 0.02, z_g + gh_h + 0.14, 0.38)
+    # traforo a quatrifoglio al posto dell'oculo nero della prima stesura
+    rosetta_rilievo(f"Torre_Ghimb_Rosa_{tag}", D, X(cx_m), y_f - 0.10,
+                    z_g + 0.46, 0.22, petals=4)
+
+    # pinnacoli crochettati sui due contrafforti d'angolo
+    for x_p, alt_p, lar_p in ((xi_m + 0.10, 2.30, 0.30), (xs_m - 0.10, 2.15, 0.32)):
+        _pinnacolo_crochettato(f"Torre_Pinnacolo_{tag}_{x_p:.2f}", G, X(x_p),
+                               y_f - 0.18, z_top_t + 0.14, alt_p, lar_p)
+
+    # torretta ottagonale con monofora e statua, dietro la ghimberga
+    cyl(f"Torre_Torretta_{tag}", G, X(cx_m), 0.20, z_top_t + 0.92, 0.52, 1.40,
+        BIANCO2, vertices=8)
+    for s_mf in (-1, 1):
+        box(f"Torre_Torretta_Monofora_{tag}_{s_mf}", D, X(cx_m) + s_mf * 0.30,
+            -0.16, z_top_t + 0.92, 0.14, 0.10, 0.52, NICCHIA)
+    cyl(f"Torre_Torretta_Cornice_{tag}", G, X(cx_m), 0.20, z_top_t + 1.68, 0.60, 0.15,
+        BIANCO, vertices=8)
+    cone(f"Torre_Torretta_Cuspide_{tag}", G, X(cx_m), 0.20, z_top_t + 2.10, 0.56, 0.05,
+         0.72, PIETRA, vertices=8)
+    statua_gotica_v26(
+        f"Torre_Statua_Sommitale_{tag}", ST, X(cx_m), 0.20, z_top_t + 2.42, 1.16,
+        spec=dict(gesto="libro", barba=0.5, copricapo="capelli", yaw=-side * 0.10,
+                  nod=0.05, seed=151 + (0 if side < 0 else 8), lato=side),
+        material=PIETRA,
+    )
+
+    # --- doccioni sottili e inclinati sui due spigoli esterni
+    for idx_g, (zg, gl, gr) in enumerate(((11.60, 1.15, 0.115),
+                                          (16.55, 1.35, 0.130),
+                                          (19.50, 1.05, 0.110))):
+        gargolla(f"Gargolla_Torre_{tag}_{idx_g}", D, X(xs_m + 0.10), y_f - 0.10, zg,
+                 side, gl, gr, PIETRA, pitch_deg=-26.0)
+
 
 # =============================================================================
 # 9. LUCI SOLARI POMERIDIANE SENESI, CIELO AZZURRO E CAMERA FRONTALE DAL BASSO
@@ -7077,7 +7476,7 @@ if "gltf" in EXPORT.get("formats", []) and not os.environ.get("CHIESA_NO_GLB"):
     except Exception as e:
         print(f"Export GLB non riuscito: {e}")
 
-print("Generazione v3.6 completata!")
+print("Generazione v3.7 completata!")
 sys.stdout.flush()
 sys.stderr.flush()
 if "bpy" in sys.modules and not bpy.app.binary_path:
