@@ -15,8 +15,8 @@
   "altezza_cupola": 40.0,
   "altezza_campanile": 52.0,
   "altezza_duomo_nuovo": 12.0,
-  "includi_duomo_nuovo": true,
-  "tetti": true
+  "includi_duomo_nuovo": false,
+  "tetti": false
  },
  "dimensioni": {
   "larghezza_totale": 30.0,

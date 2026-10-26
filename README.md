@@ -1119,3 +1119,24 @@ Le due anteprime dell'intera struttura (`anteprima_struttura.png`, `anteprima_pi
 ```bash
 python crea_confronto_torri.py
 ```
+
+## Muri esterni v4.1 — contorno dalle piante allegate
+
+Tracciatura aggiornata su `riferimento_perimetro.png`, con una sola scala
+uniforme agganciata ai fili della navata della facciata esistente. Corrette
+sacrestia obliqua (prima scambiata per campanile), torre sul fianco destro,
+rientri asimmetrici del transetto, libreria Piccolomini e annessi. Gli annessi
+sono gusci murari, non blocchi pieni. Tetti e Duomo Nuovo sono disattivati
+per default per leggere il perimetro senza coperture e senza strutture del
+progetto incompiuto. Facciata invariata. Le altezze sono ancora indicative;
+la pianta non permette di ricavarle. Non si tratta di un rilievo metrico.
+
+`python crea_pianta_proporzioni.py` produce il controllo sovrapposto alla
+nuova pianta; `python -m unittest discover -s tests -v` verifica aggancio,
+continuità, scala uniforme e collocazione della torre.
+
+**Stato artefatti:** il codice e il controllo 2D sono aggiornati. Il `.blend`
+e le anteprime 3D non sono stati rigenerati in questa sessione: il runtime
+Blender non parte perché mancano le librerie di sistema `libXrender.so.1`.
+Su una macchina con Blender installato eseguire:
+`blender --background --python aggiorna_muri_esterni.py`.
