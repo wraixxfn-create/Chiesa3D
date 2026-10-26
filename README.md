@@ -22,6 +22,8 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 | `confronto_galleria.png` | Confronto fotografia di riferimento / versione 2.4 / versione 2.5 della galleria dei Profeti |
 | `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprime e GLB da zero |
 | `crea_confronto_torri.py` | Compone `confronto_torri.png` affiancando i ritagli della fotografia ai render `model_sx.png` / `model_dx.png` |
+| `crea_confronto_v39.py` | Compone `confronto_v39.png`: fotografia di riferimento e render d'insieme v3.9 affiancati alla stessa altezza |
+| `confronto_v39.png` | Confronto d'insieme fotografia / v3.9: torrioni bicromi, portali a rilievo e gradinata a bande |
 | `model_sx.png`, `model_dx.png` | Primi piani verticali di ciascuna torre usati dal confronto, rigenerati dallo script (Cycles CPU, 520×1420) |
 | `config_facciata.json` | Tutti i parametri (dimensioni, materiali PBR, luci, camera, render, export) |
 | `riferimento_facciata.jpg` | Fotografia d'insieme di riferimento |
@@ -36,6 +38,92 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
+
+## Versione 3.9 — torrioni bicromi, portali a rilievo profondo, gradinata a bande
+
+Confronto diretto fra la vista frontale del modello (render allegato
+dall'utente, `image-1.png` nella segnalazione) e la fotografia frontale del
+Duomo vero (`riferimento_facciata.jpg`): la parte centrale in alto (cuspide,
+rosone, i due triangoli dei mosaici e le torri-pinnacolo che la affiancano)
+regge il confronto, mentre tutto quello che sta sotto leggeva ancora come un
+plastico: torrioni con aperture nero-pece e basamento a persiana, ordine dei
+portali piatto come un adesivo, gradinata a blocco monolitico. Tre soli
+interventi, tutti **sotto** la parte centrale, che resta intatta:
+
+1. **I torrioni angolari: bicromia senese e corona traforata.** Il tratto
+   piu' riconoscibile delle torri vere — l'archivolto a cunei alternati
+   bianco/serpentino che orla *ogni* apertura — mancava del tutto: le ghiere
+   erano bianche lisce o rosa piatte, e le aperture, con un albedo di 0,018,
+   erano buchi neri. Ora:
+   - nuova `_ghiera_bicroma()`: cunei bianco/serpentino lungo l'arco acuto,
+     applicata alle **quattro lancette**, alle **due arcate cieche** del
+     terzo registro, alle **due monofore** e all'arco della **corona**;
+   - il montante delle lancette alte e' una **colonnina tortile**, come il
+     fusto elicoidale della fotografia (il montante dritto leggeva come una
+     stecca);
+   - la **corona** non e' piu' forata da due lancette rettangolari scure
+     (finestre da casa delle bambole): **un solo grande arco acuto** con
+     archivolto bicromo, **traforo a quatrifoglio bianco nella testata
+     scura**, strombatura profonda che tiene il vano in ombra e davanzale
+     modanato;
+   - il **tiburio** ottagonale non ha piu' monofore nere: le facce portano
+     **specchiature rettangolari incorniciate** (cornice bianca, campo
+     chiaro, filetto rosato) come il tamburo della fotografia;
+   - il **basamento**: i corsi di serpentino galleggiavano 34 cm *davanti*
+     al muro e attraversavano le monofore come le stecche di una persiana;
+     ora sono **intarsiati a filo** (2 cm di risalto) e si fermano sotto il
+     registro basso; le monofore sono alzate e orlate di ghiera bicroma;
+   - `Vano_Scuro` passa da albedo 0,018 a 0,032: le aperture sono vani in
+     ombra profonda in cui il traforo si staglia, non buchi neri.
+
+2. **L'ordine dei portali: profondita' scultorea.** In vista frontale i
+   portali leggevano incollati: lunetta con un anello sottile di spicchi su
+   fondo rosa, fregio candystripe rosa/bianco, porte senza cornice,
+   medaglioni a ciambella, rosoni delle specchiature bianco su bianco. Ora:
+   - la **raggiera bicroma riempie tutta la lunetta** (41 spicchi alternati
+     bianco/serpentino da 0,40 R a 1,02 R), il catino e' bianco con anello
+     d'ombra; nei portali laterali la **ghirlanda** diventa una corona
+     appesa (anello bianco, ombra, 14 foglie e rosetta scolpita al centro);
+   - il **fregio** sopra le porte e' una teoria di statuette chiare su
+     **fondo scuro**, come nella fotografia, con figure e teste piu' larghe;
+   - le **porte** sono incassate in una **cornice modanata aggettante**
+     (due fili, filetto rosato e soglia): il battente ha un'ombra vera sul
+     bordo invece di leggere come una tessera piatta;
+   - i **medaglioni** delle ghimberghe sono piu' grandi e sporgenti, con
+     doppio filo modanato e busto scolpito piu' avanzato;
+   - i **rosoni fogliati** delle specchiature poggiano su un **recesso
+     scuro** (l'ombra del sottosquadro) con petali e bottone sporgenti 7 cm:
+     il fogliame proietta la propria ombra sul campo;
+   - `Marmo_Rosato_Chiaro` e' desaturato di un passo (colore
+     0,748/0,638/0,582 → 0,772/0,686/0,626 e texture acorde): sotto il sole
+     del render la fascia dei portali virava al rosa confetto, mentre in
+     fotografia domina il bianco caldo con vene rosate accennate.
+
+3. **La gradinata a bande di luce e d'ombra.** I 14 gradoni della v3.8 in
+   vista frontale leggevano come un blocco monolitico rigato: il naso
+   sporgeva due centimetri e l'alzata era a filo. Ora **11 gradoni**
+   (alzata 0,30 m):
+   - **naso aggettante** di 26 cm in marmo chiaro sopra ogni alzata;
+   - **alzata rientrante** in marmo patinato (nuovo materiale
+     `Marmo_Alzata_Ombra`, 0,300/0,285/0,262): ogni gradino e' una banda
+     chiara + una banda scura, come i gradoni del sagrato in fotografia,
+     leggibili anche in proiezione frontale ortogonale;
+   - marmo della gradinata schiarito (`Tex_Gradinata`
+     0,760/0,735/0,690 → 0,800/0,782/0,752): in fotografia la scalinata e'
+     quasi bianca, non una rampa di travertino;
+   - lastra di sagrato allargata a 40 m, quanto la scalinata vera.
+
+- **Calibrazione metrica.** Invariata (base della gradinata a z = 0, centro
+  del rosone a z = 19,75 m, tolleranza 0,5%): nessuna delle tre migliorie
+  sposta assi o quote della parte centrale.
+- `config_facciata.json` passa alla versione **3.9** con il nuovo materiale
+  `Marmo_Alzata_Ombra` e i colori aggiornati di `Vano_Scuro` e
+  `Marmo_Rosato_Chiaro`.
+- Nuovo `crea_confronto_v39.py`: compone `confronto_v39.png` affiancando la
+  fotografia e il render d'insieme alla stessa altezza.
+- Le anteprime `anteprima_*.png` e i primi piani `model_sx.png` /
+  `model_dx.png` sono stati rigenerati tutti (Cycles CPU, 32 campioni,
+  denoising).
 
 ## Versione 3.8 — tre migliorie sotto la parte centrale superiore
 
@@ -883,6 +971,7 @@ CHIESA_NO_RENDER=1 python genera_facciata.py       # solo .blend, senza render
 CHIESA_SOLO_ROSone=1 python genera_facciata.py     # solo la vista del rosone
 CHIESA_SOLO_CUSPIDI=1 python genera_facciata.py    # solo i frontoni dei mosaici
 CHIESA_SOLO_TORRI=1 python genera_facciata.py      # solo la panoramica delle due torri
+CHIESA_SOLO_FACCIATA=1 python genera_facciata.py   # solo la vista d'insieme (v3.9)
 CHIESA_SALTA_DETTAGLI_CENTRALI=1 python genera_facciata.py  # facciata + cuspidi
 ```
 
