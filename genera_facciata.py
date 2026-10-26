@@ -263,7 +263,7 @@ scene = bpy.context.scene
 scene.unit_settings.system = "METRIC"
 scene.unit_settings.scale_length = 1.0
 scene["titolo"] = "Duomo di Siena — solo facciata ovest"
-scene["nota"] = "Modello procedurale v3.3: le due torri ai lati della cuspide rifatte sulla fotografia frontale allegata (fusto a lastre bianche con due vene salmone, due grandi lancette con ghimberghe, fasce a dente di cane, doccioni diagonali e coronamento pieno a guglia fogliata con statua); retro piatto."
+scene["nota"] = "Modello procedurale v3.5: le due torri ai lati della cuspide rifatte sulla fotografia frontale allegata (fusto a lastre bianche con due vene salmone, due grandi lancette con ghimberghe, fasce a dente di cane, doccioni diagonali e coronamento pieno a guglia fogliata con statua); retro piatto."
 
 
 # -----------------------------------------------------------------------------
@@ -4999,7 +4999,7 @@ def _bm_finnial_torre(bm_w, bm_p, M, x, y, z0, alt, larg):
 
 
 def _torre_pinnacolo(side, cx_vis, w_vis, cx, tag):
-    """v3.3 — Fusto a lastre di marmo bianco con due specchiature, registro
+    """v3.5 — Fusto a lastre di marmo bianco con due specchiature, registro
     grande di due lancette con ghimberghe, registro piccolo sotto la cornice,
     fasce a dente di cane, doccioni diagonali agli spigoli e coronamento
     PIENO: guglia scolpita a fogliame con figure e doccioni, quattro
@@ -5138,31 +5138,45 @@ def _torre_pinnacolo(side, cx_vis, w_vis, cx, tag):
         _bm_finnial_torre(bm_w, bm_p, Mi, px, py, z_pl, 1.00, 0.30)
 
     # ------------------------------------------- guglia centrale scolpita
-    # v3.4: guglia piu' alta e snella come in fotografia (lunga 3,20 m,
-    # rastremata fino a un ago), con due ordini di ghimberghe piramidali
+    # v3.5: guglia piu' massiccia alla base e piu' ricca di fogliame, come
+    # nella fotografia: base allargata, collarino fogliato, dodici corone di
+    # gattoni (invece di nove) e foglie piu' grandi in basso, ghimberghe
+    # piramidali piu' marcate e due doccioni a mezza altezza.
     L_GUGL = 3.20
     z_s0, z_s1 = z_pl + 0.06, z_pl + 0.06 + L_GUGL
+    # zoccolo / collarino fogliato alla base della guglia (parte massiccia)
+    _bm_lathe(bm_p, Mi @ Matrix.Translation((cx_vis, y_c, z_s0 - 0.12)),
+              ((0.000, 0.400), (0.060, 0.420), (0.130, 0.395), (0.200, 0.355)),
+              seg=12, sy=1.0, rib=0.12, rib_n=8)
+    for k in range(8):
+        a = math.tau * k / 8.0
+        Mf = (Mi @ Matrix.Translation((cx_vis + 0.34 * math.cos(a),
+                                       y_c + 0.34 * math.sin(a), z_s0 - 0.02))
+              @ Vector((math.cos(a), math.sin(a), 0.35)).normalized()
+              .to_track_quat("Z", "Y").to_matrix().to_4x4())
+        _bm_foglia(bm_p, 0.18, 0.11, 0.045, Mf, piega=0.22, gonfia=1.40)
     _bm_lathe(bm_w, Mi @ Matrix.Translation((cx_vis, y_c, z_s0 - 0.10)),
-              ((0.000, 0.335), (0.070, 0.315), (0.120, 0.275)), seg=8, sy=1.0)
+              ((0.000, 0.360), (0.070, 0.340), (0.120, 0.300)), seg=8, sy=1.0)
     _bm_lathe(bm_w, Mi @ Matrix.Translation((cx_vis, y_c, z_s0)),
-              ((0.000, 0.320), (0.800, 0.250), (1.600, 0.170),
-               (2.400, 0.100), (3.000, 0.058), (L_GUGL, 0.040)),
-              seg=14, sy=1.0, rib=0.14, rib_n=8)
-    # ghimberghe piramidali a due ordini, sulla guglia, ai due terzi e a meta'
+              ((0.000, 0.360), (0.700, 0.290), (1.500, 0.210),
+               (2.300, 0.130), (3.000, 0.072), (L_GUGL, 0.040)),
+              seg=16, sy=1.0, rib=0.16, rib_n=8)
+    # ghimberghe piramidali a due ordini, sulla guglia, piu' marcate
     for zq in (0.95, 1.90):
         t_q = zq / L_GUGL
-        rr_q = 0.32 * (1.0 - t_q) + 0.04 * t_q
+        rr_q = 0.36 * (1.0 - t_q) + 0.04 * t_q
         for k in range(4):
             a = math.tau * k / 4.0 + math.pi * 0.25
-            px = cx_vis + (rr_q + 0.02) * math.cos(a)
-            py = y_c + (rr_q + 0.02) * math.sin(a)
-            _bm_cono(bm_w, Mi, px, py, z_s0 + zq + 0.12, 0.085, 0.0, 0.24,
+            px = cx_vis + (rr_q + 0.03) * math.cos(a)
+            py = y_c + (rr_q + 0.03) * math.sin(a)
+            _bm_cono(bm_w, Mi, px, py, z_s0 + zq + 0.14, 0.100, 0.0, 0.28,
                      rot=Matrix.Rotation(a, 4, "Z"), seg=4)
-            _bm_sfera(bm_p, Mi, px, py, z_s0 + zq + 0.27, 0.030, u=6, v=4)
-    # gattoni a corona su tutta la guglia (e' un cono di fogliame)
-    for j in range(9):
-        t = 0.03 + 0.105 * j
-        rr = 0.320 * (1.0 - t) + 0.040 * t
+            _bm_sfera(bm_p, Mi, px, py, z_s0 + zq + 0.30, 0.036, u=6, v=4)
+    # gattoni a corona su tutta la guglia: dodici corone, piu' fitte e piu'
+    # grandi in basso (cono di fogliame piu' massiccio alla base)
+    for j in range(12):
+        t = 0.02 + 0.082 * j
+        rr = 0.360 * (1.0 - t) + 0.040 * t
         for k in range(8):
             a = math.tau * k / 8.0 + (math.pi * 0.125 if j % 2 else 0.0)
             ca, sa = math.cos(a), math.sin(a)
@@ -5170,8 +5184,8 @@ def _torre_pinnacolo(side, cx_vis, w_vis, cx, tag):
                                            z_s0 + (z_s1 - z_s0) * t))
                   @ Vector((ca, sa, 0.55)).normalized()
                   .to_track_quat("Z", "Y").to_matrix().to_4x4())
-            _bm_foglia(bm_p, 0.135 * (1.0 - 0.30 * t), 0.085, 0.036, Mf,
-                       piega=0.30, gonfia=1.35)
+            _bm_foglia(bm_p, 0.165 * (1.0 - 0.28 * t), 0.095, 0.040, Mf,
+                       piega=0.30, gonfia=1.38)
     # due doccioni che sporgono dalla guglia a mezza altezza
     for s2 in (-1, 1):
         _bm_doccione_torre(bm_p, Vector((cx_vis + s2 * 0.16, y_c - 0.16,
@@ -5184,7 +5198,7 @@ def _torre_pinnacolo(side, cx_vis, w_vis, cx, tag):
         _bm_lathe(bm_p, Mi @ Matrix.Translation((fx, fy, z_s0 + 0.02)),
                   ((0.000, 0.085), (0.035, 0.105), (0.070, 0.070)), seg=10, sy=1.0)
         statua_gotica_v26(
-            f"Figura_Guglia_Torre_{tag}_{k}", ST, fx, fy, z_s0 + 0.055, 0.44,
+            f"Figura_Guglia_Torre_{tag}_{k}", ST, fx, fy, z_s0 + 0.055, 0.50,
             spec=dict(gesto="petto" if k == 0 else "libro", barba=0.35,
                       copricapo="cappuccio", yaw=0.0, nod=0.08,
                       seed=5 + k * 7, lato=1, rot_z=rot,
@@ -6881,7 +6895,7 @@ if "gltf" in EXPORT.get("formats", []) and not os.environ.get("CHIESA_NO_GLB"):
     except Exception as e:
         print(f"Export GLB non riuscito: {e}")
 
-print("Generazione v3.3 completata!")
+print("Generazione v3.5 completata!")
 sys.stdout.flush()
 sys.stderr.flush()
 if "bpy" in sys.modules and not bpy.app.binary_path:
