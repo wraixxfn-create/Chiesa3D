@@ -37,6 +37,78 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
 
+## Versione 3.8 — tre migliorie sotto la parte centrale superiore
+
+Confronto fra il render ortografico del modello (`immagine` allegata
+dall'utente) e la fotografia frontale del Duomo vero: la parte centrale in
+alto (cuspide, rosone, i due triangoli dei mosaici, le due torri-pinnacolo)
+regge il confronto, mentre il resto — i torrioni d'angolo, l'ordine dei
+portali e il basamento — leggeva ancora come un plastico. Tre soli
+interventi, tutti **sotto** la parte centrale, che resta intatta:
+
+1. **I due torrioni d'angolo esterni.** Avevano un frontone triangolare
+   PIENO con una crocetta in mezzo (un quatrifoglio a quattro petali) e, ai
+   lati, due pinnacoli fatti di coni lisci infilzati sugli spigoli: da
+   lontano il coronamento leggeva come il frontone di una cappella di
+   paese. Ora, come in fotografia:
+   - il **registro superiore** non è più una parete liscia di marmo: vi si
+     aprono **due arcate cieche** con ghimberghe crochettate e fiorone,
+     che articolano il muro sotto il cornicione;
+   - le **quattro lancette** hanno il **traforo senese vero** — montante
+     centrale, oculo a quatrifoglio nella testata, ghiere acute — e le due
+     basse non sono più nere piene ma marmo in ombra;
+   - la **corona** è diventata una grande **bifora aperta** (due lancette
+     con colonnine e ghiere acute, più l'oculo a quatrifoglio) dentro un
+     campo di muratura piena in marmo, inquadrata dalla **ghimberga
+     crochettata** che sale fino all'apice, con il fiorone in punta;
+   - i **pinnacoli** sono a sezione ottagonale con crocchette d'acanto
+     aderenti (non più coni spinosi) e più alti del corpo;
+   - la **lanterna ottagonale** è traforata (quattro monofore con
+     ghimberghe), con guglia crochettata, e regge la statua sommitale:
+     il vecchio cilindro a "pedina" non c'è più.
+
+2. **L'ordine dei tre portali di Giovanni Pisano.** Le ghimberghe erano
+   ornate da *foglie rampanti* a cono (lette come i rebbi di un tridente),
+   gli archivolti da 31 rosette a raggiera ciascuno (letti come asterischi
+   appoggiati sugli archi), le specchiature fra le ghimberghe da un anello
+   con sei coni (un "fiocco di neve" su una piastrella) e i medaglioni da un
+   cono con una sfera sopra (una campanella). Ora:
+   - lungo i due spioventi di ciascuna ghimberga corre un filo di
+     **crocchette d'acanto ripiegate** (foglie vere, in un'unica mesh), come
+     sulla cuspide centrale;
+   - gli archivolti portano **corda intrecciata**, **filo di perline** e una
+     fila di **foglioline d'acanto**, cioè modanature continue come
+     nell'intaglio;
+   - le specchiature sono **pannelli cosmateschi**: cornice bianca, filo di
+     serpentino, campo in marmo chiaro con un **rosone fogliato a otto
+     petali** a bassorilievo e quattro tasselli romboidali rosa agli angoli;
+   - i medaglioni hanno ora un **mezzo busto scolpito** (petto, spalle,
+     collo, testa e chioma) invece di cono + sfera.
+
+3. **Il basamento e i piloni.** Era la parte più "da plastico": la gradinata
+   grigio-azzurra con listelli di serpentino quasi neri, il contrafforte
+   esterno a cinque barre nere distanti un metro, la campata interna con tre
+   losanghe bianco/nere e la lesena del pilone coperta di foglie applicate
+   come piastrelle. Ora:
+   - la **gradinata** è in marmo chiaro caldo (texture `Tex_Gradinata`
+     rifatta) e la gola d'ombra sotto ogni naso è una battuta di marmo
+     patinato, non una riga nera: i gradoni si contano uno a uno;
+   - il **contrafforte esterno** porta **corsi bicromi fitti e regolari**
+     (serpentino da 13 cm ogni 72 cm circa) intarsiati a filo, senza
+     risalti che proiettino ombre a scaletta;
+   - la **campata interna** ha la specchiatura in marmo rosato incorniciata
+     e la fascia a **losanghe rosa con cuore di serpentino** su fondo bianco
+     (l'intarsio senese), non più una scacchiera bianco/nera;
+   - la **lesena del pilone** è un vero **candelabro d'acanto**: un fusto
+     che sale serpeggiando, e a ogni nodo due volute ricurve con bocciolo e
+     fogliolina coricata alla base, tutte fuse in un'unica mesh.
+
+- **Calibrazione metrica.** Restano le quote della v3.7 (base della
+  gradinata a z = 0, centro del rosone a z = 19,75 m, tolleranza 0,5%):
+  nessuna delle tre migliorie sposta assi o quote della parte centrale.
+- `config_facciata.json` passa alla versione **3.8** (gradinata più chiara:
+  `Marmo_Gradinata` da `0.580, 0.595, 0.630` a `0.735, 0.712, 0.675`).
+
 ## Versione 3.7 — tre migliorie sotto la parte centrale superiore
 
 Confronto diretto fra il render della v3.6 e la fotografia d'insieme del
