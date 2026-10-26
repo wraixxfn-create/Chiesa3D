@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-MURI ESTERNI DEL CORPO DELLA CHIESA — Duomo di Siena (v4.0)
+MURI ESTERNI DEL CORPO DELLA CHIESA — Duomo di Siena (v4.1)
 ============================================================
 
 Il progetto nasce come SOLA facciata ovest.  Questo modulo aggiunge il resto
@@ -14,42 +14,14 @@ Coordinate del modello (come in `genera_facciata.py`):
     Il retro della facciata e' a Y = +1.3 m (non scalato), il corpo si
     sviluppa verso +Y: navata -> transetto/esagono -> coro -> abside.
 
-TARATURA DELLA PIANTA
----------------------
-La scala grafica in alto a destra da' 10 m = 30 px (e 50 ft = ~46 px):
-
-    PX_PER_M = 3.0        -> 1 px = 0.333 m reali
-
-Siccome il modello usa `scala_globale = 3.0` (1 m reale = 3 unita' modello),
-per la scala di default 1 px della pianta = 1 unita' modello: coincide, ma
-qui la conversione e' scritta per esteso, cosi' le proporzioni restano esatte
-anche cambiando `scala_globale`.
-
-Riferimenti planimetrici (pixel dell'immagine, origine in alto a sinistra):
-
-    X0_PX = 166.5   asse longitudinale = centro della facciata
-                     (muri esterni della navata a x = 121 e x = 212)
-    Y0_PX = 333     filo interno del muro di facciata; la facciata occupa
-                     y = 333..341 (= ~2.7 m, come i 7.08 u.m. del modello)
-
-Punti principali (px -> metri reali, arrotondati):
-
-    facciata (ovest)          y = 333   -> Y =  1.3 m
-    navata, larghezza esterna x = 121..212 -> 30.3 m (facciata: 30 m)
-    navata, lunghezza         y = 333..210 -> 41.0 m
-    transetto, larghezza      x = 76..253  -> 59.0 m
-    transetto, profondita'    y = 128..210 -> 27.3 m
-    coro, larghezza           x = 121..212 -> 30.3 m
-    coro, profondita'         y = 47..128  -> 27.0 m
-    testata orientale         y = 47    -> Y = 96.6 m
-    lunghezza totale esterna  y = 341..47  -> ~98.0 m (interno reale: 89.4 m)
-    centro esagono/cupola     (166, 178) -> Y = 53.0 m
-    campanile (ruotato 45°)   ( 84,  62) -> X = -27.5 m, Y = 91.6 m
-    Duomo Nuovo (incompiuto)  x = 250..444, y = 128..241
-
-Le misure reali note (89.4 m di lunghezza interna, 54 m al transetto, 24 m
-di navata) confermano la taratura: la pianta del libro e' una semplificazione
-in cui i muri esterni sono circa il 5-10% piu' generosi degli interni.
+TARATURA DELLA PIANTA (v4.1)
+---------------------------
+Contorno tracciato dalla pianta moderna `riferimento_perimetro.png`.
+La trasformazione uniforme conserva i rapporti e aggancia la navata alla
+facciata esistente. Le coordinate vengono riportate nel sistema storico
+3 px/m per compatibilità. Non è un rilievo metrico: quote assolute dipendono
+ dalla facciata, altezze indicative. Il corpo obliquo è la SACRESTIA;
+il campanile si trova a destra della navata, accanto al transetto.
 
 USO
 ---
@@ -136,58 +108,50 @@ def M(val_m, scala=SCALA_DEFAULT):
 # spigolo ovest sinistro (retro facciata), gira in senso antiorario e torna
 # allo spigolo ovest destro.  L'ultimo lato (la facciata) NON viene costruito:
 # e' gia' il fronte modellato.
-PERIMETRO_PX = [
-    (124, 333),   # spigolo ovest sinistro (retro facciata)
-    (124, 210),   # muro sinistro della navata
-    (76, 210),   # testata ovest del braccio sinistro del transetto
-    (76, 128),   # fianco esterno del braccio sinistro
-    (121, 128),   # testata nord del braccio sinistro
-    (121, 47),    # muro sinistro del coro
-    (212, 47),    # testata orientale (abside)
-    (212, 128),   # muro destro del coro
-    (253, 128),   # testata nord del braccio destro
-    (253, 210),   # fianco esterno del braccio destro
-    (209, 210),   # testata ovest del braccio destro
-    (209, 333),   # muro destro della navata -> spigolo ovest destro
-]
+# Tracciatura della pianta moderna `riferimento_perimetro.png` (597×851).
+# Una sola similitudine, senza deformazioni indipendenti X/Y:
+# i fili della navata x=215..440 sono agganciati a x=124..209 del modello.
+# Tutti i punti sono ASSI dei muri, non bordi esterni.
+RAPPORTO_PIANTE = 85.0 / 225.0
 
-# Il perimetro e' spezzato in tratti nominali: ogni tratto diventa un oggetto
-# con nome leggibile, cosi' in seguito si puo' dettagliare una zona alla volta.
+def dalla_pianta(x, y):
+    return (124.0 + (x - 215.0) * RAPPORTO_PIANTE,
+            333.0 + (y - 820.0) * RAPPORTO_PIANTE)
+
+def traccia(punti):
+    return [dalla_pianta(x, y) for x, y in punti]
+
+CONTORNO_RIF = [
+    (215,820), (215,478), (101,478), (101,263),
+    (164,263), (164,195), (211,195), (211,57),
+    (440,57), (440,190), (495,190), (495,249),
+    (553,249), (553,475), (508,475), (508,550),
+    (440,550), (440,820),
+]
+PERIMETRO_PX = traccia(CONTORNO_RIF)
 TRATTI_MURO = [
-    ("Muro_Navata_Sx", "07a_Muri_Nave", [(124, 333), (124, 210)]),
-    ("Muro_Navata_Dx", "07a_Muri_Nave", [(209, 210), (209, 333)]),
-    ("Muro_Transetto_Sx", "07b_Muri_Transetto",
-     [(124, 210), (76, 210), (76, 128)]),
-    ("Muro_Transetto_Dx", "07b_Muri_Transetto",
-     [(253, 128), (253, 210), (209, 210)]),
-    ("Muro_TestaTransetto_Sx", "07b_Muri_Transetto", [(76, 128), (121, 128)]),
-    ("Muro_TestaTransetto_Dx", "07b_Muri_Transetto", [(212, 128), (253, 128)]),
-    ("Muro_Coro_Sx", "07c_Muri_Coro", [(121, 128), (121, 47)]),
-    ("Muro_Coro_Dx", "07c_Muri_Coro", [(212, 47), (212, 128)]),
-    ("Muro_Abside", "07c_Muri_Coro", [(121, 47), (212, 47)]),
+    ("Muro_Navata_Sx", "07a_Muri_Nave", traccia(CONTORNO_RIF[:2])),
+    ("Muro_Navata_Dx", "07a_Muri_Nave", traccia(CONTORNO_RIF[-2:])),
+    ("Muro_Transetto_Sx", "07b_Muri_Transetto", traccia(CONTORNO_RIF[1:7])),
+    ("Muro_Coro_Sx", "07c_Muri_Coro", traccia(CONTORNO_RIF[6:8])),
+    ("Muro_Abside", "07c_Muri_Coro", traccia(CONTORNO_RIF[7:9])),
+    ("Muro_Coro_Dx", "07c_Muri_Coro", traccia(CONTORNO_RIF[8:10])),
+    ("Muro_Transetto_Dx", "07b_Muri_Transetto", traccia(CONTORNO_RIF[9:17])),
 ]
-
-# Annessi: poligoni chiusi (px) estrusi come volumi pieni.
 ANNESSI = [
-    ("Sacrestia_Sx", "07f_Annessi", H_ANNESSI,
-     [(68, 208), (124, 208), (124, 238), (68, 238)]),
-    ("Sacrestia_Dx", "07f_Annessi", H_ANNESSI,
-     [(212, 205), (235, 205), (235, 235), (212, 235)]),
-    ("Blocco_Battistero", "07f_Annessi", H_BATTISTERO,
-     [(50, 238), (124, 238), (124, 270), (50, 270)]),
+    ("Sacrestia_Obliqua", "07f_Annessi", H_ANNESSI,
+     traccia([(211,119),(101,9),(13,101),(100,174),(150,195),(211,174)])),
+    ("Libreria_Piccolomini", "07f_Annessi", H_ANNESSI,
+     traccia([(215,485),(57,490),(57,562),(215,562)])),
+    ("Annessi_Libreria", "07f_Annessi", 8.0,
+     traccia([(215,568),(42,575),(35,617),(25,625),(32,658),(215,638)])),
 ]
-
-# Cappelle circolari alle teste del transetto (centro px, raggio m reali).
-CAPPELLE_TONDE = [
-    ("Cappella_Tonda_Sx", 90, 197),
-    ("Cappella_Tonda_Dx", 232, 197),
-]
-
-# Torre campanaria: quadrato ruotato di 45° come nella pianta (px del centro).
-CAMPANILE_PX = (84, 62)
-
-# Esagono della cupola (centro px).  Orientato con due vertici sull'asse X.
-ESAGONO_PX = (166, 178)
+# Le cappelle circolari sono interne al perimetro, non torri aggiunte.
+CAPPELLE_TONDE = []
+CAMPANILE_PX = dalla_pianta(458, 501)
+ESAGONO_PX = dalla_pianta(326, 334)
+LATO_CAMPANILE = 60 * RAPPORTO_PIANTE / PX_PER_M
+R_TAMBURO = 95 * RAPPORTO_PIANTE / PX_PER_M
 
 # Duomo Nuovo: i muri superstiti del progetto mai completato.  Raccolta a
 # parte, disattivabile da config (`includi_duomo_nuovo`).
@@ -410,7 +374,7 @@ def rimuovi_muri_esterni():
 
 
 def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
-                            includi_duomo_nuovo=True, tetti=True,
+                            includi_duomo_nuovo=False, tetti=False,
                             rimuovi_esistenti=True):
     """Aggiunge i muri esterni semplici alla scena corrente.
 
@@ -479,13 +443,10 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
     # --- 5.3 campanile semplice (quadrato ruotato come in pianta) ---------
     cx_c = (CAMPANILE_PX[0] - X0_PX) / PX_PER_M
     cy_c = Y_BACK_M + (Y0_PX - CAMPANILE_PX[1]) / PX_PER_M
-    # Quadrato ruotato di 45°: i vertici cadono sugli assi, come nella pianta.
+    # Il campanile è il quadrato accanto al fianco destro della navata.
     r = LATO_CAMPANILE / 2.0
     quad = [(cx_c * scala + dx * scala, cy_c * scala + dy * scala)
-            for dx, dy in ((-r * math.sqrt(2.0), 0.0),
-                           (0.0, -r * math.sqrt(2.0)),
-                           (r * math.sqrt(2.0), 0.0),
-                           (0.0, r * math.sqrt(2.0)))]
+            for dx, dy in ((-r,-r),(r,-r),(r,r),(-r,r))]
     cc = cols["07e_Campanile"]
     _estrudi_poligono("Campanile_Plinto", quad, 0.0, h_plinto * scala,
                       mats["plinto"], cc, scala)
@@ -502,12 +463,11 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
     # --- 5.4 annessi e cappelle circolari --------------------------------
     ca = cols["07f_Annessi"]
     for nome, _col_key, altezza, poly_px in ANNESSI:
-        poly = _poligono_da_px(poly_px, scala)
-        _estrudi_poligono(nome + "_Plinto", poly, 0.0,
-                          min(H_PLINTO, altezza) * scala,
-                          mats["plinto"], ca, scala)
-        _estrudi_poligono(nome, poly, min(H_PLINTO, altezza) * scala,
-                          altezza * scala, mats["muro"], ca, scala)
+        # Guscio vuoto: nessun volume pieno che riempia gli interni.
+        _muro(nome + "_Plinto", poly_px + [poly_px[0]],
+              SPESSORE_ANNESSE, 0, H_PLINTO, mats["plinto"], ca, scala)
+        _muro(nome, poly_px + [poly_px[0]], SPESSORE_ANNESSE,
+              H_PLINTO, altezza, mats["muro"], ca, scala)
         conteggio += 2
     for nome, x_px, y_px in CAPPELLE_TONDE:
         cx_k = (x_px - X0_PX) / PX_PER_M
@@ -529,9 +489,9 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
         z_r0 = (h_muro + H_COPING) * scala
         z_r1 = (h_muro + H_COPING + 0.45) * scala
         for nome, rect in (
-            ("Tetto_Navata", [(124, 333), (209, 333), (209, 210), (124, 210)]),
-            ("Tetto_Transetto", [(76, 210), (253, 210), (253, 128), (76, 128)]),
-            ("Tetto_Coro", [(121, 128), (212, 128), (212, 47), (121, 47)]),
+            ("Tetto_Navata", traccia([(215,820),(440,820),(440,478),(215,478)])),
+            ("Tetto_Transetto", traccia([(101,478),(553,478),(553,263),(101,263)])),
+            ("Tetto_Coro", traccia([(211,263),(440,263),(440,57),(211,57)])),
         ):
             _estrudi_poligono(nome, _poligono_da_px(rect, scala),
                               z_r0, z_r1, mats["tetto"],
@@ -552,7 +512,7 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
     # --- 5.7 riepilogo a console ----------------------------------------
     dims = riepilogo_dimensioni()
     print("=" * 72)
-    print("MURI ESTERNI v4.0 — proporzioni dalla pianta (3 px = 1 m reale)")
+    print("MURI ESTERNI v4.1 — proporzioni dalla pianta (3 px = 1 m reale)")
     print("=" * 72)
     for k, v in dims.items():
         print(f"  {k:<38s} {v:>10.2f} m reali  = {v * SCALA_DEFAULT:>8.1f} u.m.")
@@ -568,17 +528,13 @@ def riepilogo_dimensioni():
     def d(a, b):
         return abs(a - b) / PX_PER_M
     return {
-        "Larghezza esterna navata": d(121, 212),
-        "Lunghezza navata (facciata->transetto)": d(333, 210),
-        "Larghezza esterna transetto": d(76, 253),
-        "Profondita' transetto": d(128, 210),
-        "Larghezza coro": d(121, 212),
-        "Profondita' coro": d(47, 128),
-        "Lunghezza totale esterna": d(341, 47),
-        "Distanza facciata->centro cupola": d(333, ESAGONO_PX[1]),
+        "Larghezza esterna navata": 85 / PX_PER_M + SPESSORE_MURO,
+        "Lunghezza navata (facciata->transetto)": (820-478)*RAPPORTO_PIANTE/PX_PER_M,
+        "Larghezza esterna transetto": (553-101)*RAPPORTO_PIANTE/PX_PER_M + SPESSORE_MURO,
+        "Larghezza coro": (440-211)*RAPPORTO_PIANTE/PX_PER_M + SPESSORE_MURO,
+        "Lunghezza corpo (retro facciata->abside)": (820-57)*RAPPORTO_PIANTE/PX_PER_M + SPESSORE_MURO/2,
+        "Distanza facciata->centro cupola": (820-334)*RAPPORTO_PIANTE/PX_PER_M,
         "Diametro tamburo esagonale": 2 * R_TAMBURO,
-        "Altezza muri (semplice)": H_MURO,
-        "Altezza colmo cupola (semplice)": H_CUPOLA,
-        "Altezza campanile (semplice)": H_CAMPANILE,
+        "Altezza muri (indicativa)": H_MURO,
         "Lato campanile": LATO_CAMPANILE,
     }
