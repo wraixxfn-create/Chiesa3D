@@ -1,6 +1,6 @@
-# Chiesa3D — Facciata del Duomo di Siena
+# Chiesa3D — Facciata e corpo del Duomo di Siena
 
-Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostruita in modo procedurale a partire dalla fotografia `riferimento_facciata.jpg`. Nessun interno, nessuna navata, nessun edificio laterale: solo il fronte, con spessore ridotto (~7,8 m) e retro piatto.
+Modello 3D (`.blend`) della **facciata ovest del Duomo di Siena** (ricostruita in modo procedurale dalla fotografia `riferimento_facciata.jpg`, versione 3.9) **con il resto dei muri esterni della struttura** (versione 4.0): navata, transetto, coro, tamburo esagonale, campanile, annessi e i muri superstiti del Duomo Nuovo. I muri del corpo sono **volutamente semplici** — prismi e polilinee estruse, nessuna decorazione — ma le loro **proporzioni sono tarate sulla pianta** `riferimento_pianta.jpg` allegata. La facciata non e' stata toccata: e' ancora la v3.9, con spessore ridotto (~7,8 m) e retro piatto.
 
 ## File
 
@@ -20,12 +20,19 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 | `confronto_cuspidi.png` | Confronto fotografia / versione 2.9 dei due frontoni: Presentazione a sinistra, Natività a destra |
 | `anteprima_galleria.png` | Dettaglio panoramico v2.5 sul taglio della fotografia: fregio di cherubini, trabeazione a scacchiera, 15 edicole con profeti in altorilievo, pennacchi e sommità del rosone (Cycles CPU, 1600×520) |
 | `confronto_galleria.png` | Confronto fotografia di riferimento / versione 2.4 / versione 2.5 della galleria dei Profeti |
-| `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprime e GLB da zero |
+| `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprime e GLB da zero (dalla v4.0 include anche i muri esterni del corpo) |
+| `muri_esterni.py` | **v4.0** — pianta digitalizzata e costruzione dei muri esterni semplici (navata, transetto, coro, tamburo, campanile, annessi, Duomo Nuovo) |
+| `aggiorna_muri_esterni.py` | **v4.0** — aggiunge/ricostruisce i muri su un `.blend` esistente e genera `anteprima_struttura.png` e `anteprima_pianta.png` |
+| `crea_pianta_proporzioni.py` | **v4.0** — compone `pianta_proporzioni.png`: pianta allegata con la tracciatura dei muri e le quote in metri reali |
+| `pianta_proporzioni.png` | **v4.0** — disegno quotato di controllo delle proporzioni (3 px = 1 m reale) |
+| `anteprima_struttura.png` | **v4.0** — vista assonometrica dell'intero edificio (Duomo Nuovo nascosto per leggibilità) |
+| `anteprima_pianta.png` | **v4.0** — vista ortografica dall'alto dell'intera pianta, Duomo Nuovo compreso |
 | `crea_confronto_torri.py` | Compone `confronto_torri.png` affiancando i ritagli della fotografia ai render `model_sx.png` / `model_dx.png` |
 | `crea_confronto_v39.py` | Compone `confronto_v39.png`: fotografia di riferimento e render d'insieme v3.9 affiancati alla stessa altezza |
 | `confronto_v39.png` | Confronto d'insieme fotografia / v3.9: torrioni bicromi, portali a rilievo e gradinata a bande |
 | `model_sx.png`, `model_dx.png` | Primi piani verticali di ciascuna torre usati dal confronto, rigenerati dallo script (Cycles CPU, 520×1420) |
-| `config_facciata.json` | Tutti i parametri (dimensioni, materiali PBR, luci, camera, render, export) |
+| `config_facciata.json` | Tutti i parametri (dimensioni, materiali PBR, luci, camera, render, export) + sezione `muri_esterni` della v4.0 |
+| `riferimento_pianta.jpg` | **v4.0** — pianta del Duomo di Siena allegata, usata per tarare le proporzioni dei muri |
 | `riferimento_facciata.jpg` | Fotografia d'insieme di riferimento |
 | `riferimento_apice.jpg` | Fotografia ravvicinata ad alta risoluzione (2176×2472) usata per calibrare l'intera zona superiore centrale |
 | `riferimento_torri.jpg` | Nuova fotografia frontale allegata (1997×3043) delle due torri ai lati della cuspide, riferimento della versione 3.3 |
@@ -36,8 +43,121 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 ## Dimensioni
 
-**~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
-Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
+**Facciata: ~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
+**Corpo della chiesa (v4.0): ~91 m di larghezza alla navata, ~177 m al transetto, ~294 m di lunghezza totale esterna**, altezza dei muri semplici ~72 m, colmo della cupola ~120 m, campanile ~156 m.
+Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1: facciata ~30 × ~37 m, corpo ~30 × ~98 m). Le misure in **metri reali** sono un terzo di quelle in unità modello.
+
+## Versione 4.0 — gli altri muri esterni della struttura (semplici, proporzionati)
+
+Richiesta: *«creami anche gli altri muri esterni della struttura, al momento
+falli semplici, però rispetta molto bene le proporzioni»*, con la pianta del
+Duomo allegata (`riferimento_pianta.jpg`, 487 × 431 px).
+
+La facciata v3.9 **non cambia di un millimetro**.  Dietro di essa nasce il
+corpo della chiesa: nove tratti di muro che seguono il perimetro a croce
+latina, il tamburo esagonale con una cupola piramidale, il campanile staccato
+ruotato di 45°, tre annessi, due cappelle tonde e i muri superstiti del
+Duomo Nuovo.  Tutto è geometricamente **semplice** (prismi e polilinee
+estruse con giunti a mitra, nessuna apertura, nessun decoro) ma **le quote
+sono lette sulla pianta**, non inventate.
+
+### Taratura della pianta
+
+La scala grafica in alto a destra della pianta dà **3 px = 1 m reale**
+(10 m = 30 px; 50 ft ≈ 46 px).  Con `scala_globale = 3.0` (1 m reale =
+3 unità modello) **1 px della pianta = 1 unità modello**: la conversione è
+comunque scritta per esteso in `muri_esterni.py`, così le proporzioni
+restano esatte anche cambiando `scala_globale`.
+
+| Riferimento | Pixel | Metri reali | Unità modello |
+|---|---|---|---|
+| Asse longitudinale (centro facciata) | x = 166,5 | 0 | 0 |
+| Retro del muro di facciata | y = 333 | Y = 1,3 | Y = 3,9 |
+| Larghezza esterna navata | x = 121…212 | 30,3 | 91 |
+| Lunghezza navata | y = 333…210 | 41,0 | 123 |
+| Larghezza esterna transetto | x = 76…253 | 59,0 | 177 |
+| Profondità transetto | y = 128…210 | 27,3 | 82 |
+| Larghezza / profondità coro | x = 121…212 / y = 47…128 | 30,3 / 27,0 | 91 / 81 |
+| Testata orientale (abside) | y = 47 | Y = 96,6 | Y = 289,9 |
+| Lunghezza totale esterna | y = 341…47 | 98,0 | 294 |
+| Centro dell'esagono / cupola | (166, 178) | Y = 53,0 | Y = 158,9 |
+| Campanile (centro, lato 14 m) | (84, 62) | X = −27,5 / Y = 91,6 | X = −82,5 / Y = 274,9 |
+
+**Verifica incrociata.** La facciata del modello è larga 30 m reali (90 u.m.):
+coincide con i 30,3 m fra i muri esterni della navata.  Le fonti danno
+89,4 m di lunghezza *interna*, 54 m al transetto e ~24 m di navata: i 98 m
+qui sono **esterni, muro compreso**, esattamente come li disegna la pianta
+del libro (che è una semplificazione leggermente generosa).  Il disegno
+quotato `pianta_proporzioni.png` mostra la tracciatura sopra la pianta
+originale, con tutte le quote.
+
+### Quote in altezza (semplificate, da rifinire in seguito)
+
+Le altezze **non** sono nella pianta (che è solo orizzontale): sono state
+scelte per allinearsi alle cornici della facciata esistente e restano
+parametri modificabili in `config_facciata.json` → `muri_esterni`.
+
+| Elemento | Metri reali | Unità modello | Allineamento |
+|---|---|---|---|
+| Plinto scuro | 1,9 | 5,7 | sommità di `Basamento_Pietra` |
+| Filo superiore dei muri | 24,0 | 72,0 | sommità di `Corpo_Superiore_Centrale` |
+| Fascia scura a mezz'altezza | 12,0 … 12,55 | 36 … 36,8 | unico ricordo della bicromia senese |
+| Tamburo esagonale (Ø 28 m fra i vertici) | 24,0 … 34,0 | 72 … 102 | — |
+| Colmo cupola piramidale | 40,0 | 120 | — |
+| Campanile (14 × 14 m) + punta | 52,0 / 57,0 | 156 / 171 | 77 m reali / 1,4 |
+| Annessi / cappelle tonde | 12,0 / 6,0 / 16,0 | 36 / 18 / 48 | — |
+| Duomo Nuovo incompiuto | 12,0 | 36 | — |
+| Spessore muri | 1,5 | 4,5 | — |
+
+### Cosa c'è e cosa (per ora) non c'è
+
+- **Ci sono**: nove tratti di muro perimetrale (plinto + paramento + una
+  fascia scura + coronamento), tetto piano in tre lastre rettangolari,
+  tamburo esagonale con cupola, campanile, sacrestie, blocco del battistero,
+  due cappelle tonde e le quattro pareti del Duomo Nuovo.
+- **Non ci sono** (volutamente, «al momento falli semplici»): interni,
+  finestre, portali laterali, contrafforti, abside semicircolare (oggi è
+  una parete dritta, come il tratto nero della pianta), falde di tetto
+  inclinate, decorazioni, il rivestimento a bande bicrome completo.
+- I muri usano i marmi PBR già presenti nella scena (`Marmo_Bianco_Caldo`,
+  `Marmo_Verde_Scuro`, `Marmo_Bianco`) più due materiali nuovi e piatti per
+  tetto e paramento incompiuto: nessuna nuova texture esterna.
+
+### Organizzazione e opzioni
+
+Raccolte `07_Corpo_Chiesa` → `07a_Muri_Nave`, `07b_Muri_Transetto`,
+`07c_Muri_Coro`, `07d_Tiburio_e_Cupola`, `07e_Campanile`, `07f_Annessi`,
+`07g_Duomo_Nuovo_Incompiuto`, `07h_Tetti_Semplici`; `08_Camere_Anteprima`
+contiene le due camere ortografiche di servizio.  Il Duomo Nuovo è il
+progetto **mai completato**: in `anteprima_struttura.png` è nascosto per
+leggibilità, mentre `anteprima_pianta.png` lo mostra per intero come nella
+pianta.  Per escluderlo del tutto impostare
+`muri_esterni.includi_duomo_nuovo: false`; per rigenerare la sola facciata
+usare `CHIESA_NO_MURI=1` (o `muri_esterni.attivi: false`).
+
+Durante le sei anteprime di confronto della facciata `genera_facciata.py`
+nasconde temporaneamente le raccolte `07*`: i file `anteprima_facciata.png`
+e i dettagli restano quindi identici alla v3.9.  Il `.blend` salvato e
+l'eventuale GLB contengono invece **tutta** la struttura.
+
+### Rigenerare
+
+```bash
+# A) rigenerazione integrale (facciata + muri + anteprime + GLB)
+blender --background --python genera_facciata.py
+
+# B) solo i muri su un .blend già pronto (pochi secondi + 2 render)
+python aggiorna_muri_esterni.py
+CHIESA_MURI_NO_RENDER=1 python aggiorna_muri_esterni.py   # senza render
+CHIESA_MURI_OUT=Duomo_Completo.blend python aggiorna_muri_esterni.py
+
+# C) ridisegnare il controllo quotato 2D (serve Pillow)
+python crea_pianta_proporzioni.py
+```
+
+`aggiorna_muri_esterni.py` è **idempotente**: rimuove e ricostruisce le
+raccolte `07*`/`08*`, quindi si può rilanciare dopo ogni modifica a
+`muri_esterni.py` o ai parametri in `config_facciata.json`.
 
 ## Versione 3.9 — torrioni bicromi, portali a rilievo profondo, gradinata a bande
 
@@ -973,6 +1093,7 @@ CHIESA_SOLO_CUSPIDI=1 python genera_facciata.py    # solo i frontoni dei mosaici
 CHIESA_SOLO_TORRI=1 python genera_facciata.py      # solo la panoramica delle due torri
 CHIESA_SOLO_FACCIATA=1 python genera_facciata.py   # solo la vista d'insieme (v3.9)
 CHIESA_SALTA_DETTAGLI_CENTRALI=1 python genera_facciata.py  # facciata + cuspidi
+CHIESA_NO_MURI=1 python genera_facciata.py                # v4.0: solo la facciata
 ```
 
 ## Rigenerare il modello
@@ -989,7 +1110,9 @@ oppure con il modulo Python `bpy` (`pip install bpy==4.2.0`):
 python genera_facciata.py
 ```
 
-Lo script sovrascrive `Facciata_Duomo_Siena.blend`, `anteprima_facciata.png`, `anteprima_apice.png`, `anteprima_galleria.png`, `anteprima_rosone.png`, `anteprima_cuspidi.png`, `anteprima_torri.png` e, se abilitato, `Facciata_Duomo_Siena.glb`.
+Lo script sovrascrive `Facciata_Duomo_Siena.blend`, `anteprima_facciata.png`, `anteprima_apice.png`, `anteprima_galleria.png`, `anteprima_rosone.png`, `anteprima_cuspidi.png`, `anteprima_torri.png` e, se abilitato, `Facciata_Duomo_Siena.glb`. Dalla v4.0 il `.blend` e il GLB includono anche i muri esterni del corpo; le anteprime di dettaglio della facciata restano invariate (i muri vengono nascosti solo durante quei render).
+
+Le due anteprime dell'intera struttura (`anteprima_struttura.png`, `anteprima_pianta.png`) si rigenerano con `python aggiorna_muri_esterni.py`; il disegno quotato `pianta_proporzioni.png` con `python crea_pianta_proporzioni.py`.
 
 `confronto_torri.png` si rigenera a parte, dopo aver salvato i due render laterali:
 

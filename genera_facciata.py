@@ -2,7 +2,14 @@
 # -*- coding: utf-8 -*-
 """
 Facciata del Duomo di Siena (fronte ovest) — modello 3D procedurale.
-SOLO la facciata: nessun interno, nessuna navata, nessun edificio laterale.
+
+NOTA v4.0: di per se' questo script modella SOLTANTO la facciata (nessun
+interno, nessuna navata, nessun edificio laterale).  Prima del salvataggio
+viene pero' richiamato `muri_esterni.costruisci_muri_esterni()`, che aggiunge
+i muri esterni SEMPLICI del corpo della chiesa, tarati sulla pianta allegata.
+Impostare `CHIESA_NO_MURI=1` (o `muri_esterni.attivi: false` nel JSON) per
+ottenere come un tempo la sola facciata.  Le anteprime di dettaglio del
+fronte nascondono i muri durante il render, restando identiche alla v3.9.
 
 Uso:
   - con Blender:   blender --background --python genera_facciata.py
@@ -7740,6 +7747,30 @@ wlinks.new(w_bg_cam.outputs["Background"], w_mix_shader.inputs[2])
 wlinks.new(w_mix_shader.outputs["Shader"], w_out.inputs["Surface"])
 
 # =============================================================================
+# 9-bis. MURI ESTERNI DEL CORPO DELLA CHIESA (v4.0)
+# =============================================================================
+# La facciata modellata sopra resta INTATTA.  Dietro di essa il modulo
+# `muri_esterni.py` costruisce il perimetro semplice (navata, transetto, coro,
+# tamburo esagonale, campanile, annessi, Duomo Nuovo incompiuto) tarato sulla
+# pianta `riferimento_pianta.jpg`: 3 px = 1 m reale, asse X a x=166.5 px,
+# retro facciata a y=333 px.  Le misure sono in metri reali (scala=1.0):
+# la scala globale 3x della sezione 10 le ingrandisce con tutto il resto.
+# Per escluderli: `CHIESA_NO_MURI=1` oppure `muri_esterni.attivi: false`.
+MURI_CFG = CFG.get("muri_esterni", {})
+if MURI_CFG.get("attivi", True) and not os.environ.get("CHIESA_NO_MURI"):
+    try:
+        if OUT_DIR not in sys.path:
+            sys.path.insert(0, OUT_DIR)
+        from muri_esterni import costruisci_muri_esterni
+        costruisci_muri_esterni(scala=1.0, cfg=MURI_CFG)
+        scene["titolo"] = "Duomo di Siena — facciata ovest e corpo della chiesa"
+        scene["nota"] = ("Modello procedurale v4.0: facciata v3.9 invariata + "
+                         "muri esterni semplici del corpo, proporzionati sulla "
+                         "pianta allegata. CHIESA_NO_MURI=1 rigenera il solo fronte.")
+    except Exception as e:
+        print(f"Attenzione: muri esterni non generati ({e})")
+
+# =============================================================================
 # 10. SCALA GLOBALE (3x) E CONGELAMENTO TRASFORMAZIONI
 # =============================================================================
 if abs(SCALA - 1.0) > 1e-9:
@@ -7785,9 +7816,18 @@ scene.render.filepath = PNG_PATH
 bpy.ops.wm.save_as_mainfile(filepath=BLEND_PATH, compress=True)
 print(f"Salvato: {BLEND_PATH} | oggetti: {len(scene.objects)} | materiali: {len(bpy.data.materials)}")
 
+_col_muri_preview = []
 if os.environ.get("CHIESA_NO_RENDER"):
     print("Render anteprima saltato (CHIESA_NO_RENDER).")
 else:
+    # v4.0: le sei anteprime della facciata restano confronti "facciata pura":
+    # i muri del corpo (raccolte 07*) vengono nascosti solo per la durata
+    # dei render e ripristinati subito dopo (il .blend, gia' salvato, e
+    # l'export GLB contengono invece la struttura completa).
+    _col_muri_preview = [c for c in bpy.data.collections
+                         if c.name.startswith("07")]
+    for _c in _col_muri_preview:
+        _c.hide_render = True
     try:
         # CHIESA_SOLO_GALLERIA=1 salta le prime due viste (prove rapide
         # sulla fascia dei Profeti senza rifare gli altri render).
@@ -7902,6 +7942,9 @@ else:
         scene.render.filepath = PNG_PATH
     except Exception as e:
         print(f"Render anteprima non riuscito: {e}")
+    finally:
+        for _c in _col_muri_preview:
+            _c.hide_render = False
 
 EXPORT = CFG.get("export", {})
 if "gltf" in EXPORT.get("formats", []) and not os.environ.get("CHIESA_NO_GLB"):
