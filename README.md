@@ -6,13 +6,14 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 
 | File | Descrizione |
 |---|---|
-| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2+ pronto da aprire, con rosone, sculture e frontoni dei mosaici v2.9 e materiali PBR a texture incorporate |
+| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2+ pronto da aprire, con i portali di Giovanni Pisano v3.7, il loggiato dei settori laterali, i torrioni d'angolo, il rosone e i frontoni dei mosaici, materiali PBR a texture incorporate |
 | `Facciata_Duomo_Siena.glb` | Esportazione glTF 2.0 per visualizzatori web / game engine |
-| `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 64 campioni, 900×1050) |
+| `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 40 campioni, 900×1050) |
 | `anteprima_apice.png` | Render ravvicinato della cuspide centrale, delle **due torri-pinnacolo** e dell'angelo (Cycles CPU, 64 campioni, 900×1022) |
 | `anteprima_torri.png` | Panoramica delle due torri-pinnacolo con i registri di lancette, i doccioni e i coronamenti (Cycles CPU, 64 campioni, 1500×820) |
 | `confronto_torri.png` | Confronto fotografia allegata / v3.3 di ciascuna torre: fusto a lastre, due grandi lancette, fasce a dente di cane, coronamento pieno e statua |
-| `confronto_v36.png` | Confronto d'insieme fotografia / v3.5 / v3.6: portali con lunette e ghimberghe sopra gli archi, torrioni esterni rifatti e gradinata a gradoni pieni |
+| `confronto_v37.png` | Confronto d'insieme in vista ortografica **fotografia / v3.6 / v3.7**: piloni a candelabro, portali con porte di altezza reale, loggiato scavato e torrioni a tre registri |
+| `confronto_v36.png` | Confronto d'insieme fotografia / v3.5 / v3.6: portali con lunette e ghimberge sopra gli archi, torrioni esterni rifatti e gradinata a gradoni pieni |
 | `anteprima_rosone.png` | Il rosone e tutte le statue che lo circondano, inquadrati come nella fotografia di dettaglio (Cycles CPU, 48 campioni, 1453×1582) |
 | `confronto_rosone.png` | Confronto fotografia / versione 2.6 / versione 2.7 del rosone, della vetrata e delle sculture |
 | `anteprima_cuspidi.png` | Il rosone al centro e i due frontoni dei mosaici ai lati, nello stesso taglio panoramico del nuovo riferimento (Cycles CPU, 64 campioni, 1800×660) |
@@ -30,10 +31,98 @@ Modello 3D (`.blend`) della **sola facciata ovest del Duomo di Siena**, ricostru
 | `riferimento_vetrata.jpg` | Fotografia di dettaglio (1453×1582) del rosone, delle nicchie laterali e dei pennacchi, riferimento della versione 2.6 |
 | `riferimento_cuspidi.jpg` | Nuovo dettaglio frontale (3120×1146) dei due frontoni con la Presentazione e la Natività, riferimento della versione 2.9 |
 
+
 ## Dimensioni
 
 **~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
 Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1 di ~30 × ~37 m).
+
+## Versione 3.7 — tre migliorie sotto la parte centrale superiore
+
+Confronto diretto fra il render della v3.6 e la fotografia d'insieme del
+Duomo vero (`riferimento_facciata.jpg`): la parte centrale in alto
+(cuspide, rosone, i due triangoli dei mosaici e le due torri-pinnacolo)
+reggeva il confronto, mentre **tutto il resto** — i portali, il loggiato
+laterale e i due torrioni d'angolo — leggeva come un plastico. Tre soli
+interventi, tutti sotto la parte centrale, che resta intatta (il
+confronto affiancato è in `confronto_v37.png`, in vista ortografica così
+che le quote si leggano una a una):
+
+1. **I piloni e i tre portali di Giovanni Pisano.** Il pilone era quattro
+   colonne tortili dello stesso diametro più un cilindro, alte fino a
+   5,30 m, sovrastate da un blocco d'imposta: da lontano, un fascio di
+   tubi. Ora è il *candelabro* di marmo dell'originale: una lesena
+   centrale coperta di girali d'acanto e rosette, sei colonnine più
+   sottili e scalate in profondità (due lisce, quattro tortili),
+   capitelli corinzi fogliati, abaco, cornice d'imposta a tre fili con
+   dentelli e leone stiloforo a quota 8,45 m; sopra l'imposta il pilastro
+   riprende snello con la statua a tutto tondo sotto il baldacchino e un
+   pinnacolo crochettato in cima. Il portale è stato rifatto da zero:
+   **porte di altezza reale** (4,6 m la centrale, 4,1 m le laterali,
+   prima 5,65 m, cioè fino a 7,6 m di quota), due battenti con formelle,
+   cornice bronzea, specchiature in legno intagliato, **stipiti a tre
+   colonnine binate** con basi e capitelli, architrave modanato con
+   fregio di statuette su fondo in mezz'ombra e cornicione a dentelli,
+   **lunetta emisferica** con raggiera bicroma bianco/serpentino ad
+   anello (non più a ventaglio) e il sole raggiante di San Bernardino al
+   centro, e **sette archivolti concentrici** alternati lisci, tortili e
+   intagliati, ciascuno arretrato rispetto al precedente: la strombatura
+   ha gradini d'ombra veri invece di un tubo unico. Nuovo materiale
+   `Bronzo_Portale_Scuro` per il portone centrale, che in fotografia è
+   quasi nero. I piloni mediani si spostano da ±3,85 a **±4,15 m** per
+   dare ai portali la larghezza della fotografia (luce 4,2 / 3,0 m).
+
+2. **Il loggiato dei settori laterali (sotto i frontoni dei mosaici).**
+   Era una fila di cinque arcatelle da 0,78 m di luce, appiattite sul
+   filo della facciata, con una parete chiara dietro e quattro statuine.
+   Ora il vano è **scavato davvero** (1,15 m di profondità, soffitto e
+   spallette, apertura ad arco in ombra per ogni campata), il parapetto è
+   una balaustra con cornice a due fili e filo di serpentino, le arcate
+   sono **quattro** con luce di 1,1 m e doppia ghiera acuta, i piedritti
+   portano colonnine binate con capitello fogliato, e sopra ogni colonna
+   torna la **ghimberga con gattoni e fiorone**. Le statue a figura intera
+   (1,56 m) stanno **dentro** il loggiato, dietro il parapetto e davanti
+   ai vani in ombra, come in fotografia. Il loggiato si sposta
+   leggermente verso l'interno (asse a ±7,70 m), mentre i **frontoni dei
+   mosaici restano sull'asse dei settori** (±8,01 m) dov'erano già
+   corretti. Il muro di spalla arretra a y = +0,50 per fare spazio al
+   vano.
+
+3. **I due torrioni angolari esterni.** Erano un parallelepipedo con una
+   finestrella nera da 0,68 m, lesene piatte, una nicchia rosa con una
+   statuina e, in cima, un cilindro ottagonale con un cono e quattro coni
+   lisci: un campanile da presepe. Ora sono **masse gotiche piene** alte
+   quasi come la galleria (22,3 e 22,6 m, con l'asimmetria reale fra i
+   due lati): corpo unico con fascia bicroma di base a corsi di
+   serpentino, cornici a dentelli, lesene e due contrafforti d'angolo a
+   scarpa con capitelli, **quattro lancette incassate** con vano in ombra,
+   colonnine, doppia ghiera acuta e ghimberga crochettata (più due
+   monofore cieche nel registro basso), specchiature in marmo rosato fra
+   le finestre, **tabernacoli con statue a figura intera** su mensola a
+   tromba e baldacchino sui contrafforti, una Madonna su mensola
+   aggettante, e un **coronamento a grappolo**: grande ghimberga
+   frontale crochettata con traforo a quatrifoglio, due pinnacoli a
+   sezione ottagonale interamente fogliati (bocciolo a goccia in punta,
+   niente più crocette), torretta ottagonale con monofore e statua, e
+   doccioni sottili inclinati sugli spigoli esterni.
+
+- **Calibrazione metrica.** La fotografia usata per la v3.7
+  (`riferimento_facciata.jpg`, la stessa già in repository) è stata
+  misurata in metri con le due quote note della facciata: base della
+  gradinata a z = 0 e centro del rosone a z = 19,75 m. La tolleranza fra le
+  due letture è dello **0,5%**; le misure usate nel modello (porte 4,6 /
+  4,1 m, fusto dei torrioni a 22,3–22,6 m, lancette 2,4–5,8 m) vengono da
+  quella calibrazione, non da stime a occhio.
+- Sotto il cofano: il rosato chiaro senese (`Marmo_Rosato_Chiaro`) è
+  stato desaturato e schiarito (da `0.715, 0.575, 0.510` a
+  `0.748, 0.638, 0.582`) perché tutto il modello leggeva più rosa della
+  pietra vera in pieno sole.
+- `config_facciata.json` passa alla versione **3.7** con le nuove quote
+  (`altezza_portali` 4,60 m, `larghezza_portale_centrale` 4,20 m,
+  `larghezza_portali_laterali` 3,00 m, `asse_portali_laterali` 7,35 m) e
+  il nuovo materiale `Bronzo_Portale_Scuro`.
+- Le anteprime `anteprima_*.png` sono state rigenerate tutte (Cycles CPU,
+  40 campioni, denoising).
 
 ## Versione 3.6 — tre migliorie sotto la parte centrale superiore
 
