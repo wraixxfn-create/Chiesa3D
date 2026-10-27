@@ -1,12 +1,24 @@
 # Chiesa3D — Facciata e corpo del Duomo di Siena
 
-Modello 3D (`.blend`) della **facciata ovest del Duomo di Siena** (v3.9) **e del corpo della chiesa** (v4.4): navate, transetto, coro, tamburo e calotta, lanterna, campanile, annessi e muri superstiti del Duomo Nuovo. Il corpo resta volutamente semplice, ma il perimetro è ora calibrato sulle **quote interne ufficiali** (89,4 × 24,37 × 54,48 m) agganciate alla facciata, e le altezze sulle fotografie aeree, laterali e sui rilievi allegati. **La facciata è il riferimento fisso e non è stata modificata**.
+Modello 3D (`.blend`) della **facciata ovest del Duomo di Siena** (v3.9) **e del corpo della chiesa** (v4.4), con **tiburio, calotta e lanterna rifatti da zero nella v5.0**: navate, transetto, coro, cupola a due ordini di logge, lanterna del Bernini, campanile, annessi e muri superstiti del Duomo Nuovo. Il corpo resta volutamente semplice, ma il perimetro è calibrato sulle **quote interne ufficiali** (89,4 × 24,37 × 54,48 m) agganciate alla facciata, e le altezze sulle fotografie aeree, laterali e sui rilievi allegati. **La facciata è il riferimento fisso e non è stata modificata**: la firma geometrica delle 3.905 mesh del fronte resta identica byte per byte anche dopo la v5.0.
 
 ## File
 
 | File | Descrizione |
 |---|---|
-| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2+ pronto da aprire, con i portali di Giovanni Pisano v3.7, il loggiato dei settori laterali, i torrioni d'angolo, il rosone e i frontoni dei mosaici, materiali PBR a texture incorporate |
+| `Facciata_Duomo_Siena.blend` | Modello Blender 4.2+ pronto da aprire, con i portali di Giovanni Pisano v3.7, il loggiato dei settori laterali, i torrioni d'angolo, il rosone e i frontoni dei mosaici, materiali PBR a texture incorporate, e dal v5.0 la cupola completa (tiburio a due logge, calotta in lastre, lanterna del Bernini) |
+| `cupola.py` | **v5.0** — tiburio, calotta e lanterna: profili, parete poligonale forata da archi passanti, colonne binate, dentelli, UV sferiche delle lastre di piombo, materiali della cupola (piombo con giunti, piombo dei costoloni, oro della mela), accumulatori di geometria |
+| `aggiorna_cupola.py` | **v5.0** — ricostruisce soltanto la raccolta `07d_Tiburio_e_Cupola` su un `.blend` esistente e genera le tre anteprime della cupola |
+| `crea_confronto_cupola.py` | **v5.0** — compone `confronto_cupola.png`: fotografia / v4.4 / v5.0 della cupola e primo piano della lanterna |
+| `anteprima_cupola.png` | **v5.0** — la cupola intera dal fianco destro (Cycles CPU, 48 campioni, 900×1150) |
+| `anteprima_cupola_lanterna.png` | **v5.0** — primo piano della lanterna, del tetto in piombo, della mela dorata e della stella (48 campioni, 900×1150) |
+| `anteprima_cupola_tamburo.png` | **v5.0** — le due logge del tamburo, i parapetti, i dentelli e la fascia bicroma a rombi (48 campioni, 1200×800) |
+| `confronto_cupola.png` | **v5.0** — confronto fotografia / v4.4 / v5.0 e primo piano della lanterna |
+| `riferimento_cupola.jpg` | **v5.0** — fotografia allegata della cupola dal Facciatone (3456×5184, il riferimento principale) |
+| `riferimento_cupola_lanterna.jpg` | **v5.0** — primo piano della lanterna e della mela dorata (2720×3994) |
+| `riferimento_cupola_aerea.jpg` | **v5.0** — vista aerea con cupola e campanile: volumi e posizione |
+| `riferimento_cupola_tramonto.jpg` | **v5.0** — controluce sulla calotta e sulla lanterna |
+| `v44_cupola.png` | **v5.0** — render della v4.4 dallo stesso punto di vista, usato nel confronto |
 | `Facciata_Duomo_Siena.glb` | Esportazione glTF 2.0 per visualizzatori web / game engine |
 | `anteprima_facciata.png` | Render frontale di anteprima con denoising (Cycles CPU, 40 campioni, 900×1050) |
 | `anteprima_apice.png` | Render ravvicinato della cuspide centrale, delle **due torri-pinnacolo** e dell'angelo (Cycles CPU, 64 campioni, 900×1022) |
@@ -57,7 +69,7 @@ Modello 3D (`.blend`) della **facciata ovest del Duomo di Siena** (v3.9) **e del
 
 La facciata di riferimento è larga **30 m reali** e alta **37,5 m reali** all'angelo. Il progetto mantiene `scala_globale: 3.0`: in unità modello diventa quindi circa **90 × 112,5** (gradinata compresa: 126 di larghezza). Impostando la scala a `1.0` tutte le quote tornano direttamente in metri reali.
 
-| Elemento v4.4 | Metri reali | Unità modello (scala 3) |
+| Elemento (v5.0 per la cupola) | Metri reali | Unità modello (scala 3) |
 |---|---:|---:|
 | Larghezza esterna navata (interni 24,37) | 27,37 | 82,11 |
 | Larghezza esterna transetto (interni 54,48) | 57,48 | 172,44 |
@@ -66,12 +78,101 @@ La facciata di riferimento è larga **30 m reali** e alta **37,5 m reali** all'a
 | Muri delle navate laterali | 15,20 | 45,60 |
 | Filo superiore del cleristorio | 21,80 | 65,40 |
 | Colmo dei tetti principali | 24,00 | 72,00 |
-| Sommità del tamburo | 32,80 | 98,40 |
+| Sommità del tamburo (trabeazione della loggetta) | 29,80 | 89,40 |
+| Imposta della calotta (filo di gronda in piombo) | 30,05 | 90,15 |
+| Apice della calotta = imposta della lanterna | 40,40 | 121,20 |
 | Cupola, lanterna e croce comprese | **48,00** | **144,00** |
 | Campanile, fusto | 68,00 | 204,00 |
 | Campanile, punta centrale | **77,00** | **231,00** |
 
 I rapporti verticali riferiti alla facciata sono quindi **1,28× per la cupola** e **2,053× per il campanile**. Le quote planimetriche sono esterne e comprendono i muri; non vanno confuse con le misure interne dell'aula.
+
+## Versione 5.0 — la cupola rifatta sulle fotografie
+
+Richiesta: *«migliora di molto la cupola sopra»*, con quattro fotografie
+allegate (vista dal Facciatone, primo piano della lanterna, vista aerea,
+controluce al tramonto).  La v4.4 aveva **una calotta emisferica liscia con
+sopra un cilindro e una crocetta**: mancavano le due logge, la lanterna, le
+lastre di piombo, la mela dorata.  Il gruppo è stato ricostruito da zero in un
+modulo dedicato, `cupola.py`, e `muri_esterni.py` ora lo chiama al posto
+della vecchia sezione 5.2.  **La facciata non è stata toccata** (3.905 mesh
+identiche) e la quota ufficiale di **48 m alla punta della croce** resta il
+vincolo di progetto.
+
+1. **Tamburo a due ordini di logge**, come nella realtà.  In basso **48 archi**
+   (due baie per lato del ventiquattro lati) con **colonne binate** e
+   **archetti a sesto acuto** alti 1,12 m su luce 0,78 m; in alto **72
+   archetti a tutto sesto** (tre per lato) con **colonnine singole**, fitti
+   come nel ricamo che nella fotografia corona il tamburo.  Le aperture
+   sono **vera geometria**: `parete_arche()` costruisce una parete poligonale
+   forata, con lo spessore di muro da vedere in prospettiva, e dietro c'è la
+   canna in laterizio con il pavimento della galleria.  Dai parapetti si vede
+   la ringhiera in ferro e, sopra, il cielo della galleria: la loggia ha
+   profondità e ombra invece di essere una superficie dipinta.
+2. **Bicromia e membrature senesi**: attico esagonale con due fasce di
+   serpentino, cornice aggettante, **fascia bicroma a rombi** fra i due ordini
+   (72 tasselli ruotati di 45° *nella faccia* della parete, non in pianta) e
+   **dentelli** sotto ogni trabeazione.  Le colonne hanno
+   base, fusto rastremato e capitello a due anelli, e stanno **fuori** dal
+   filo del muro (sporgenza = mezzo spessore + 7,5 cm), altrimenti
+   scomparivano dentro la muratura.
+3. **Calotta in lastre di piombo.**  Profilo calibrato sulla fotografia
+   (freccia/diametro ≈ 0,52, spalla piena e chiusura rapida: non è un
+   emisfero), **otto costoloni** in rilievo che arrivano alla gronda e si
+   assottigliano in punta, **ghiaccio di gronda** in piombo.  Le lastre sono
+   disegnate dal materiale su **UV sferiche vere** (u = pannelli lungo il
+   giro, v = filari lungo il meridiano): i giunti del materiale cadono esatti
+   dove cadono quelli veri, con colature di ruggine e opacità variabile.
+   Una texture applicata "a caso" su una calotta si sarebbe letta come una
+   retina; così si leggono come lastre battute.
+4. **Lanterna del Bernini (1667)**: ottagono di 5,4 m su basamento e zoccolo,
+   otto **bifore** passanti con colonnina centrale, **colonne binate** ai
+   cantonali, trabeazione a dentelli, **tetto a padiglione in piombo** con
+   costoloni sui cantonali, **pinnacolo lapideo a vaso** (profilo a tornio
+   ricavato dal primo piano fotografico), **mela dorata a coste** e **stella a
+   dodici punte**, con l'asta della croce che chiude a 48,00 m.
+5. **Materiali nuovi ma coerenti**: `Cupola_Piombo_Lastre` (brick texture +
+   bump + colature), `Cupola_Piombo_Costoloni`, `Cupola_Oro`,
+   `Cupola_Interno_Laterizio`, `Cupola_Ferro`.  I marmi della facciata
+   (`Marmo_Bianco_Caldo`, `Marmo_Bianco`, `Marmo_Verde_Scuro`) **non vengono
+   mai rigenerati**: sono il riferimento fisso e mantengono le loro texture
+   PBR.  I materiali della cupola hanno un campo `versione_cupola`, così una
+   run successiva li sostituisce invece di riusare quelli vecchi.
+6. **Quarantacinque oggetti in meno nell'outliner**: ogni pezzo (archi,
+   colonne, dentelli, costoloni) confluisce in un accumulatore e diventa un
+   solo oggetto per ruolo, con 37.033 vertici in tutto il gruppo.
+
+| Quota v5.0 | Metri reali |
+|---|---:|
+| Piede del tiburio (dentro il volume della crociera) | 21,80 |
+| Cornice dell'attico bicromo | 24,55 |
+| Davanzale della loggia inferiore | 24,72 |
+| Trabeazione della loggia inferiore | 27,30 |
+| Fascia bicroma a rombi (piano della loggetta) | 27,30 – 28,30 |
+| Trabeazione della loggetta (sommità del tamburo) | 29,80 |
+| Imposta della calotta (ghiaccio di gronda) | 30,05 |
+| Apice della calotta = imposta della lanterna | 40,40 |
+| Trabeazione della lanterna | 44,20 |
+| Tetto in piombo della lanterna | 45,95 |
+| Mela dorata e stella | 46,87 – 47,45 |
+| Punta della croce | **48,00** |
+
+Le anteprime della cupola si rigenerano da sole con:
+
+```bash
+# A) solo la cupola: ricostruisce la raccolta 07d e produce 3 render
+python aggiorna_cupola.py            # oppure: blender --background --python aggiorna_cupola.py
+CHIESA_CUPOLA_NO_RENDER=1 python aggiorna_cupola.py    # solo geometria, niente render
+
+# B) cupola + muri + anteprime generali
+python aggiorna_muri_esterni.py       # chiama cupola.costruisci_cupola()
+
+# C) tavola di confronto fotografia / v4.4 / v5.0 (serve Pillow)
+python crea_confronto_cupola.py
+
+# D) prove senza Blender (quote, profili, archi, poligoni)
+python -m unittest discover -s tests
+```
 
 ## Versione 4.4 — muri mancanti e pezzi volanti
 
