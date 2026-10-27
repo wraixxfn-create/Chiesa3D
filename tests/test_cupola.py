@@ -128,5 +128,89 @@ class PoligoniTest(unittest.TestCase):
         self.assertAlmostEqual(math.hypot(nx, ny), 1.0)
 
 
+class LastreTest(unittest.TestCase):
+    """v5.1 — la calotta e' un reticolo di lastre, non una superficie."""
+
+    def test_profilo_ricampionato_sull_arco(self):
+        nodi = c.profilo_calotta_lastre(c.R_CALOTTA, c.H_CALOTTA_BASE,
+                                        c.H_CALOTTA)
+        self.assertEqual(len(nodi), c.FILARI_CALOTTA + 1)
+        # passi di arco (quasi) costanti: le lastre in cima non si
+        # assottigliano come succederebbe campionando l'angolo
+        passi = [math.hypot(r1 - r0, z1 - z0)
+                 for (r0, z0), (r1, z1) in zip(nodi, nodi[1:])]
+        self.assertLess(max(passi) / min(passi), 1.25)
+        # il profilo parte dalla gronda e si ferma al basamento della lanterna
+        self.assertAlmostEqual(nodi[0][0], c.R_CALOTTA, places=6)
+        self.assertAlmostEqual(nodi[0][1], c.H_CALOTTA_BASE, places=6)
+        self.assertLess(nodi[-1][0], c.R_LANTERNA_BASE)
+
+    def test_reticolo_di_lastre_completo(self):
+        # 8 spicchi x 8 strisce x 12 filari = 768 piastre, e nessun buco:
+        # ogni lastra ha quattro vertici distinti
+        nodi = c.profilo_calotta_lastre(c.R_CALOTTA, c.H_CALOTTA_BASE,
+                                        c.H_CALOTTA)
+        acc = c.Accumulatore()
+        c.calotta_lastre(acc, c.Accumulatore(), c.Accumulatore(),
+                         0.0, 0.0, nodi)
+        attese = c.SPICCHI * c.STRISCE_PER_SPICCHIO * (len(nodi) - 1)
+        self.assertEqual(len(acc.faces), attese)
+        self.assertEqual(attese, 768)
+        for f in acc.faces:
+            self.assertEqual(len(set(f)), 4)
+
+    def test_costoloni_sugli_spigoli_degli_spicchi(self):
+        # otto costoloni, uno per spicchio, alla stessa rotazione dei
+        # cantonali della lanterna
+        nodi = c.profilo_calotta_lastre(c.R_CALOTTA, c.H_CALOTTA_BASE,
+                                        c.H_CALOTTA)
+        acc = c.Accumulatore()
+        c.calotta_lastre(c.Accumulatore(), c.Accumulatore(), acc,
+                         0.0, 0.0, nodi)
+        passo = 2.0 * math.pi / c.SPICCHI
+        r_max = c.R_CALOTTA + 0.40
+        angoli = set()
+        for x, y, z in acc.verts:
+            if abs(z - c.H_CALOTTA_BASE) < 0.02:
+                angoli.add(round((math.atan2(y, x) % (2.0 * math.pi)) / passo,
+                                 1))
+        self.assertEqual(len(angoli), c.SPICCHI)
+        for x, y, z in acc.verts:
+            self.assertLessEqual(math.hypot(x, y), r_max)
+
+
+class LanternaTest(unittest.TestCase):
+    """v5.1 — la lanterna sta fra la calotta e i 48 m, senza sfondare."""
+
+    def test_quote_della_lanterna_in_ordine(self):
+        self.assertLess(c.L_ZOCOLO, c.L_DAVANZALE)
+        self.assertLess(c.L_DAVANZALE, c.L_IMPOSTA)
+        self.assertLess(c.L_IMPOSTA + c.L_ARCHI, c.L_CORONA + 0.10)
+        self.assertLess(c.L_CORONA, c.L_TRABEAZIONE)
+        self.assertLess(c.L_TRABEAZIONE, c.L_GRONDA)
+        self.assertLess(c.L_GRONDA, c.L_TETTO)
+        self.assertLess(c.L_TETTO, c.L_VASO)
+        self.assertLess(c.L_VASO, c.L_MELA)
+        self.assertLess(c.L_MELA, c.L_STELLA)
+
+    def test_fastigio_sotto_la_croce(self):
+        # la stella deve stare sotto la punta della croce, con un margine
+        # per l'asta: e' il vincolo che limita l'altezza dell'apice
+        cima_stella = c.L_STELLA + 0.30
+        self.assertLess(cima_stella + 0.30, c.H_CUPOLA - c.H_LANTERNA_BASE)
+
+    def test_lanterna_piu_slancia_che_larga(self):
+        # Dalla base alla punta del tetto la lanterna e' piu' alta del suo
+        # diametro (nelle fotografie il tempietto e' snello), ma non e' una
+        # torre: il rapporto resta sotto 1,8.
+        altezza = c.L_TETTO
+        diametro = 2.0 * c.R_LANTERNA
+        self.assertGreater(altezza / diametro, 1.05)
+        self.assertLess(altezza / diametro, 1.80)
+        # le finestre sono piu' alte che larghe, come nei primi piani
+        self.assertGreater((c.L_IMPOSTA + c.L_ARCHI) - c.L_DAVANZALE,
+                           1.6 * 1.02)
+
+
 if __name__ == "__main__":
     unittest.main()
