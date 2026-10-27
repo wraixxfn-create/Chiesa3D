@@ -88,8 +88,8 @@ H_COPING = 0.40
 H_FASCIA = 7.6          # unica fascia scura a mezza altezza dei muri bassi
 SPESSORE_FASCIA = 0.55
 H_TAMBURO_BASE = 23.6
-H_TAMBURO = 29.8        # sommita' delle due gallerie (cupola v5.0)
-H_CALOTTA = 40.4        # apice della calotta = imposta della lanterna
+H_TAMBURO = 29.8        # sommita' delle due gallerie (cupola v5.1)
+H_CALOTTA = 39.2        # apice della calotta = imposta della lanterna (v5.1)
 H_CUPOLA = 48.0         # croce compresa: 48 / 37,5 = 1,28 volte la facciata
 H_CAMPANILE = 68.0      # filo superiore del fusto
 H_CAMPANILE_PUNTA = 77.0# 77 / 37,5 = 2,053 volte la facciata

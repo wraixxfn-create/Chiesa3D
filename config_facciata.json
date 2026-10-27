@@ -20,7 +20,7 @@
     "altezza_cleristorio": 21.8,
     "altezza_colmo_navata": 24.0,
     "altezza_tamburo_base": 23.6,
-    "altezza_calotta": 40.4,
+    "altezza_calotta": 39.2,
     "altezza_campanile_punta": 77.0,
     "facciata_riferimento_invariata": true,
     "riempi_volumi": true,
@@ -527,24 +527,28 @@
     }
   },
   "cupola": {
-    "versione": "5.0",
+    "versione": "5.1",
     "modulo": "cupola.py",
     "logge": {
-      "inferiore": "24 baie, colonne binate e archetti a sesto acuto",
-      "superiore": "24 baie, colonne singole e archetti a tutto sesto"
+      "inferiore": "colonne binate su ogni piedritto, archi a sesto acuto",
+      "superiore": "colonne binate, archetti a tutto sesto"
     },
     "calotta": {
       "costoloni": 8,
-      "pannelli_per_spicchio": 5,
-      "altezza_pannello_m": 0.92,
+      "filari": 12,
+      "strisce_per_spicchio": 8,
+      "lastre_totali": 768,
       "materiale": "Cupola_Piombo_Lastre",
-      "freccia_su_diametro": 0.52
+      "freccia_su_diametro": 0.45,
+      "note": "lastre di piombo geometriche con pieghe di giunzione; la texture non disegna piu' i riquadri"
     },
     "lanterna": {
       "lati": 8,
-      "diametro_m": 4.9,
+      "diametro_m": 6.0,
+      "finestre": "8 archi a sesto acuto con grata in ferro",
+      "tetto": "piramide a 8 falde in lastre di piombo",
       "mela_dorata": true,
-      "stella_dorata": "12 punte",
+      "stella_dorata": "12 punte su due piani",
       "alta_fino_alla_croce_m": 48.0
     }
   }

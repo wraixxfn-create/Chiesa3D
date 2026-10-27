@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Rigenera soltanto il gruppo TIBURIO + CALOTTA + LANTERNA (v5.0).
+Rigenera soltanto il gruppo TIBURIO + CALOTTA + LANTERNA (v5.1).
 
 Apre `Facciata_Duomo_Siena.blend`, cancella gli oggetti della raccolta
 `07d_Tiburio_e_Cupola` e li ricostruisce con `cupola.py`; opzionalmente
@@ -124,8 +124,8 @@ cam_cupola = _camera("Camera_Cupola_3Q", _bersaglio(36.0), 205.0, 20.0, 9.0,
 # Il sole del .blend arriva da destra (rotazione Z 52,7): le camere della
 # cupola stanno dallo stesso lato, cosi' la calotta e la lanterna sono in luce
 # come nelle fotografie allegate invece che in controluce.
-cam_lanterna = _camera("Camera_Cupola_Lanterna", _bersaglio(44.7), 84.0, 34.0,
-                       10.0, 85.0)
+cam_lanterna = _camera("Camera_Cupola_Lanterna", _bersaglio(45.2), 82.0, 18.0,
+                       8.0, 85.0)
 cam_tamburo = _camera("Camera_Cupola_Tamburo", _bersaglio(27.6), 148.0, 12.0,
                       8.0, 85.0)
 
@@ -169,10 +169,13 @@ if os.environ.get("CHIESA_CUPOLA_BACKUP") and \
 
 scene.camera = camera_originale
 scene["nota_cupola"] = (
-    "v5.0: tiburio con due ordini di logge (colonne binate e archi acuti "
-    "sotto, colonne singole e archi a tutto sesto sopra), calotta in lastre "
-    "di piombo con otto costoloni, lanterna del Bernini con mela dorata e "
-    "stella a dodici punte; punta della croce a 48 m.")
+    "v5.1: tiburio con due ordini di logge (colonne binate e archi acuti "
+    "sotto, colonne binate e archetti a tutto sesto sopra), calotta fatta di "
+    "768 LASTRE di piombo vere con pieghe di giunzione e otto costoloni a "
+    "nastro, lanterna del Bernini ad otto lati con finestre a sesto acuto e "
+    "grate, fascia in piombo con gli oculi, tetto a otto falde, vaso lapideo, "
+    "mela dorata a coste, stella a dodici punte e croce; punta della croce "
+    "a 48 m.")
 bpy.ops.wm.save_as_mainfile(filepath=OUT_PATH, compress=True)
 print(f"Salvato: {OUT_PATH}")
 
