@@ -16,9 +16,13 @@ class PiantaTest(unittest.TestCase):
                                m.LARGHEZZA_FACCIATA)
 
     def test_continuita(self):
-        tratti = [m.TRATTI_MURO[i][2] for i in [0, 2, 3, 4, 5, 6, 1]]
-        for a, b in zip(tratti, tratti[1:]):
-            self.assertEqual(a[-1], b[0])
+        # v4.4: i tratti sono indici dell'anello (i0, i1) e si susseguono
+        # nell'ordine del perimetro, dal primo all'ultimo.
+        self.assertEqual(m.TRATTI_MURO[0][2], 0)
+        self.assertEqual(m.TRATTI_MURO[-1][3], len(m.PERIMETRO) - 1)
+        for (_, _, _i0a, i1a), (_, _, i0b, _i1b) in zip(m.TRATTI_MURO,
+                                                        m.TRATTI_MURO[1:]):
+            self.assertEqual(i1a, i0b)
 
     def test_scala_uniforme(self):
         a = m.dalla_pianta_m(0, 0)

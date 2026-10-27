@@ -4,3 +4,6 @@
 
 .venv/
 __pycache__/
+
+# cartella di lavoro dei controlli visivi (non fa parte del modello)
+.tmp_check/

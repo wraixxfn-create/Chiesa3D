@@ -1,527 +1,529 @@
 {
- "meta": {
-  "opera": "Facciata Monumentale del Duomo di Siena — Cattedrale Metropolitana di Santa Maria Assunta",
-  "autori_storici": "Giovanni Pisano (ordine inferiore, 1284-1297) — Giovanni di Cecco (ordine superiore, dal 1376) — Mosaici dell'apice 1878",
-  "versione": "4.2",
-  "scala_finale": 3.0,
-  "unita": "metri"
- },
- "muri_esterni": {
-  "attivi": true,
-  "spessore_muri": 1.5,
-  "altezza_plinto": 1.9,
-  "altezza_muri": 15.2,
-  "altezza_tamburo": 32.8,
-  "altezza_cupola": 48.0,
-  "altezza_campanile": 68.0,
-  "altezza_duomo_nuovo": 15.2,
-  "includi_duomo_nuovo": true,
-  "tetti": true,
-  "altezza_cleristorio": 21.8,
-  "altezza_colmo_navata": 24.0,
-  "altezza_tamburo_base": 23.6,
-  "altezza_calotta": 42.0,
-  "altezza_campanile_punta": 77.0,
-  "facciata_riferimento_invariata": true
- },
- "dimensioni": {
-  "larghezza_totale": 30.0,
-  "altezza_totale_angelo": 37.5,
-  "quota_imposta_portali": 8.45,
-  "quota_galleria": 14.8,
-  "quota_base_timpano": 23.95,
-  "quota_cornicione_torri": 29.2,
-  "quota_oculo_centro": 18.6,
-  "raggio_oculo_interno": 2.85,
-  "raggio_oculo_esterno": 3.95,
-  "semilato_quadrato_oculo": 4.45,
-  "larghezza_pilastro_centrale": 1.36,
-  "colmo_pilastro_centrale": 28.42,
-  "interasse_pilastri_centrali": 5.2,
-  "interasse_settori_laterali": 8.01,
-  "interasse_torri_esterne": 12.7,
-  "quota_cuspidi_laterali": 18.77,
-  "altezza_cuspidi_laterali": 3.53,
-  "larghezza_timpano_centrale": 8.8,
-  "altezza_timpano_centrale": 8.12,
-  "larghezza_mosaico_centrale": 7.18,
-  "altezza_mosaico_centrale": 6.62,
-  "larghezza_trabeazione_timpano": 8.8,
-  "raggio_oculo_x": 2.88,
-  "raggio_oculo_z": 2.88,
-  "altezza_centro_oculo": 19.75,
-  "larghezza_cuspidi_mosaico": 4.02,
-  "altezza_cuspidi_mosaico": 3.53,
-  "altezza_portali": 4.6,
-  "larghezza_portale_centrale": 4.2,
-  "larghezza_portali_laterali": 3.0,
-  "asse_portali_laterali": 7.35,
-  "quota_cornice_imposta_piloni": 8.45,
-  "raggio_lunetta_centrale": 2.35
- },
- "texture_reali": {
-  "facciata": "riferimento_facciata.jpg",
-  "apice": "riferimento_apice.jpg",
-  "dimensione_mosaico_px": 1536,
-  "vetrata": "riferimento_vetrata.jpg",
-  "cuspidi": "riferimento_cuspidi.jpg",
-  "dimensione_mosaici_laterali_px": 1536
- },
- "materiali": {
-  "Marmo_Bianco": {
-   "color": [
-    0.855,
-    0.818,
-    0.748
-   ],
-   "tex": "marmo_bianco",
-   "roughness": 0.46,
-   "bump": 0.24,
-   "ao_strength": 0.48
+  "meta": {
+    "opera": "Facciata Monumentale del Duomo di Siena — Cattedrale Metropolitana di Santa Maria Assunta",
+    "autori_storici": "Giovanni Pisano (ordine inferiore, 1284-1297) — Giovanni di Cecco (ordine superiore, dal 1376) — Mosaici dell'apice 1878",
+    "versione": "4.4",
+    "scala_finale": 3.0,
+    "unita": "metri"
   },
-  "Marmo_Bianco_Caldo": {
-   "color": [
-    0.79,
-    0.742,
-    0.658
-   ],
-   "tex": "marmo_caldo",
-   "roughness": 0.5,
-   "bump": 0.26,
-   "ao_strength": 0.56
+  "muri_esterni": {
+    "attivi": true,
+    "spessore_muri": 1.5,
+    "altezza_plinto": 1.9,
+    "altezza_muri": 15.2,
+    "altezza_tamburo": 32.8,
+    "altezza_cupola": 48.0,
+    "altezza_campanile": 68.0,
+    "altezza_duomo_nuovo": 15.2,
+    "includi_duomo_nuovo": true,
+    "tetti": true,
+    "altezza_cleristorio": 21.8,
+    "altezza_colmo_navata": 24.0,
+    "altezza_tamburo_base": 23.6,
+    "altezza_calotta": 42.0,
+    "altezza_campanile_punta": 77.0,
+    "facciata_riferimento_invariata": true,
+    "riempi_volumi": true,
+    "spessore_tetti": 0.45
   },
-  "Marmo_Gradinata": {
-   "color": [
-    0.735,
-    0.712,
-    0.675
-   ],
-   "tex": "gradinata",
-   "roughness": 0.58,
-   "bump": 0.28,
-   "ao_strength": 0.35
+  "dimensioni": {
+    "larghezza_totale": 30.0,
+    "altezza_totale_angelo": 37.5,
+    "quota_imposta_portali": 8.45,
+    "quota_galleria": 14.8,
+    "quota_base_timpano": 23.95,
+    "quota_cornicione_torri": 29.2,
+    "quota_oculo_centro": 18.6,
+    "raggio_oculo_interno": 2.85,
+    "raggio_oculo_esterno": 3.95,
+    "semilato_quadrato_oculo": 4.45,
+    "larghezza_pilastro_centrale": 1.36,
+    "colmo_pilastro_centrale": 28.42,
+    "interasse_pilastri_centrali": 5.2,
+    "interasse_settori_laterali": 8.01,
+    "interasse_torri_esterne": 12.7,
+    "quota_cuspidi_laterali": 18.77,
+    "altezza_cuspidi_laterali": 3.53,
+    "larghezza_timpano_centrale": 8.8,
+    "altezza_timpano_centrale": 8.12,
+    "larghezza_mosaico_centrale": 7.18,
+    "altezza_mosaico_centrale": 6.62,
+    "larghezza_trabeazione_timpano": 8.8,
+    "raggio_oculo_x": 2.88,
+    "raggio_oculo_z": 2.88,
+    "altezza_centro_oculo": 19.75,
+    "larghezza_cuspidi_mosaico": 4.02,
+    "altezza_cuspidi_mosaico": 3.53,
+    "altezza_portali": 4.6,
+    "larghezza_portale_centrale": 4.2,
+    "larghezza_portali_laterali": 3.0,
+    "asse_portali_laterali": 7.35,
+    "quota_cornice_imposta_piloni": 8.45,
+    "raggio_lunetta_centrale": 2.35
   },
-  "Marmo_Rosa": {
-   "color": [
-    0.585,
-    0.405,
-    0.365
-   ],
-   "tex": "marmo_rosa",
-   "roughness": 0.44,
-   "bump": 0.22,
-   "ao_strength": 0.44
+  "texture_reali": {
+    "facciata": "riferimento_facciata.jpg",
+    "apice": "riferimento_apice.jpg",
+    "dimensione_mosaico_px": 1536,
+    "vetrata": "riferimento_vetrata.jpg",
+    "cuspidi": "riferimento_cuspidi.jpg",
+    "dimensione_mosaici_laterali_px": 1536
   },
-  "Marmo_Rosato_Chiaro": {
-   "color": [
-    0.772,
-    0.686,
-    0.626
-   ],
-   "tex": "marmo_rosa_chiaro",
-   "roughness": 0.46,
-   "bump": 0.2,
-   "ao_strength": 0.4
+  "materiali": {
+    "Marmo_Bianco": {
+      "color": [
+        0.855,
+        0.818,
+        0.748
+      ],
+      "tex": "marmo_bianco",
+      "roughness": 0.46,
+      "bump": 0.24,
+      "ao_strength": 0.48
+    },
+    "Marmo_Bianco_Caldo": {
+      "color": [
+        0.79,
+        0.742,
+        0.658
+      ],
+      "tex": "marmo_caldo",
+      "roughness": 0.5,
+      "bump": 0.26,
+      "ao_strength": 0.56
+    },
+    "Marmo_Gradinata": {
+      "color": [
+        0.735,
+        0.712,
+        0.675
+      ],
+      "tex": "gradinata",
+      "roughness": 0.58,
+      "bump": 0.28,
+      "ao_strength": 0.35
+    },
+    "Marmo_Rosa": {
+      "color": [
+        0.585,
+        0.405,
+        0.365
+      ],
+      "tex": "marmo_rosa",
+      "roughness": 0.44,
+      "bump": 0.22,
+      "ao_strength": 0.44
+    },
+    "Marmo_Rosato_Chiaro": {
+      "color": [
+        0.772,
+        0.686,
+        0.626
+      ],
+      "tex": "marmo_rosa_chiaro",
+      "roughness": 0.46,
+      "bump": 0.2,
+      "ao_strength": 0.4
+    },
+    "Marmo_Verde_Scuro": {
+      "color": [
+        0.145,
+        0.175,
+        0.165
+      ],
+      "tex": "serpentino",
+      "roughness": 0.34,
+      "bump": 0.16,
+      "ao_strength": 0.32
+    },
+    "Pietra_Statue": {
+      "color": [
+        0.805,
+        0.755,
+        0.672
+      ],
+      "tex": "pietra_statue",
+      "roughness": 0.54,
+      "bump": 0.36,
+      "ao_strength": 0.74
+    },
+    "Pietra_Rilievi": {
+      "color": [
+        0.775,
+        0.725,
+        0.64
+      ],
+      "tex": "pietra_statue",
+      "roughness": 0.52,
+      "bump": 0.38,
+      "ao_strength": 0.84
+    },
+    "Mosaico_Centrale_Mat": {
+      "color": [
+        0.86,
+        0.72,
+        0.36
+      ],
+      "tex": "mosaico_centrale",
+      "roughness": 0.3,
+      "metallic": 0.24,
+      "emission_strength": 0.06
+    },
+    "Mosaico_Sx_Mat": {
+      "color": [
+        0.9,
+        0.78,
+        0.48
+      ],
+      "tex": "mosaico_sx",
+      "roughness": 0.36,
+      "metallic": 0.08,
+      "emission_strength": 0.06
+    },
+    "Mosaico_Dx_Mat": {
+      "color": [
+        0.9,
+        0.78,
+        0.48
+      ],
+      "tex": "mosaico_dx",
+      "roughness": 0.36,
+      "metallic": 0.08,
+      "emission_strength": 0.06
+    },
+    "Mosaico_Oro": {
+      "color": [
+        0.82,
+        0.645,
+        0.245
+      ],
+      "roughness": 0.26,
+      "metallic": 0.88
+    },
+    "Mosaico_Chiaro": {
+      "color": [
+        0.88,
+        0.745,
+        0.365
+      ],
+      "roughness": 0.3,
+      "metallic": 0.72
+    },
+    "Bronzo_Portale": {
+      "color": [
+        0.16,
+        0.155,
+        0.135
+      ],
+      "tex": "bronzo_porta",
+      "roughness": 0.36,
+      "metallic": 0.62,
+      "bump": 0.35
+    },
+    "Bronzo_Dorato": {
+      "color": [
+        0.76,
+        0.575,
+        0.205
+      ],
+      "roughness": 0.25,
+      "metallic": 0.9
+    },
+    "Bronzo_Angelico": {
+      "color": [
+        0.68,
+        0.53,
+        0.245
+      ],
+      "roughness": 0.3,
+      "metallic": 0.85
+    },
+    "Bronzo_Verde": {
+      "color": [
+        0.335,
+        0.49,
+        0.47
+      ],
+      "tex": "rame_verde",
+      "roughness": 0.38,
+      "metallic": 0.6,
+      "bump": 0.28,
+      "ao_strength": 0.72
+    },
+    "Legno_Portali": {
+      "color": [
+        0.24,
+        0.165,
+        0.11
+      ],
+      "tex": "legno_porta",
+      "roughness": 0.52,
+      "bump": 0.3
+    },
+    "Legno_Scuro": {
+      "color": [
+        0.14,
+        0.092,
+        0.058
+      ],
+      "roughness": 0.65
+    },
+    "Vetro_Rosone": {
+      "color": [
+        0.58,
+        0.76,
+        0.82
+      ],
+      "tex": "oculo_vetro",
+      "roughness": 0.27,
+      "metallic": 0.04,
+      "bump": 0.1,
+      "emission_strength": 0.75
+    },
+    "Ferro_Griglia": {
+      "color": [
+        0.07,
+        0.08,
+        0.078
+      ],
+      "roughness": 0.48,
+      "metallic": 0.58
+    },
+    "Pietra_Rosone": {
+      "color": [
+        0.82,
+        0.775,
+        0.695
+      ],
+      "tex": "pietra_statue",
+      "roughness": 0.56,
+      "bump": 0.22,
+      "ao_strength": 0.5
+    },
+    "Patina_Rosone": {
+      "color": [
+        0.32,
+        0.265,
+        0.215
+      ],
+      "roughness": 0.72
+    },
+    "Patina_Scolpita": {
+      "color": [
+        0.215,
+        0.168,
+        0.128
+      ],
+      "roughness": 0.76
+    },
+    "Patina_Bronzo": {
+      "color": [
+        0.052,
+        0.112,
+        0.132
+      ],
+      "roughness": 0.58,
+      "metallic": 0.55
+    },
+    "Vano_Scuro": {
+      "color": [
+        0.032,
+        0.029,
+        0.026
+      ],
+      "roughness": 0.96
+    },
+    "Marmo_Rigato": {
+      "color": [
+        0.735,
+        0.585,
+        0.52
+      ],
+      "tex": "marmo_rigato",
+      "roughness": 0.48,
+      "bump": 0.18,
+      "ao_strength": 0.3
+    },
+    "Cosmatesco_Blu": {
+      "color": [
+        0.8,
+        0.82,
+        0.84
+      ],
+      "tex": "cosmatesco",
+      "roughness": 0.4,
+      "bump": 0.1,
+      "ao_strength": 0.22
+    },
+    "Vano_Nicchia": {
+      "color": [
+        0.64,
+        0.515,
+        0.465
+      ],
+      "tex": "marmo_rosa",
+      "roughness": 0.52,
+      "ao_strength": 0.65
+    },
+    "Marmo_Grigio_Azzurro": {
+      "color": [
+        0.115,
+        0.185,
+        0.215
+      ],
+      "roughness": 0.58,
+      "ao_strength": 0.26
+    },
+    "Sguincio_Oculo": {
+      "color": [
+        0.4,
+        0.345,
+        0.32
+      ],
+      "tex": "marmo_rosa_chiaro",
+      "roughness": 0.62,
+      "bump": 0.18,
+      "ao_strength": 0.72
+    },
+    "Braccio_Oro_Mosaico": {
+      "color": [
+        0.8,
+        0.64,
+        0.28
+      ],
+      "roughness": 0.32,
+      "metallic": 0.55
+    },
+    "Pietra_Cuspidi_Rilievi": {
+      "color": [
+        0.83,
+        0.785,
+        0.705
+      ],
+      "tex": "pietra_statue",
+      "roughness": 0.48,
+      "bump": 0.22,
+      "ao_strength": 0.52,
+      "emission_strength": 0.0
+    },
+    "Marmo_Cuspidi_Chiaro": {
+      "color": [
+        0.875,
+        0.84,
+        0.77
+      ],
+      "tex": "marmo_caldo",
+      "roughness": 0.45,
+      "bump": 0.16,
+      "ao_strength": 0.4,
+      "emission_strength": 0.0
+    },
+    "Bronzo_Portale_Scuro": {
+      "color": [
+        0.055,
+        0.052,
+        0.043
+      ],
+      "roughness": 0.44,
+      "metallic": 0.55,
+      "bump": 0.42,
+      "tex": "bronzo_porta",
+      "ao_strength": 0.6
+    },
+    "Marmo_Alzata_Ombra": {
+      "color": [
+        0.3,
+        0.285,
+        0.262
+      ],
+      "roughness": 0.62,
+      "bump": 0.22,
+      "ao_strength": 0.5
+    }
   },
-  "Marmo_Verde_Scuro": {
-   "color": [
-    0.145,
-    0.175,
-    0.165
-   ],
-   "tex": "serpentino",
-   "roughness": 0.34,
-   "bump": 0.16,
-   "ao_strength": 0.32
+  "camera": {
+    "location_unscaled": [
+      0.0,
+      -43.0,
+      18.2
+    ],
+    "target_unscaled": [
+      0.0,
+      0.0,
+      18.0
+    ],
+    "lens_mm": 50.0,
+    "clip_end": 1000.0
   },
-  "Pietra_Statue": {
-   "color": [
-    0.805,
-    0.755,
-    0.672
-   ],
-   "tex": "pietra_statue",
-   "roughness": 0.54,
-   "bump": 0.36,
-   "ao_strength": 0.74
+  "luci": {
+    "sole": {
+      "energy": 4.45,
+      "color": [
+        1.0,
+        0.965,
+        0.905
+      ],
+      "angle_deg": 0.62,
+      "rotation_deg": [
+        44.0,
+        0.0,
+        -34.0
+      ]
+    },
+    "riempimento": {
+      "energy": 0.16,
+      "color": [
+        0.76,
+        0.84,
+        1.0
+      ],
+      "angle_deg": 65.0,
+      "rotation_deg": [
+        58.0,
+        0.0,
+        152.0
+      ]
+    }
   },
-  "Pietra_Rilievi": {
-   "color": [
-    0.775,
-    0.725,
-    0.64
-   ],
-   "tex": "pietra_statue",
-   "roughness": 0.52,
-   "bump": 0.38,
-   "ao_strength": 0.84
+  "mondo": {
+    "sky_color": [
+      0.008,
+      0.058,
+      0.188
+    ],
+    "horizon_color": [
+      0.026,
+      0.112,
+      0.295
+    ],
+    "sky_strength": 1.0,
+    "bounce_color": [
+      0.26,
+      0.335,
+      0.51
+    ],
+    "bounce_strength": 0.36
   },
-  "Mosaico_Centrale_Mat": {
-   "color": [
-    0.86,
-    0.72,
-    0.36
-   ],
-   "tex": "mosaico_centrale",
-   "roughness": 0.3,
-   "metallic": 0.24,
-   "emission_strength": 0.06
+  "render": {
+    "engine": "CYCLES",
+    "samples": 64,
+    "resolution_x": 900,
+    "resolution_y": 1050,
+    "use_denoising": true,
+    "device": "CPU"
   },
-  "Mosaico_Sx_Mat": {
-   "color": [
-    0.9,
-    0.78,
-    0.48
-   ],
-   "tex": "mosaico_sx",
-   "roughness": 0.36,
-   "metallic": 0.08,
-   "emission_strength": 0.06
-  },
-  "Mosaico_Dx_Mat": {
-   "color": [
-    0.9,
-    0.78,
-    0.48
-   ],
-   "tex": "mosaico_dx",
-   "roughness": 0.36,
-   "metallic": 0.08,
-   "emission_strength": 0.06
-  },
-  "Mosaico_Oro": {
-   "color": [
-    0.82,
-    0.645,
-    0.245
-   ],
-   "roughness": 0.26,
-   "metallic": 0.88
-  },
-  "Mosaico_Chiaro": {
-   "color": [
-    0.88,
-    0.745,
-    0.365
-   ],
-   "roughness": 0.3,
-   "metallic": 0.72
-  },
-  "Bronzo_Portale": {
-   "color": [
-    0.16,
-    0.155,
-    0.135
-   ],
-   "tex": "bronzo_porta",
-   "roughness": 0.36,
-   "metallic": 0.62,
-   "bump": 0.35
-  },
-  "Bronzo_Dorato": {
-   "color": [
-    0.76,
-    0.575,
-    0.205
-   ],
-   "roughness": 0.25,
-   "metallic": 0.9
-  },
-  "Bronzo_Angelico": {
-   "color": [
-    0.68,
-    0.53,
-    0.245
-   ],
-   "roughness": 0.3,
-   "metallic": 0.85
-  },
-  "Bronzo_Verde": {
-   "color": [
-    0.335,
-    0.49,
-    0.47
-   ],
-   "tex": "rame_verde",
-   "roughness": 0.38,
-   "metallic": 0.6,
-   "bump": 0.28,
-   "ao_strength": 0.72
-  },
-  "Legno_Portali": {
-   "color": [
-    0.24,
-    0.165,
-    0.11
-   ],
-   "tex": "legno_porta",
-   "roughness": 0.52,
-   "bump": 0.3
-  },
-  "Legno_Scuro": {
-   "color": [
-    0.14,
-    0.092,
-    0.058
-   ],
-   "roughness": 0.65
-  },
-  "Vetro_Rosone": {
-   "color": [
-    0.58,
-    0.76,
-    0.82
-   ],
-   "tex": "oculo_vetro",
-   "roughness": 0.27,
-   "metallic": 0.04,
-   "bump": 0.1,
-   "emission_strength": 0.75
-  },
-  "Ferro_Griglia": {
-   "color": [
-    0.07,
-    0.08,
-    0.078
-   ],
-   "roughness": 0.48,
-   "metallic": 0.58
-  },
-  "Pietra_Rosone": {
-   "color": [
-    0.82,
-    0.775,
-    0.695
-   ],
-   "tex": "pietra_statue",
-   "roughness": 0.56,
-   "bump": 0.22,
-   "ao_strength": 0.5
-  },
-  "Patina_Rosone": {
-   "color": [
-    0.32,
-    0.265,
-    0.215
-   ],
-   "roughness": 0.72
-  },
-  "Patina_Scolpita": {
-   "color": [
-    0.215,
-    0.168,
-    0.128
-   ],
-   "roughness": 0.76
-  },
-  "Patina_Bronzo": {
-   "color": [
-    0.052,
-    0.112,
-    0.132
-   ],
-   "roughness": 0.58,
-   "metallic": 0.55
-  },
-  "Vano_Scuro": {
-   "color": [
-    0.032,
-    0.029,
-    0.026
-   ],
-   "roughness": 0.96
-  },
-  "Marmo_Rigato": {
-   "color": [
-    0.735,
-    0.585,
-    0.52
-   ],
-   "tex": "marmo_rigato",
-   "roughness": 0.48,
-   "bump": 0.18,
-   "ao_strength": 0.3
-  },
-  "Cosmatesco_Blu": {
-   "color": [
-    0.8,
-    0.82,
-    0.84
-   ],
-   "tex": "cosmatesco",
-   "roughness": 0.4,
-   "bump": 0.1,
-   "ao_strength": 0.22
-  },
-  "Vano_Nicchia": {
-   "color": [
-    0.64,
-    0.515,
-    0.465
-   ],
-   "tex": "marmo_rosa",
-   "roughness": 0.52,
-   "ao_strength": 0.65
-  },
-  "Marmo_Grigio_Azzurro": {
-   "color": [
-    0.115,
-    0.185,
-    0.215
-   ],
-   "roughness": 0.58,
-   "ao_strength": 0.26
-  },
-  "Sguincio_Oculo": {
-   "color": [
-    0.4,
-    0.345,
-    0.32
-   ],
-   "tex": "marmo_rosa_chiaro",
-   "roughness": 0.62,
-   "bump": 0.18,
-   "ao_strength": 0.72
-  },
-  "Braccio_Oro_Mosaico": {
-   "color": [
-    0.8,
-    0.64,
-    0.28
-   ],
-   "roughness": 0.32,
-   "metallic": 0.55
-  },
-  "Pietra_Cuspidi_Rilievi": {
-   "color": [
-    0.83,
-    0.785,
-    0.705
-   ],
-   "tex": "pietra_statue",
-   "roughness": 0.48,
-   "bump": 0.22,
-   "ao_strength": 0.52,
-   "emission_strength": 0.0
-  },
-  "Marmo_Cuspidi_Chiaro": {
-   "color": [
-    0.875,
-    0.84,
-    0.77
-   ],
-   "tex": "marmo_caldo",
-   "roughness": 0.45,
-   "bump": 0.16,
-   "ao_strength": 0.4,
-   "emission_strength": 0.0
-  },
-  "Bronzo_Portale_Scuro": {
-   "color": [
-    0.055,
-    0.052,
-    0.043
-   ],
-   "roughness": 0.44,
-   "metallic": 0.55,
-   "bump": 0.42,
-   "tex": "bronzo_porta",
-   "ao_strength": 0.6
-  },
-  "Marmo_Alzata_Ombra": {
-   "color": [
-    0.3,
-    0.285,
-    0.262
-   ],
-   "roughness": 0.62,
-   "bump": 0.22,
-   "ao_strength": 0.5
+  "export": {
+    "formats": [
+      "blend",
+      "gltf"
+    ],
+    "gltf_options": {
+      "export_format": "GLB",
+      "export_apply": true,
+      "export_yup": true,
+      "export_draco_mesh_compression_enable": false,
+      "export_tangents": true,
+      "export_materials": "EXPORT"
+    }
   }
- },
- "camera": {
-  "location_unscaled": [
-   0.0,
-   -43.0,
-   18.2
-  ],
-  "target_unscaled": [
-   0.0,
-   0.0,
-   18.0
-  ],
-  "lens_mm": 50.0,
-  "clip_end": 1000.0
- },
- "luci": {
-  "sole": {
-   "energy": 4.45,
-   "color": [
-    1.0,
-    0.965,
-    0.905
-   ],
-   "angle_deg": 0.62,
-   "rotation_deg": [
-    44.0,
-    0.0,
-    -34.0
-   ]
-  },
-  "riempimento": {
-   "energy": 0.16,
-   "color": [
-    0.76,
-    0.84,
-    1.0
-   ],
-   "angle_deg": 65.0,
-   "rotation_deg": [
-    58.0,
-    0.0,
-    152.0
-   ]
-  }
- },
- "mondo": {
-  "sky_color": [
-   0.008,
-   0.058,
-   0.188
-  ],
-  "horizon_color": [
-   0.026,
-   0.112,
-   0.295
-  ],
-  "sky_strength": 1.0,
-  "bounce_color": [
-   0.26,
-   0.335,
-   0.51
-  ],
-  "bounce_strength": 0.36
- },
- "render": {
-  "engine": "CYCLES",
-  "samples": 64,
-  "resolution_x": 900,
-  "resolution_y": 1050,
-  "use_denoising": true,
-  "device": "CPU"
- },
- "export": {
-  "formats": [
-   "blend",
-   "gltf"
-  ],
-  "gltf_options": {
-   "export_format": "GLB",
-   "export_apply": true,
-   "export_yup": true,
-   "export_draco_mesh_compression_enable": false,
-   "export_tangents": true,
-   "export_materials": "EXPORT"
-  }
- }
 }
