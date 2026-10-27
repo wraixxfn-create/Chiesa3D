@@ -777,10 +777,15 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
         if includi_duomo_nuovo:
             xs = [p[0] for p in CATENA_DUOMO_NUOVO]
             ys = [p[1] for p in CATENA_DUOMO_NUOVO]
+            # Rientrato di mezzo muro: cosi' il piano resta DENTRO le
+            # murature e non sporge come un grembiale oltre il filo esterno
+            # (nel Duomo Nuovo il lato sud-ovest e' aperto verso la chiesa).
             # (nella raccolta 07g, cosi' sparisce insieme ai muri del
             # Duomo Nuovo quando l'anteprima d'insieme li nasconde)
-            vol("Volume_Duomo_Nuovo_Pavimento", min(xs), max(xs),
-                min(ys), max(ys), 0.0, h_plinto,
+            rientro = SPESSORE_INCOMPIUTO / 2.0
+            vol("Volume_Duomo_Nuovo_Pavimento",
+                min(xs) + rientro, max(xs) - rientro,
+                min(ys) + rientro, max(ys) - rientro, 0.0, h_plinto,
                 collezione=cols["07g_Duomo_Nuovo_Incompiuto"])
 
     # --- 5.1 muri perimetrici: navate basse e transetto rialzato ----------
