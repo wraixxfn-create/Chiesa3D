@@ -1,6 +1,6 @@
 # Chiesa3D — Facciata e corpo del Duomo di Siena
 
-Modello 3D (`.blend`) della **facciata ovest del Duomo di Siena** (v3.9) **e del corpo della chiesa** (v4.2): navate, transetto, coro, tamburo e calotta, lanterna, campanile, annessi e muri superstiti del Duomo Nuovo. Il corpo resta volutamente semplice, ma pianta e altezze sono ora calibrate sulla facciata e sulle nuove fotografie aeree e laterali allegate. **La facciata è il riferimento fisso e non è stata modificata**.
+Modello 3D (`.blend`) della **facciata ovest del Duomo di Siena** (v3.9) **e del corpo della chiesa** (v4.3): navate, transetto, coro, tamburo e calotta, lanterna, campanile, annessi e muri superstiti del Duomo Nuovo. Il corpo resta volutamente semplice, ma il perimetro è ora calibrato sulle **quote interne ufficiali** (89,4 × 24,37 × 54,48 m) agganciate alla facciata, e le altezze sulle fotografie aeree, laterali e sui rilievi allegati. **La facciata è il riferimento fisso e non è stata modificata**.
 
 ## File
 
@@ -21,17 +21,17 @@ Modello 3D (`.blend`) della **facciata ovest del Duomo di Siena** (v3.9) **e del
 | `anteprima_galleria.png` | Dettaglio panoramico v2.5 sul taglio della fotografia: fregio di cherubini, trabeazione a scacchiera, 15 edicole con profeti in altorilievo, pennacchi e sommità del rosone (Cycles CPU, 1600×520) |
 | `confronto_galleria.png` | Confronto fotografia di riferimento / versione 2.4 / versione 2.5 della galleria dei Profeti |
 | `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprime e GLB da zero (dalla v4.0 include anche i muri esterni del corpo) |
-| `muri_esterni.py` | **v4.2** — pianta digitalizzata, muri a due livelli, tetti a falde, cupola con lanterna e campanile nella posizione corretta |
-| `aggiorna_muri_esterni.py` | **v4.2** — ricostruisce soltanto le raccolte `07*` su un `.blend` esistente e genera le due anteprime generali |
-| `crea_pianta_proporzioni.py` | **v4.2** — compone `pianta_proporzioni.png`: tracciatura della pianta, quote orizzontali e verticali, rapporti con la facciata |
-| `pianta_proporzioni.png` | **v4.2** — tavola quotata di controllo delle proporzioni |
-| `anteprima_struttura.png` | **v4.2** — assonometria dal fianco destro (Duomo Nuovo nascosto per leggibilità) |
-| `anteprima_pianta.png` | **v4.2** — vista ortografica dall'alto, facciata in basso e campanile a destra; Duomo Nuovo compreso |
+| `muri_esterni.py` | **v4.3** — pianta digitalizzata, muri a due livelli, tetti a falde, cupola con lanterna e campanile nella posizione corretta |
+| `aggiorna_muri_esterni.py` | **v4.3** — ricostruisce soltanto le raccolte `07*` su un `.blend` esistente e genera le due anteprime generali |
+| `crea_pianta_proporzioni.py` | **v4.3** — compone `pianta_proporzioni.png`: tracciatura della pianta, quote orizzontali e verticali, rapporti con la facciata |
+| `pianta_proporzioni.png` | **v4.3** — tavola quotata di controllo delle proporzioni |
+| `anteprima_struttura.png` | **v4.3** — assonometria dal fianco destro (Duomo Nuovo nascosto per leggibilità) |
+| `anteprima_pianta.png` | **v4.3** — vista ortografica dall'alto, facciata in basso e campanile a destra; Duomo Nuovo compreso |
 | `crea_confronto_torri.py` | Compone `confronto_torri.png` affiancando i ritagli della fotografia ai render `model_sx.png` / `model_dx.png` |
 | `crea_confronto_v39.py` | Compone `confronto_v39.png`: fotografia di riferimento e render d'insieme v3.9 affiancati alla stessa altezza |
 | `confronto_v39.png` | Confronto d'insieme fotografia / v3.9: torrioni bicromi, portali a rilievo e gradinata a bande |
 | `model_sx.png`, `model_dx.png` | Primi piani verticali di ciascuna torre usati dal confronto, rigenerati dallo script (Cycles CPU, 520×1420) |
-| `config_facciata.json` | Tutti i parametri (dimensioni, materiali PBR, luci, camera, render, export) + sezione `muri_esterni` della v4.2 |
+| `config_facciata.json` | Tutti i parametri (dimensioni, materiali PBR, luci, camera, render, export) + sezione `muri_esterni` della v4.3 |
 | `riferimento_aerea.webp` | **v4.2** — vista aerea allegata: posizione di cupola, campanile e Duomo Nuovo |
 | `riferimento_altezze.jpg` | **v4.2** — fotografia laterale allegata per i rapporti fra facciata, cupola e campanile |
 | `riferimento_assonometria.jpeg` | **v4.2** — vista generale allegata per controllare i due livelli delle navate e le coperture |
@@ -43,17 +43,26 @@ Modello 3D (`.blend`) della **facciata ovest del Duomo di Siena** (v3.9) **e del
 | `riferimento_galleria.jpg` | Fotografia di dettaglio (1866×619) della galleria dei Profeti e dei pennacchi del rosone, riferimento della versione 2.3 |
 | `riferimento_vetrata.jpg` | Fotografia di dettaglio (1453×1582) del rosone, delle nicchie laterali e dei pennacchi, riferimento della versione 2.6 |
 | `riferimento_cuspidi.jpg` | Nuovo dettaglio frontale (3120×1146) dei due frontoni con la Presentazione e la Natività, riferimento della versione 2.9 |
+| `firma_facciata.py` | **v4.3** — firma geometrica (vertici, poligoni, materiali, trasformazioni) di tutte le mesh non `07*`: prova che la facciata non cambia |
+| `riferimento_pianta_baedeker.jpg` | **v4.3** — pianta Baedeker con scala grafica da 20 m: controllo incrociato di navata, transetto e Duomo Nuovo |
+| `riferimento_pianta_touring.gif` | **v4.3** — pianta con scala 0–10 m e lettere: rapporti lunghezza/navata e perimetro del Duomo Nuovo |
+| `riferimento_prospetto_facciata.png` | **v4.3** — prospetto quotato a colori della facciata: conferma del riferimento fisso |
+| `riferimento_volte_wireframe.png` | **v4.3** — quattro viste delle volte (prospetto, sezione e pianta): campate, cleristorio e profilo della cupola |
+| `riferimento_tavola_gotica.jpg` | **v4.3** — tavola «Italian Gothic»: esterno, interno con l'esagono e pianta quotata |
+| `riferimento_modello_carta.jpg` | **v4.3** — modello di carta commerciale: massa di riferimento per tetti, facciata aggettante e Duomo Nuovo |
+| `riferimento_scorcio_sudovest.webp` | **v4.3** — scorcio dal suolo: rapporti fra facciata, fiancate, cupola e campanile |
 
 
 ## Dimensioni e scala
 
 La facciata di riferimento è larga **30 m reali** e alta **37,5 m reali** all'angelo. Il progetto mantiene `scala_globale: 3.0`: in unità modello diventa quindi circa **90 × 112,5** (gradinata compresa: 126 di larghezza). Impostando la scala a `1.0` tutte le quote tornano direttamente in metri reali.
 
-| Elemento v4.2 | Metri reali | Unità modello (scala 3) |
+| Elemento v4.3 | Metri reali | Unità modello (scala 3) |
 |---|---:|---:|
-| Larghezza esterna navata | 29,83 | 89,50 |
-| Larghezza esterna transetto | 58,42 | 175,26 |
-| Lunghezza dal retro facciata all'abside | 96,83 | 290,49 |
+| Larghezza esterna navata (interni 24,37) | 27,37 | 82,11 |
+| Larghezza esterna transetto (interni 54,48) | 57,48 | 172,44 |
+| Lunghezza dal retro facciata all'abside (interni 89,4) | 90,90 | 272,70 |
+| Aggetto della facciata sulle fiancate | 1,31 | 3,94 |
 | Muri delle navate laterali | 15,20 | 45,60 |
 | Filo superiore del cleristorio | 21,80 | 65,40 |
 | Colmo dei tetti principali | 24,00 | 72,00 |
@@ -63,6 +72,52 @@ La facciata di riferimento è larga **30 m reali** e alta **37,5 m reali** all'a
 | Campanile, punta centrale | **77,00** | **231,00** |
 
 I rapporti verticali riferiti alla facciata sono quindi **1,28× per la cupola** e **2,053× per il campanile**. Le quote planimetriche sono esterne e comprendono i muri; non vanno confuse con le misure interne dell'aula.
+
+## Versione 4.3 — perimetro sulle quote ufficiali, facciata come riferimento
+
+Richiesta: *«credo ci siano alcuni errori nelle proporzioni del perimetro, la
+facciata è giusta quindi prendi lei come riferimento. Ti dò delle immagini per
+farti comprendere meglio altezze e tutto»*, con dodici nuovi allegati: piante
+quotate (Baedeker, Touring, storica), prospetto della facciata, viste delle
+volte, tavola gotica, modello di carta, foto aeree e dal suolo.
+
+- **Errori della v4.2 corretti.** Il perimetro era agganciato alla larghezza
+  della facciata come se le fiancate ne fossero a filo: la navata risultava
+  larga 29,83 m esterni contro i 27,37 m reali (interni ufficiali 24,37 m +
+  muri), il corpo lungo 96,83 m contro 90,90 m (interni 89,4 m) e il
+  transetto 58,42 m contro 57,48 m (interni 54,48 m).  Ora le tre quote
+  principali nascono dai valori interni ufficiali più lo spessore dei muri,
+  e la pianta moderna fornisce soltanto la forma dei risalti secondari con
+  un'unica scala `K_PIANTA`.
+- **Facciata davvero più larga del corpo.** Nelle foto aeree, nel modello di
+  carta e nel prospetto allegato il fronte da 30 m aggetta sulle fiancate:
+  il perimetro parte quindi con due spalline di raccordo da 1,31 m sul retro
+  della facciata, invece di continuare a filo come nella v4.2.
+- **Facciata invariata, di nuovo verificata.** `firma_facciata.py` confronta
+  vertici, poligoni, materiali e trasformazioni delle **3.905 mesh** del
+  fronte e della gradinata prima e dopo l'aggiornamento: le due firme
+  coincidono esattamente.
+- **Altezze confermate dalle nuove immagini.** Le viste delle volte, la
+  tavola gotica e lo scorcio dal suolo confermano la gerarchia v4.2: navate
+  laterali a 15,2 m, cleristorio a 21,8 m, colmo a 24 m allineato alla base
+  del timpano centrale, tamburo a 32,8 m, cupola con lanterna e croce a
+  **48 m** (1,28× la facciata) e campanile a **77 m** (2,053×).  Il
+  cleristorio è però ristretto a 13,2 m, cioè sopra le arcate della navata
+  maggiore, come mostrano la pianta delle volte e le sezioni.
+- **Campanile e cupola ricontrollati sulle piante quotate.** Il campanile
+  (lato 7,5 m) resta addossato al fianco destro a cavallo del filo del
+  transetto; il tamburo da 22,67 m fra i vertici copre l'esagono dei sei
+  pilastroni della crociera.
+- **Duomo Nuovo in scala corretta.** Le pareti superstiti raggiungono i
+  92,5 m dall'asse, come nelle piante Baedeker e Touring, e nella tavola di
+  controllo sono ritagliate al bordo del foglio.
+- **Verifiche ripetibili.** Dodici test controllano aggancio alla facciata,
+  continuità del perimetro, quote ufficiali, aggetto del fronte, posizione
+  di campanile e cupola e gerarchia delle altezze.
+
+Le sezioni dedicate alle versioni 4.2, 4.1, 4.0, 3.9 e precedenti restano qui
+sotto come **cronologia**; per lo stato attuale fanno fede questa sezione e
+`config_facciata.json`.
 
 ## Versione 4.2 — perimetro e altezze calibrati sulla facciata
 
@@ -1172,5 +1227,8 @@ continuità, scala uniforme e collocazione della torre.
 
 **Nota storica:** nella sessione v4.1 il `.blend` e le anteprime 3D non erano
 stati rigenerati per la mancanza di librerie di sistema del runtime Blender.
-La v4.2 corrente ha invece aggiornato e verificato tutti gli artefatti con
-Blender 4.2.23 LTS.
+La v4.2 ha invece aggiornato e verificato tutti gli artefatti con Blender
+4.2.23 LTS; la v4.3 corrente li ha rigenerati con il modulo `bpy` 4.2.0 in
+modalità headless (le librerie X11/GL mancanti nel runtime sono state
+sostituite da stub di compatibilità no-op) e ha certificato l'invarianza
+della facciata con `firma_facciata.py`.

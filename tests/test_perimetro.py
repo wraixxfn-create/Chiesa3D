@@ -6,9 +6,14 @@ import muri_esterni as m
 
 class PiantaTest(unittest.TestCase):
     def test_aggancio_facciata_invariato(self):
-        self.assertEqual(m.PERIMETRO_PX[0], (124, 333))
-        self.assertEqual(m.PERIMETRO_PX[-1], (209, 333))
-        self.assertAlmostEqual(m.X_NAVATA_DX - m.X_NAVATA_SX, 85 / 3)
+        # Il perimetro nasce e muore sul retro della facciata da 30 m, con
+        # due spalline di raccordo: la navata e' piu' stretta del fronte.
+        self.assertEqual(m.PERIMETRO[0], (-m.X_SPALLA, m.Y_BACK_M))
+        self.assertEqual(m.PERIMETRO[-1], (m.X_SPALLA, m.Y_BACK_M))
+        self.assertEqual(m.PERIMETRO[1], (m.X_NAVATA_SX, m.Y_BACK_M))
+        self.assertAlmostEqual(m.X_NAVATA_DX - m.X_NAVATA_SX, 25.87)
+        self.assertAlmostEqual(2 * m.X_SPALLA + m.SPESSORE_MURO,
+                               m.LARGHEZZA_FACCIATA)
 
     def test_continuita(self):
         tratti = [m.TRATTI_MURO[i][2] for i in [0, 2, 3, 4, 5, 6, 1]]
@@ -16,29 +21,48 @@ class PiantaTest(unittest.TestCase):
             self.assertEqual(a[-1], b[0])
 
     def test_scala_uniforme(self):
-        a = m.dalla_pianta(0, 0)
-        b = m.dalla_pianta(100, 100)
-        self.assertAlmostEqual(b[0] - a[0], b[1] - a[1])
+        a = m.dalla_pianta_m(0, 0)
+        b = m.dalla_pianta_m(100, 100)
+        self.assertAlmostEqual(abs(b[0] - a[0]), abs(b[1] - a[1]))
 
-    def test_conversione_metri_reversibile(self):
-        for punto in [(0, 0), (12.5, 44.2), (-8, 97)]:
-            px = m.da_metri(*punto)
-            self.assertAlmostEqual(m.P(*px, scala=1)[0], punto[0])
-            self.assertAlmostEqual(m.P(*px, scala=1)[1], punto[1])
+    def test_conversione_pianta_reversibile(self):
+        for punto in [(327.5, 820), (458, 501), (215, 478), (13, 101)]:
+            x, y = m.dalla_pianta_m(*punto)
+            px = (m.PIANTA_ASSE_X + x / m.K_PIANTA,
+                  m.PIANTA_FACCIATA_Y - (y - m.Y_BACK_M) / m.K_PIANTA)
+            self.assertAlmostEqual(px[0], punto[0])
+            self.assertAlmostEqual(px[1], punto[1])
 
-    def test_quote_perimetro(self):
+    def test_quote_perimetro_ufficiali(self):
         d = m.riepilogo_dimensioni()
-        self.assertAlmostEqual(d["Larghezza esterna navata"], 29.8333, places=3)
-        self.assertAlmostEqual(d["Lunghezza corpo (retro facciata->abside)"],
-                               96.8315, places=3)
-        self.assertAlmostEqual(d["Larghezza esterna transetto"],
-                               58.4185, places=3)
+        self.assertAlmostEqual(d["Larghezza esterna navata"], 27.37, places=2)
+        self.assertAlmostEqual(d["Larghezza esterna transetto"], 57.48,
+                               places=2)
+        self.assertAlmostEqual(
+            d["Lunghezza corpo (retro facciata->abside)"], 90.9, places=2)
+        # Interni ufficiali: 24,37 m alle navate e 54,48 m alla crociera.
+        self.assertAlmostEqual(d["Larghezza esterna navata"] -
+                               2 * m.SPESSORE_MURO,
+                               m.LARGHEZZA_INTERNA_NAVATA)
+        self.assertAlmostEqual(d["Larghezza esterna transetto"] -
+                               2 * m.SPESSORE_MURO,
+                               m.LARGHEZZA_INTERNA_CROCIERA)
+        self.assertAlmostEqual(d["Lunghezza corpo (retro facciata->abside)"] -
+                               m.SPESSORE_MURO, m.LUNGHEZZA_INTERNA)
         self.assertLess(m.LARGHEZZA_CLERISTORIO,
                         d["Larghezza esterna navata"])
 
+    def test_facciata_piu_larga_delle_fiancate(self):
+        # Come nelle fotografie e nel modello di carta: il fronte da 30 m
+        # aggetta sulle fiancate, non e' a filo con esse.
+        self.assertGreater(m.LARGHEZZA_FACCIATA,
+                           m.LARGHEZZA_INTERNA_NAVATA + 2 * m.SPESSORE_MURO)
+        aggetto = m.riepilogo_dimensioni()["Aggetto facciata sulle fiancate"]
+        self.assertAlmostEqual(aggetto, 1.315, places=2)
+
     def test_campanile_sul_fianco_destro_e_addossato(self):
-        cx, cy = m.xy_reali(m.CAMPANILE_PX)
-        _, cy_cupola = m.xy_reali(m.ESAGONO_PX)
+        cx, cy = m.CAMPANILE_M
+        _, cy_cupola = m.ESAGONO_M
         r = m.LATO_CAMPANILE / 2
         self.assertGreater(cx, m.X_NAVATA_DX)
         self.assertLess(cx - r, m.X_NAVATA_DX)  # addossato, non staccato
@@ -48,16 +72,16 @@ class PiantaTest(unittest.TestCase):
         self.assertLess(cy - r, m.Y_NAVATA_FINE)
 
     def test_cupola_sull_incrocio(self):
-        cx, cy = m.xy_reali(m.ESAGONO_PX)
-        self.assertAlmostEqual(cx, 0, delta=0.25)
+        cx, cy = m.ESAGONO_M
+        self.assertAlmostEqual(cx, 0, delta=0.75)
         self.assertGreater(cy, m.Y_NAVATA_FINE)
-        self.assertLess(cy, m.Y_CORO_FINE)
+        self.assertLess(cy, m.Y_CORO_INIZIO)
         self.assertGreater(m.R_TAMBURO, m.LATO_CAMPANILE)
-        # Con i vertici a 0/60/... gradi, il lato inferiore dell'esagono
-        # coincide con il filo del transetto a y=478 della pianta moderna.
-        self.assertAlmostEqual(cy - m.R_TAMBURO * math.sin(math.pi/3),
-                               m.Y_NAVATA_FINE, delta=0.03)
-        self.assertLess(cy + m.R_TAMBURO * math.sin(math.pi/3),
+        # Il tamburo copre l'esagono dei sei pilastroni (raggio ~10,6 m).
+        self.assertGreater(m.R_TAMBURO, 10.6)
+        self.assertAlmostEqual(cy - m.R_TAMBURO * math.sin(math.pi / 3),
+                               m.Y_NAVATA_FINE, delta=0.8)
+        self.assertLess(cy + m.R_TAMBURO * math.sin(math.pi / 3),
                         m.Y_CORO_INIZIO)
 
 
@@ -72,9 +96,8 @@ class AltezzeTest(unittest.TestCase):
         self.assertLess(m.H_CAMPANILE, m.H_CAMPANILE_PUNTA)
 
     def test_rapporti_con_facciata_di_riferimento(self):
-        altezza_facciata = 37.5
-        self.assertAlmostEqual(m.H_CUPOLA / altezza_facciata, 1.28)
-        self.assertAlmostEqual(m.H_CAMPANILE_PUNTA / altezza_facciata,
+        self.assertAlmostEqual(m.H_CUPOLA / m.ALTEZZA_FACCIATA, 1.28)
+        self.assertAlmostEqual(m.H_CAMPANILE_PUNTA / m.ALTEZZA_FACCIATA,
                                77 / 37.5)
         self.assertEqual(m.H_CUPOLA, 48.0)
         self.assertEqual(m.H_CAMPANILE_PUNTA, 77.0)

@@ -178,10 +178,11 @@ if os.environ.get("CHIESA_MURI_BACKUP") and os.path.abspath(OUT_PATH) == os.path
 
 scene.camera = camera_originale
 scene["titolo"] = "Duomo di Siena — facciata ovest e corpo della chiesa"
-scene["nota"] = ("Modello procedurale v4.2: facciata v3.9 invariata + corpo "
-                 "semplice proporzionato sulle fotografie allegate. Navate "
-                 "laterali a 15,2 m, cleristorio a 21,8 m, cupola con lanterna "
-                 "a 48 m e campanile a 77 m sul fianco destro. Raccolte 07*.")
+scene["nota"] = ("Modello procedurale v4.3: facciata v3.9 invariata + corpo "
+                 "semplice calibrato sulle quote ufficiali (89,4 x 24,37 x "
+                 "54,48 m interni). Navate laterali a 15,2 m, cleristorio a "
+                 "21,8 m, cupola con lanterna a 48 m e campanile a 77 m sul "
+                 "fianco destro. Raccolte 07*.")
 bpy.ops.wm.save_as_mainfile(filepath=OUT_PATH, compress=True)
 print(f"Salvato: {OUT_PATH}")
 
