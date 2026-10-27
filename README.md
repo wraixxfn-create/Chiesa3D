@@ -1,6 +1,6 @@
 # Chiesa3D — Facciata e corpo del Duomo di Siena
 
-Modello 3D (`.blend`) della **facciata ovest del Duomo di Siena** (ricostruita in modo procedurale dalla fotografia `riferimento_facciata.jpg`, versione 3.9) **con il resto dei muri esterni della struttura** (versione 4.0): navata, transetto, coro, tamburo esagonale, campanile, annessi e i muri superstiti del Duomo Nuovo. I muri del corpo sono **volutamente semplici** — prismi e polilinee estruse, nessuna decorazione — ma le loro **proporzioni sono tarate sulla pianta** `riferimento_pianta.jpg` allegata. La facciata non e' stata toccata: e' ancora la v3.9, con spessore ridotto (~7,8 m) e retro piatto.
+Modello 3D (`.blend`) della **facciata ovest del Duomo di Siena** (v3.9) **e del corpo della chiesa** (v4.2): navate, transetto, coro, tamburo e calotta, lanterna, campanile, annessi e muri superstiti del Duomo Nuovo. Il corpo resta volutamente semplice, ma pianta e altezze sono ora calibrate sulla facciata e sulle nuove fotografie aeree e laterali allegate. **La facciata è il riferimento fisso e non è stata modificata**.
 
 ## File
 
@@ -21,18 +21,22 @@ Modello 3D (`.blend`) della **facciata ovest del Duomo di Siena** (ricostruita i
 | `anteprima_galleria.png` | Dettaglio panoramico v2.5 sul taglio della fotografia: fregio di cherubini, trabeazione a scacchiera, 15 edicole con profeti in altorilievo, pennacchi e sommità del rosone (Cycles CPU, 1600×520) |
 | `confronto_galleria.png` | Confronto fotografia di riferimento / versione 2.4 / versione 2.5 della galleria dei Profeti |
 | `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprime e GLB da zero (dalla v4.0 include anche i muri esterni del corpo) |
-| `muri_esterni.py` | **v4.0** — pianta digitalizzata e costruzione dei muri esterni semplici (navata, transetto, coro, tamburo, campanile, annessi, Duomo Nuovo) |
-| `aggiorna_muri_esterni.py` | **v4.0** — aggiunge/ricostruisce i muri su un `.blend` esistente e genera `anteprima_struttura.png` e `anteprima_pianta.png` |
-| `crea_pianta_proporzioni.py` | **v4.0** — compone `pianta_proporzioni.png`: pianta allegata con la tracciatura dei muri e le quote in metri reali |
-| `pianta_proporzioni.png` | **v4.0** — disegno quotato di controllo delle proporzioni (3 px = 1 m reale) |
-| `anteprima_struttura.png` | **v4.0** — vista assonometrica dell'intero edificio (Duomo Nuovo nascosto per leggibilità) |
-| `anteprima_pianta.png` | **v4.0** — vista ortografica dall'alto dell'intera pianta, Duomo Nuovo compreso |
+| `muri_esterni.py` | **v4.2** — pianta digitalizzata, muri a due livelli, tetti a falde, cupola con lanterna e campanile nella posizione corretta |
+| `aggiorna_muri_esterni.py` | **v4.2** — ricostruisce soltanto le raccolte `07*` su un `.blend` esistente e genera le due anteprime generali |
+| `crea_pianta_proporzioni.py` | **v4.2** — compone `pianta_proporzioni.png`: tracciatura della pianta, quote orizzontali e verticali, rapporti con la facciata |
+| `pianta_proporzioni.png` | **v4.2** — tavola quotata di controllo delle proporzioni |
+| `anteprima_struttura.png` | **v4.2** — assonometria dal fianco destro (Duomo Nuovo nascosto per leggibilità) |
+| `anteprima_pianta.png` | **v4.2** — vista ortografica dall'alto, facciata in basso e campanile a destra; Duomo Nuovo compreso |
 | `crea_confronto_torri.py` | Compone `confronto_torri.png` affiancando i ritagli della fotografia ai render `model_sx.png` / `model_dx.png` |
 | `crea_confronto_v39.py` | Compone `confronto_v39.png`: fotografia di riferimento e render d'insieme v3.9 affiancati alla stessa altezza |
 | `confronto_v39.png` | Confronto d'insieme fotografia / v3.9: torrioni bicromi, portali a rilievo e gradinata a bande |
 | `model_sx.png`, `model_dx.png` | Primi piani verticali di ciascuna torre usati dal confronto, rigenerati dallo script (Cycles CPU, 520×1420) |
-| `config_facciata.json` | Tutti i parametri (dimensioni, materiali PBR, luci, camera, render, export) + sezione `muri_esterni` della v4.0 |
-| `riferimento_pianta.jpg` | **v4.0** — pianta del Duomo di Siena allegata, usata per tarare le proporzioni dei muri |
+| `config_facciata.json` | Tutti i parametri (dimensioni, materiali PBR, luci, camera, render, export) + sezione `muri_esterni` della v4.2 |
+| `riferimento_aerea.webp` | **v4.2** — vista aerea allegata: posizione di cupola, campanile e Duomo Nuovo |
+| `riferimento_altezze.jpg` | **v4.2** — fotografia laterale allegata per i rapporti fra facciata, cupola e campanile |
+| `riferimento_assonometria.jpeg` | **v4.2** — vista generale allegata per controllare i due livelli delle navate e le coperture |
+| `riferimento_pianta.jpg` | Pianta storica del Duomo di Siena allegata |
+| `riferimento_perimetro.png` | Pianta moderna usata per il contorno, agganciata alla facciata con una scala uniforme |
 | `riferimento_facciata.jpg` | Fotografia d'insieme di riferimento |
 | `riferimento_apice.jpg` | Fotografia ravvicinata ad alta risoluzione (2176×2472) usata per calibrare l'intera zona superiore centrale |
 | `riferimento_torri.jpg` | Nuova fotografia frontale allegata (1997×3043) delle due torri ai lati della cuspide, riferimento della versione 3.3 |
@@ -41,11 +45,39 @@ Modello 3D (`.blend`) della **facciata ovest del Duomo di Siena** (ricostruita i
 | `riferimento_cuspidi.jpg` | Nuovo dettaglio frontale (3120×1146) dei due frontoni con la Presentazione e la Natività, riferimento della versione 2.9 |
 
 
-## Dimensioni
+## Dimensioni e scala
 
-**Facciata: ~90 m di larghezza × ~111 m di altezza all'angelo** (gradinata compresa: 126 m di larghezza), in unità metriche.
-**Corpo della chiesa (v4.0): ~91 m di larghezza alla navata, ~177 m al transetto, ~294 m di lunghezza totale esterna**, altezza dei muri semplici ~72 m, colmo della cupola ~120 m, campanile ~156 m.
-Il modello mantiene il fattore `scala_globale: 3.0` in `config_facciata.json` (impostandolo a `1.0` si ottengono le dimensioni in scala 1:1: facciata ~30 × ~37 m, corpo ~30 × ~98 m). Le misure in **metri reali** sono un terzo di quelle in unità modello.
+La facciata di riferimento è larga **30 m reali** e alta **37,5 m reali** all'angelo. Il progetto mantiene `scala_globale: 3.0`: in unità modello diventa quindi circa **90 × 112,5** (gradinata compresa: 126 di larghezza). Impostando la scala a `1.0` tutte le quote tornano direttamente in metri reali.
+
+| Elemento v4.2 | Metri reali | Unità modello (scala 3) |
+|---|---:|---:|
+| Larghezza esterna navata | 29,83 | 89,50 |
+| Larghezza esterna transetto | 58,42 | 175,26 |
+| Lunghezza dal retro facciata all'abside | 96,83 | 290,49 |
+| Muri delle navate laterali | 15,20 | 45,60 |
+| Filo superiore del cleristorio | 21,80 | 65,40 |
+| Colmo dei tetti principali | 24,00 | 72,00 |
+| Sommità del tamburo | 32,80 | 98,40 |
+| Cupola, lanterna e croce comprese | **48,00** | **144,00** |
+| Campanile, fusto | 68,00 | 204,00 |
+| Campanile, punta centrale | **77,00** | **231,00** |
+
+I rapporti verticali riferiti alla facciata sono quindi **1,28× per la cupola** e **2,053× per il campanile**. Le quote planimetriche sono esterne e comprendono i muri; non vanno confuse con le misure interne dell'aula.
+
+## Versione 4.2 — perimetro e altezze calibrati sulla facciata
+
+Richiesta: *«credo ci siano alcuni errori nelle proporzioni del perimetro, la facciata è giusta quindi prendi lei come riferimento»*, con nuove fotografie aeree, laterali e una pianta storica.
+
+- **Facciata davvero invariata.** L'aggiornamento ricostruisce soltanto le raccolte `07*` e le camere `08*`. Il confronto prima/dopo su tutte le **3.905 mesh** del fronte e della gradinata (1.276.670 vertici) ha dato la stessa firma geometrica: vertici, poligoni, materiali e trasformazioni coincidono.
+- **Una sola scala planimetrica.** Il contorno è ancorato alla larghezza della facciata; non ci sono correzioni indipendenti X/Y che alterino i rapporti.
+- **Campanile nella posizione corretta.** Non più staccato sul retro sinistro: il suo centro è a X = 16,43 m, Y = 41,47 m, addossato al fianco destro della navata appena prima del transetto. Il lato è 7,56 m; la punta arriva a 77 m.
+- **Due livelli di muri.** Le navate laterali si fermano a 15,2 m; il cleristorio arriva a 21,8 m e il colmo a 24 m, allineato alla base del timpano centrale della facciata (23,95 m). Il corpo non è più un unico blocco alto 24 m.
+- **Coperture a falde.** Tetti centrali in piombo semplice e falde basse laterali; il transetto conserva una copertura rialzata sotto la cupola.
+- **Cupola centrata sui sei pilastri.** Il baricentro è X = −0,19 m, Y = 54,19 m; non coincide con la fila superiore dei pilastri né con l'etichetta “Hexagon”. Il lato inferiore dell'esagono si aggancia al filo del transetto e il diametro esterno è 22,67 m.
+- **Cupola completa.** Tamburo esagonale/dodecagonale, calotta emisferica, lanterna e croce: 48 m complessivi. Non più una piramide tronca a 40 m.
+- **Verifiche ripetibili.** Undici test controllano continuità del perimetro, scala uniforme, aggancio della facciata, posizione di cupola/campanile e gerarchia delle altezze.
+
+Le sezioni dedicate alle versioni 4.1, 4.0, 3.9 e precedenti qui sotto restano come **cronologia**; per lo stato attuale fanno fede questa sezione e `config_facciata.json`.
 
 ## Versione 4.0 — gli altri muri esterni della struttura (semplici, proporzionati)
 
@@ -153,6 +185,9 @@ CHIESA_MURI_OUT=Duomo_Completo.blend python aggiorna_muri_esterni.py
 
 # C) ridisegnare il controllo quotato 2D (serve Pillow)
 python crea_pianta_proporzioni.py
+
+# D) verificare perimetro, posizione del campanile e rapporti in altezza
+python -m unittest discover -s tests -v
 ```
 
 `aggiorna_muri_esterni.py` è **idempotente**: rimuove e ricostruisce le
@@ -1120,7 +1155,7 @@ Le due anteprime dell'intera struttura (`anteprima_struttura.png`, `anteprima_pi
 python crea_confronto_torri.py
 ```
 
-## Muri esterni v4.1 — contorno dalle piante allegate
+## Cronologia — muri esterni v4.1
 
 Tracciatura aggiornata su `riferimento_perimetro.png`, con una sola scala
 uniforme agganciata ai fili della navata della facciata esistente. Corrette
@@ -1135,8 +1170,7 @@ la pianta non permette di ricavarle. Non si tratta di un rilievo metrico.
 nuova pianta; `python -m unittest discover -s tests -v` verifica aggancio,
 continuità, scala uniforme e collocazione della torre.
 
-**Stato artefatti:** il codice e il controllo 2D sono aggiornati. Il `.blend`
-e le anteprime 3D non sono stati rigenerati in questa sessione: il runtime
-Blender non parte perché mancano le librerie di sistema `libXrender.so.1`.
-Su una macchina con Blender installato eseguire:
-`blender --background --python aggiorna_muri_esterni.py`.
+**Nota storica:** nella sessione v4.1 il `.blend` e le anteprime 3D non erano
+stati rigenerati per la mancanza di librerie di sistema del runtime Blender.
+La v4.2 corrente ha invece aggiornato e verificato tutti gli artefatti con
+Blender 4.2.23 LTS.

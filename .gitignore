@@ -1,4 +1,5 @@
 *.blend1
+*.blend.bak
 *.glb
 
 .venv/

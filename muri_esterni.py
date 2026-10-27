@@ -1,27 +1,30 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-MURI ESTERNI DEL CORPO DELLA CHIESA — Duomo di Siena (v4.1)
+MURI ESTERNI DEL CORPO DELLA CHIESA — Duomo di Siena (v4.2)
 ============================================================
 
-Il progetto nasce come SOLA facciata ovest.  Questo modulo aggiunge il resto
-dei muri esterni della struttura, volutamente SEMPLICI (prismi e polilinee
-estruse, senza decorazioni), ma con PROPORZIONI misurate sulla pianta allegata
-`riferimento_pianta.jpg` ("Plan of Siena Cath.", 487 x 431 px).
+Il progetto nasce come SOLA facciata ovest. Questo modulo aggiunge il resto
+dei muri esterni con geometria volutamente SEMPLICE, ma con pianta e altezze
+proporzionate alla facciata esistente e alle fotografie allegate. La facciata
+non viene mai modificata: gli oggetti creati qui stanno solo nelle raccolte
+07*.
 
 Coordinate del modello (come in `genera_facciata.py`):
     X = larghezza, Y = profondita' (facciata verso -Y), Z = altezza.
     Il retro della facciata e' a Y = +1.3 m (non scalato), il corpo si
     sviluppa verso +Y: navata -> transetto/esagono -> coro -> abside.
 
-TARATURA DELLA PIANTA (v4.1)
----------------------------
-Contorno tracciato dalla pianta moderna `riferimento_perimetro.png`.
-La trasformazione uniforme conserva i rapporti e aggancia la navata alla
-facciata esistente. Le coordinate vengono riportate nel sistema storico
-3 px/m per compatibilità. Non è un rilievo metrico: quote assolute dipendono
- dalla facciata, altezze indicative. Il corpo obliquo è la SACRESTIA;
-il campanile si trova a destra della navata, accanto al transetto.
+TARATURA DELLA PIANTA E DELLE ALTEZZE (v4.2)
+-------------------------------------------
+Il contorno di `riferimento_perimetro.png` è vincolato alla larghezza della
+facciata con UNA sola similitudine (nessuna deformazione X/Y indipendente).
+Le viste aeree e la pianta storica allegate controllano posizione del
+campanile, tamburo e corpi annessi. Il campanile è sul fianco destro della
+navata, immediatamente prima del transetto: non è una torre staccata sul
+retro. Le altezze distinguono navate laterali, cleristorio, colmi dei tetti,
+cupola con lanterna e campanile. Cupola e campanile arrivano rispettivamente
+a 48 e 77 m reali; con la facciata alta 37,5 m i rapporti sono 1,28 e 2,053.
 
 USO
 ---
@@ -61,22 +64,29 @@ Y_BACK_M = 1.3          # Y (m reali, NON scalati) del retro della facciata
 
 SCALA_DEFAULT = 3.0     # `scala_globale` di config_facciata.json
 
-# Altezze in metri REALI (vengono moltiplicate per `scala`).
-# 24.0 m = 72 u.m. = colmo del Corpo_Superiore_Centrale della facciata:
-# i muri del corpo si allineano cosi' alle cornici del fronte esistente.
-H_PLINTO = 1.9          # = 5.7 u.m. = sommita' di Basamento_Pietra
-H_MURO = 24.0           # = 72 u.m. = sommita' del corpo superiore centrale
-H_COPING = 0.40         # coronamento semplice sopra il filo dei muri
-H_FASCIA = 12.0         # unica fascia scura a mezza altezza (ricordo senese)
+# Altezze in metri REALI (vengono moltiplicate per `scala`). La facciata
+# esistente e' alta 37,5 m e resta il riferimento fisso di tutti i rapporti.
+H_PLINTO = 1.9          # = 5,7 u.m. = sommita' di Basamento_Pietra
+H_MURO = 15.2           # muri esterni delle navate laterali
+H_CLERISTORIO = 21.8    # filo superiore del corpo centrale rialzato
+H_COLMO_NAVATA = 24.0   # allineato alla base del timpano centrale (23,95 m)
+H_COPING = 0.40
+H_FASCIA = 7.6          # unica fascia scura a mezza altezza dei muri bassi
 SPESSORE_FASCIA = 0.55
-H_TAMBURO = 34.0        # sommita' del tamburo esagonale
-H_CUPOLA = 40.0         # colmo della semplice cupola piramidale
-H_CAMPANILE = 52.0      # torre campanaria semplice (77 m reali / 1.4)
-H_CAMPANILE_PUNTA = 57.0
+H_TAMBURO_BASE = 23.6
+H_TAMBURO = 32.8        # sommita' delle due gallerie del tamburo
+H_CALOTTA = 42.0        # imposta della lanterna
+H_CUPOLA = 48.0         # croce compresa: 48 / 37,5 = 1,28 volte la facciata
+H_CAMPANILE = 68.0      # filo superiore del fusto
+H_CAMPANILE_PUNTA = 77.0# 77 / 37,5 = 2,053 volte la facciata
 H_ANNESSI = 12.0
 H_BATTISTERO = 6.0
 H_CAPPELLE = 16.0
-H_DUOMO_NUOVO = 12.0    # muri superstiti del Duomo Nuovo, mai completato
+H_DUOMO_NUOVO = 15.2    # allineato alla cornice delle navate laterali
+
+LARGHEZZA_CLERISTORIO = 16.0
+PASSO_FASCE_CAMPANILE = 2.65
+SPESSORE_FASCE_CAMPANILE = 0.32
 
 SPESSORE_MURO = 1.5     # spessore dei muri perimetrali (m reali)
 SPESSORE_ANNESSE = 1.2
@@ -98,6 +108,23 @@ def P(x_px, y_px, scala=SCALA_DEFAULT):
 def M(val_m, scala=SCALA_DEFAULT):
     """Metri reali -> unita' modello."""
     return val_m * scala
+
+
+def da_metri(x_m, y_m):
+    """Inverso di P: coordinate reali -> pixel del sistema della pianta.
+
+    Serve per gli elementi verticali/secondari quotati direttamente dalla
+    facciata, senza introdurre una seconda scala planimetrica.
+    """
+    return (X0_PX + x_m * PX_PER_M,
+            Y0_PX - (y_m - Y_BACK_M) * PX_PER_M)
+
+
+def xy_reali(punto_px):
+    """Punto della pianta -> coordinate reali non scalate."""
+    x_px, y_px = punto_px
+    return ((x_px - X0_PX) / PX_PER_M,
+            Y_BACK_M + (Y0_PX - y_px) / PX_PER_M)
 
 
 # -----------------------------------------------------------------------------
@@ -149,9 +176,21 @@ ANNESSI = [
 # Le cappelle circolari sono interne al perimetro, non torri aggiunte.
 CAPPELLE_TONDE = []
 CAMPANILE_PX = dalla_pianta(458, 501)
-ESAGONO_PX = dalla_pianta(326, 334)
+# Baricentro dei SEI pilastri maggiori (non la loro fila superiore a y=325).
+# Nella pianta moderna i vertici sono circa (275,325), (370,325),
+# (415,400), (370,475), (275,475), (230,400): centro (326,400).
+ESAGONO_PX = dalla_pianta(326, 400)
 LATO_CAMPANILE = 60 * RAPPORTO_PIANTE / PX_PER_M
-R_TAMBURO = 95 * RAPPORTO_PIANTE / PX_PER_M
+R_TAMBURO = 90 * RAPPORTO_PIANTE / PX_PER_M
+
+# Quote orizzontali condivise da muri rialzati e tetti.
+Y_NAVATA_FINE = xy_reali(dalla_pianta(215, 478))[1]
+Y_CORO_INIZIO = xy_reali(dalla_pianta(211, 263))[1]
+Y_CORO_FINE = xy_reali(dalla_pianta(211, 57))[1]
+X_TRANSETTO_SX = xy_reali(dalla_pianta(101, 478))[0]
+X_TRANSETTO_DX = xy_reali(dalla_pianta(553, 475))[0]
+X_NAVATA_SX = xy_reali(dalla_pianta(215, 820))[0]
+X_NAVATA_DX = xy_reali(dalla_pianta(440, 820))[0]
 
 # Duomo Nuovo: i muri superstiti del progetto mai completato.  Raccolta a
 # parte, disattivabile da config (`includi_duomo_nuovo`).
@@ -171,6 +210,7 @@ NOMI_MAT = {
     "plinto": "Marmo_Verde_Scuro",
     "cornice": "Marmo_Bianco",
     "tetto": "Muro_Esterno_Tetto_Semplice",
+    "piombo": "Muro_Esterno_Piombo_Semplice",
     "incompiuto": "Muro_Esterno_Incompiuto",
 }
 
@@ -231,6 +271,8 @@ def _materiali(scala):
         "cornice": _materiale(NOMI_MAT["cornice"], (0.86, 0.82, 0.75), scala),
         "tetto": _materiale(NOMI_MAT["tetto"], (0.41, 0.24, 0.18), scala,
                             roughness=0.85, noise=0.08),
+        "piombo": _materiale(NOMI_MAT["piombo"], (0.43, 0.49, 0.53), scala,
+                             roughness=0.68, noise=0.05),
         "incompiuto": _materiale(NOMI_MAT["incompiuto"], (0.60, 0.57, 0.51),
                                  scala, roughness=0.82, noise=0.10),
     }
@@ -335,13 +377,89 @@ def _poligono_da_px(punti_px, scala):
     return [P(x, y, scala) for x, y in punti_px]
 
 
+def _poligono_regolare(cx, cy, raggio, lati, scala, rotazione=0.0):
+    return [(cx * scala + raggio * scala * math.cos(rotazione + 2 * math.pi * i / lati),
+             cy * scala + raggio * scala * math.sin(rotazione + 2 * math.pi * i / lati))
+            for i in range(lati)]
+
+
 def _esagono(cx, cy, raggio, scala, rotazione=0.0):
-    out = []
-    for i in range(6):
-        a = rotazione + i * math.pi / 3.0
-        out.append((cx * scala + raggio * scala * math.cos(a),
-                    cy * scala + raggio * scala * math.sin(a)))
-    return out
+    return _poligono_regolare(cx, cy, raggio, 6, scala, rotazione)
+
+
+def _rettangolo(cx, cy, larghezza, profondita, scala):
+    hx, hy = larghezza * scala / 2.0, profondita * scala / 2.0
+    return [(cx * scala - hx, cy * scala - hy),
+            (cx * scala + hx, cy * scala - hy),
+            (cx * scala + hx, cy * scala + hy),
+            (cx * scala - hx, cy * scala + hy)]
+
+
+def _mesh(nome, verts, faces, materiale, col, scala):
+    mesh = bpy.data.meshes.new(nome + "Mesh")
+    mesh.from_pydata(verts, [], faces)
+    mesh.update()
+    _uv_box(mesh, scala)
+    obj = bpy.data.objects.new(nome, mesh)
+    col.objects.link(obj)
+    mesh.materials.append(materiale)
+    return obj
+
+
+def _tetto_capanna(nome, x0, x1, y0, y1, z_gronda, z_colmo,
+                   asse, materiale, col, scala):
+    """Tetto semplice a due falde; coordinate e quote in metri reali."""
+    if asse == "Y":
+        xc = (x0 + x1) / 2.0
+        pts = [(x0,y0,z_gronda), (x1,y0,z_gronda),
+               (x1,y1,z_gronda), (x0,y1,z_gronda),
+               (xc,y0,z_colmo), (xc,y1,z_colmo)]
+        faces = [(0,4,5,3), (1,2,5,4), (0,1,4), (3,5,2)]
+    else:
+        yc = (y0 + y1) / 2.0
+        pts = [(x0,y0,z_gronda), (x1,y0,z_gronda),
+               (x1,y1,z_gronda), (x0,y1,z_gronda),
+               (x0,yc,z_colmo), (x1,yc,z_colmo)]
+        faces = [(0,1,5,4), (3,4,5,2), (0,4,3), (1,2,5)]
+    verts = [(x*scala, y*scala, z*scala) for x,y,z in pts]
+    return _mesh(nome, verts, faces, materiale, col, scala)
+
+
+def _falda_navata_laterale(nome, x_esterno, x_interno, y0, y1,
+                           z_esterno, z_interno, materiale, col, scala):
+    pts = [(x_esterno,y0,z_esterno), (x_interno,y0,z_interno),
+           (x_interno,y1,z_interno), (x_esterno,y1,z_esterno)]
+    if x_esterno < x_interno:
+        pts.reverse()
+    verts = [(x*scala, y*scala, z*scala) for x,y,z in pts]
+    return _mesh(nome, verts, [(0,1,2,3)], materiale, col, scala)
+
+
+def _calotta(nome, cx, cy, raggio, z_base, z_colmo,
+             materiale, col, scala, lati=48, anelli=14):
+    """Calotta emisferica regolare, non una piramide: la silhouette e' una
+    delle proporzioni principali delle fotografie allegate."""
+    verts = []
+    for j in range(anelli):
+        theta = (j / anelli) * math.pi / 2.0
+        r = raggio * math.cos(theta)
+        z = z_base + (z_colmo - z_base) * math.sin(theta)
+        for i in range(lati):
+            a = 2 * math.pi * i / lati
+            verts.append(((cx + r * math.cos(a)) * scala,
+                          (cy + r * math.sin(a)) * scala, z * scala))
+    apex = len(verts)
+    verts.append((cx * scala, cy * scala, z_colmo * scala))
+    faces = []
+    for j in range(anelli - 1):
+        for i in range(lati):
+            ni = (i + 1) % lati
+            a, b = j * lati + i, j * lati + ni
+            faces.append((a, b, b + lati, a + lati))
+    last = (anelli - 1) * lati
+    for i in range(lati):
+        faces.append((last + i, last + (i + 1) % lati, apex))
+    return _mesh(nome, verts, faces, materiale, col, scala)
 
 
 def _piramide(nome, base, z_base, z_colmo, materiale, col, scala):
@@ -374,7 +492,7 @@ def rimuovi_muri_esterni():
 
 
 def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
-                            includi_duomo_nuovo=False, tetti=False,
+                            includi_duomo_nuovo=True, tetti=True,
                             rimuovi_esistenti=True):
     """Aggiunge i muri esterni semplici alla scena corrente.
 
@@ -389,10 +507,16 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
     opt = dict(cfg or {})
     sp = float(opt.get("spessore_muri", SPESSORE_MURO))
     h_muro = float(opt.get("altezza_muri", H_MURO))
+    h_cleristorio = float(opt.get("altezza_cleristorio", H_CLERISTORIO))
+    h_colmo = float(opt.get("altezza_colmo_navata", H_COLMO_NAVATA))
     h_plinto = float(opt.get("altezza_plinto", H_PLINTO))
+    h_tamburo_base = float(opt.get("altezza_tamburo_base", H_TAMBURO_BASE))
     h_tamburo = float(opt.get("altezza_tamburo", H_TAMBURO))
+    h_calotta = float(opt.get("altezza_calotta", H_CALOTTA))
     h_cupola = float(opt.get("altezza_cupola", H_CUPOLA))
     h_campanile = float(opt.get("altezza_campanile", H_CAMPANILE))
+    h_campanile_punta = float(opt.get("altezza_campanile_punta",
+                                      H_CAMPANILE_PUNTA))
     h_incompiuto = float(opt.get("altezza_duomo_nuovo", H_DUOMO_NUOVO))
     includi_duomo_nuovo = bool(opt.get("includi_duomo_nuovo",
                                        includi_duomo_nuovo))
@@ -407,46 +531,92 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
 
     conteggio = 0
 
-    # --- 5.1 muri perimetrici: plinto scuro + paramento + coronamento -----
+    # --- 5.1 muri perimetrici: navate basse e transetto rialzato ----------
     for nome, col_key, punti_px in TRATTI_MURO:
         col = cols[col_key]
+        # Nelle foto il muro delle navate laterali e' molto piu' basso del
+        # corpo centrale. Il transetto, invece, arriva alla gronda alta.
+        h_tratto = h_cleristorio if col_key == "07b_Muri_Transetto" else h_muro
         _muro(nome + "_Plinto", punti_px, sp + AGGETTO_PL * 2, 0.0,
               h_plinto, mats["plinto"], col, scala)
-        _muro(nome, punti_px, sp, h_plinto, h_muro,
+        _muro(nome, punti_px, sp, h_plinto, h_tratto,
               mats["muro"], col, scala)
-        # Unica fascia orizzontale scura a mezz'altezza: e' l'unica
-        # concessione alla bicromia senese, tutto il resto e' liscio.
         _muro(nome + "_Fascia", punti_px, sp + AGGETTO_PL,
               H_FASCIA, H_FASCIA + SPESSORE_FASCIA,
               mats["plinto"], col, scala)
         _muro(nome + "_Coronamento", punti_px, sp + AGGETTO_PL * 2,
-              h_muro, h_muro + H_COPING, mats["cornice"], col, scala)
+              h_tratto, h_tratto + H_COPING, mats["cornice"], col, scala)
         conteggio += 4
 
-    # --- 5.2 tamburo esagonale + cupola piramidale semplice ---------------
-    cx = (ESAGONO_PX[0] - X0_PX) / PX_PER_M
-    cy = Y_BACK_M + (Y0_PX - ESAGONO_PX[1]) / PX_PER_M
+    # Cleristorio: due setti semplici per navata e coro, raccolti in raccolte
+    # proprie ma senza modificare il perimetro ne' la facciata.
+    mezzo_cl = LARGHEZZA_CLERISTORIO / 2.0
+    for nome, col_key, y0, y1 in (
+        ("Navata", "07a_Muri_Nave", Y_BACK_M, Y_NAVATA_FINE),
+        ("Coro", "07c_Muri_Coro", Y_CORO_INIZIO, Y_CORO_FINE),
+    ):
+        for lato, x in (("Sx", -mezzo_cl), ("Dx", mezzo_cl)):
+            punti = [da_metri(x, y0), da_metri(x, y1)]
+            _muro(f"Cleristorio_{nome}_{lato}", punti, 1.0,
+                  h_muro, h_cleristorio, mats["muro"], cols[col_key], scala)
+            _muro(f"Cleristorio_{nome}_{lato}_Cornice", punti, 1.15,
+                  h_cleristorio, h_cleristorio + H_COPING,
+                  mats["cornice"], cols[col_key], scala)
+            conteggio += 2
+
+    # --- 5.2 tamburo, calotta e lanterna (48 m complessivi) ---------------
+    cx, cy = xy_reali(ESAGONO_PX)
     hex_poly = _esagono(cx, cy, R_TAMBURO, scala)
     ct = cols["07d_Tiburio_e_Cupola"]
+    h_galleria = h_tamburo_base + (h_tamburo - h_tamburo_base) * 0.52
     _estrudi_poligono("Tamburo_Esagonale", hex_poly,
-                      h_muro * scala, h_tamburo * scala,
+                      h_tamburo_base * scala, h_galleria * scala,
                       mats["muro"], ct, scala)
-    _estrudi_poligono("Tamburo_Esagonale_Cornice",
-                      _esagono(cx, cy, R_TAMBURO + AGGETTO_PL, scala),
-                      h_tamburo * scala, (h_tamburo + H_COPING) * scala,
-                      mats["cornice"], ct, scala)
-    _piramide("Cupola_Semplice_Esagonale", hex_poly,
-              (h_tamburo + H_COPING) * scala, h_cupola * scala,
-              mats["tetto"], ct, scala)
-    conteggio += 3
+    dodec = _poligono_regolare(cx, cy, R_TAMBURO * 0.94, 12, scala,
+                               math.pi / 12.0)
+    _estrudi_poligono("Tamburo_Dodecagonale", dodec,
+                      h_galleria * scala, h_tamburo * scala,
+                      mats["muro"], ct, scala)
+    for nome, z in (("Tamburo_Cornice_Inferiore", h_galleria),
+                    ("Tamburo_Cornice_Superiore", h_tamburo)):
+        _estrudi_poligono(nome,
+                          _poligono_regolare(cx, cy, R_TAMBURO + AGGETTO_PL,
+                                             12, scala, math.pi / 12.0),
+                          z * scala, (z + H_COPING) * scala,
+                          mats["cornice"], ct, scala)
+    _calotta("Cupola_Calotta", cx, cy, R_TAMBURO * 0.90,
+             h_tamburo + H_COPING, h_calotta,
+             mats["piombo"], ct, scala)
 
-    # --- 5.3 campanile semplice (quadrato ruotato come in pianta) ---------
-    cx_c = (CAMPANILE_PX[0] - X0_PX) / PX_PER_M
-    cy_c = Y_BACK_M + (Y0_PX - CAMPANILE_PX[1]) / PX_PER_M
-    # Il campanile è il quadrato accanto al fianco destro della navata.
+    # Lanterna e croce: semplici, ma incluse nel colmo complessivo di 48 m.
+    r_lanterna = max(1.65, R_TAMBURO * 0.17)
+    z_cupoletta = h_cupola - 2.25
+    z_croce = h_cupola - 0.85
+    lanterna = _poligono_regolare(cx, cy, r_lanterna, 12, scala)
+    _estrudi_poligono("Lanterna_Tamburo", lanterna,
+                      h_calotta * scala, z_cupoletta * scala,
+                      mats["muro"], ct, scala)
+    _estrudi_poligono("Lanterna_Cornice",
+                      _poligono_regolare(cx, cy, r_lanterna + 0.16, 12, scala),
+                      z_cupoletta * scala, (z_cupoletta + 0.22) * scala,
+                      mats["cornice"], ct, scala)
+    _piramide("Lanterna_Cupoletta", lanterna,
+              (z_cupoletta + 0.22) * scala, z_croce * scala,
+              mats["piombo"], ct, scala)
+    _estrudi_poligono("Lanterna_Croce_Stelo",
+                      _rettangolo(cx, cy, 0.13, 0.13, scala),
+                      z_croce * scala, h_cupola * scala,
+                      mats["cornice"], ct, scala)
+    _estrudi_poligono("Lanterna_Croce_Braccio",
+                      _rettangolo(cx, cy, 0.72, 0.13, scala),
+                      (h_cupola - 0.34) * scala, (h_cupola - 0.20) * scala,
+                      mats["cornice"], ct, scala)
+    conteggio += 11
+
+    # --- 5.3 campanile sul fianco DESTRO, prima del transetto -------------
+    cx_c, cy_c = xy_reali(CAMPANILE_PX)
     r = LATO_CAMPANILE / 2.0
-    quad = [(cx_c * scala + dx * scala, cy_c * scala + dy * scala)
-            for dx, dy in ((-r,-r),(r,-r),(r,r),(-r,r))]
+    quad = _rettangolo(cx_c, cy_c, LATO_CAMPANILE, LATO_CAMPANILE, scala)
     cc = cols["07e_Campanile"]
     _estrudi_poligono("Campanile_Plinto", quad, 0.0, h_plinto * scala,
                       mats["plinto"], cc, scala)
@@ -457,8 +627,33 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
                       mats["cornice"], cc, scala)
     _piramide("Campanile_Punta_Semplice", quad,
               (h_campanile + H_COPING) * scala,
-              H_CAMPANILE_PUNTA * scala, mats["tetto"], cc, scala)
+              h_campanile_punta * scala, mats["muro"], cc, scala)
     conteggio += 4
+
+    # Bicromia ridotta a semplici fasce geometriche: aiuta a leggere la
+    # corretta altezza senza introdurre il dettaglio architettonico delle
+    # sei monofore/esafore, che resta fuori da questa versione dei muri.
+    z_fascia = PASSO_FASCE_CAMPANILE
+    while z_fascia + SPESSORE_FASCE_CAMPANILE < h_campanile:
+        _estrudi_poligono(
+            f"Campanile_Fascia_{z_fascia:05.2f}",
+            _rettangolo(cx_c, cy_c, LATO_CAMPANILE + 0.055,
+                        LATO_CAMPANILE + 0.055, scala),
+            z_fascia * scala,
+            (z_fascia + SPESSORE_FASCE_CAMPANILE) * scala,
+            mats["plinto"], cc, scala)
+        conteggio += 1
+        z_fascia += PASSO_FASCE_CAMPANILE
+
+    # Quattro pinnacoli secondari; il colmo centrale resta a 77 m.
+    for i, (sx, sy) in enumerate(((-1,-1), (1,-1), (1,1), (-1,1)), 1):
+        px = cx_c + sx * (r - 0.38)
+        py = cy_c + sy * (r - 0.38)
+        base = _rettangolo(px, py, 0.76, 0.76, scala)
+        _piramide(f"Campanile_Pinnacolo_{i}", base,
+                  (h_campanile + H_COPING) * scala,
+                  (h_campanile + 4.25) * scala, mats["cornice"], cc, scala)
+        conteggio += 1
 
     # --- 5.4 annessi e cappelle circolari --------------------------------
     ca = cols["07f_Annessi"]
@@ -469,6 +664,12 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
         _muro(nome, poly_px + [poly_px[0]], SPESSORE_ANNESSE,
               H_PLINTO, altezza, mats["muro"], ca, scala)
         conteggio += 2
+        if tetti:
+            _estrudi_poligono(nome + "_Copertura",
+                              _poligono_da_px(poly_px, scala),
+                              altezza * scala, (altezza + 0.24) * scala,
+                              mats["tetto"], cols["07h_Tetti_Semplici"], scala)
+            conteggio += 1
     for nome, x_px, y_px in CAPPELLE_TONDE:
         cx_k = (x_px - X0_PX) / PX_PER_M
         cy_k = Y_BACK_M + (Y0_PX - y_px) / PX_PER_M
@@ -482,21 +683,32 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
                   (H_CAPPELLE + 2.0) * scala, mats["tetto"], ca, scala)
         conteggio += 2
 
-    # --- 5.5 tetto piano semplice (raccolta separata, disattivabile) -----
-    # La croce latina e' decomposta in TRE lastre rettangolari: nessun
-    # poligono concavo, nessuna triangolazione visibile in vista dall'alto.
+    # --- 5.5 tetti semplici a falde, su DUE livelli ----------------------
     if tetti:
-        z_r0 = (h_muro + H_COPING) * scala
-        z_r1 = (h_muro + H_COPING + 0.45) * scala
-        for nome, rect in (
-            ("Tetto_Navata", traccia([(215,820),(440,820),(440,478),(215,478)])),
-            ("Tetto_Transetto", traccia([(101,478),(553,478),(553,263),(101,263)])),
-            ("Tetto_Coro", traccia([(211,263),(440,263),(440,57),(211,57)])),
-        ):
-            _estrudi_poligono(nome, _poligono_da_px(rect, scala),
-                              z_r0, z_r1, mats["tetto"],
-                              cols["07h_Tetti_Semplici"], scala)
+        cr = cols["07h_Tetti_Semplici"]
+        z_gronda_alta = h_cleristorio + H_COPING
+        for nome, y0, y1 in (("Navata", Y_BACK_M, Y_NAVATA_FINE),
+                             ("Coro", Y_CORO_INIZIO, Y_CORO_FINE)):
+            _tetto_capanna(f"Tetto_{nome}_Centrale",
+                           -mezzo_cl, mezzo_cl, y0, y1,
+                           z_gronda_alta, h_colmo, "Y",
+                           mats["piombo"], cr, scala)
+            for lato, x_esterno, x_interno in (
+                ("Sx", X_NAVATA_SX, -mezzo_cl),
+                ("Dx", X_NAVATA_DX, mezzo_cl),
+            ):
+                _falda_navata_laterale(
+                    f"Tetto_{nome}_Laterale_{lato}",
+                    x_esterno, x_interno, y0, y1,
+                    h_muro + H_COPING, h_muro + 2.0,
+                    mats["tetto"], cr, scala)
+                conteggio += 1
             conteggio += 1
+        _tetto_capanna("Tetto_Transetto", X_TRANSETTO_SX, X_TRANSETTO_DX,
+                       Y_NAVATA_FINE, Y_CORO_INIZIO,
+                       z_gronda_alta, h_colmo, "X",
+                       mats["piombo"], cr, scala)
+        conteggio += 1
 
     # --- 5.6 Duomo Nuovo (incompiuto), raccolta propria ------------------
     if includi_duomo_nuovo:
@@ -511,30 +723,46 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
 
     # --- 5.7 riepilogo a console ----------------------------------------
     dims = riepilogo_dimensioni()
+    altezze = riepilogo_altezze(opt)
     print("=" * 72)
-    print("MURI ESTERNI v4.1 — proporzioni dalla pianta (3 px = 1 m reale)")
+    print("MURI ESTERNI v4.2 — facciata invariata, pianta e altezze calibrate")
     print("=" * 72)
-    for k, v in dims.items():
-        print(f"  {k:<38s} {v:>10.2f} m reali  = {v * SCALA_DEFAULT:>8.1f} u.m.")
+    for k, v in {**dims, **altezze}.items():
+        print(f"  {k:<42s} {v:>10.2f} m reali  = {v * SCALA_DEFAULT:>8.1f} u.m.")
     print(f"  oggetti creati: {conteggio}")
     print("=" * 72)
 
     return {"oggetti": conteggio, "collezione": root.name,
-            "dimensioni_m": dims}
+            "dimensioni_m": dims, "altezze_m": altezze}
 
 
 def riepilogo_dimensioni():
-    """Tabella delle quote principali, in metri reali (NON scalati)."""
-    def d(a, b):
-        return abs(a - b) / PX_PER_M
+    """Quote planimetriche in metri reali (NON scalati)."""
+    cx_c, cy_c = xy_reali(CAMPANILE_PX)
+    cx_d, cy_d = xy_reali(ESAGONO_PX)
     return {
         "Larghezza esterna navata": 85 / PX_PER_M + SPESSORE_MURO,
         "Lunghezza navata (facciata->transetto)": (820-478)*RAPPORTO_PIANTE/PX_PER_M,
         "Larghezza esterna transetto": (553-101)*RAPPORTO_PIANTE/PX_PER_M + SPESSORE_MURO,
         "Larghezza coro": (440-211)*RAPPORTO_PIANTE/PX_PER_M + SPESSORE_MURO,
         "Lunghezza corpo (retro facciata->abside)": (820-57)*RAPPORTO_PIANTE/PX_PER_M + SPESSORE_MURO/2,
-        "Distanza facciata->centro cupola": (820-334)*RAPPORTO_PIANTE/PX_PER_M,
+        "Distanza facciata->centro cupola": cy_d - Y_BACK_M,
+        "Distanza campanile->centro cupola": math.hypot(cx_d-cx_c, cy_d-cy_c),
         "Diametro tamburo esagonale": 2 * R_TAMBURO,
-        "Altezza muri (indicativa)": H_MURO,
         "Lato campanile": LATO_CAMPANILE,
+    }
+
+
+def riepilogo_altezze(cfg=None):
+    """Altezze reali usate dal generatore; facciata di riferimento 37,5 m."""
+    opt = dict(cfg or {})
+    return {
+        "Muri navate laterali": float(opt.get("altezza_muri", H_MURO)),
+        "Filo superiore cleristorio": float(opt.get("altezza_cleristorio", H_CLERISTORIO)),
+        "Colmo tetti principali": float(opt.get("altezza_colmo_navata", H_COLMO_NAVATA)),
+        "Sommita tamburo": float(opt.get("altezza_tamburo", H_TAMBURO)),
+        "Imposta lanterna": float(opt.get("altezza_calotta", H_CALOTTA)),
+        "Cupola (croce compresa)": float(opt.get("altezza_cupola", H_CUPOLA)),
+        "Campanile (fusto)": float(opt.get("altezza_campanile", H_CAMPANILE)),
+        "Campanile (punta centrale)": float(opt.get("altezza_campanile_punta", H_CAMPANILE_PUNTA)),
     }
