@@ -141,13 +141,15 @@ print("BBox muri:", tuple(round(v, 1) for v in mn),
 # Vista 3/4: solo il corpo della chiesa, inquadratura piu' stretta.
 mn_c, mx_c = _bbox_muri(escludi=(DUOMO_NUOVO_COL,))
 centro = (mn_c + mx_c) * 0.5
-# Il fronte e' a Y negativo; includiamo anche la facciata nel centro visivo.
+# Il fronte e' a Y negativo; inquadriamo il fianco DESTRO, come nelle
+# fotografie allegate, cosi' campanile e cupola sono entrambi leggibili.
 centro.y -= (mx_c.y - mn_c.y) * 0.10
+centro.z = mx_c.z * 0.30  # il campanile non deve spostare il target in cielo
 ext_c = max(mx_c.x - mn_c.x, mx_c.y - mn_c.y, mx_c.z - mn_c.z)
 cam_3q = _camera(
     "Camera_Struttura_3Q",
-    (centro.x - ext_c * 0.85, centro.y - ext_c * 1.05,
-     centro.z + ext_c * 0.55),
+    (centro.x + ext_c * 0.50, centro.y - ext_c * 1.20,
+     centro.z + ext_c * 0.72),
     centro,
     ext_c * 1.38,
 )
@@ -157,6 +159,8 @@ cam_pianta = _camera(
     centro_top,
     estensione * 1.18,
 )
+# Convenzione della pianta: facciata in basso, campanile a destra.
+cam_pianta.rotation_euler = (0.0, 0.0, 0.0)
 
 scene = bpy.context.scene
 camera_originale = scene.camera
@@ -174,10 +178,10 @@ if os.environ.get("CHIESA_MURI_BACKUP") and os.path.abspath(OUT_PATH) == os.path
 
 scene.camera = camera_originale
 scene["titolo"] = "Duomo di Siena — facciata ovest e corpo della chiesa"
-scene["nota"] = ("Modello procedurale v4.0: facciata v3.9 invariata + muri "
-                 "esterni semplici del corpo (navata, transetto, coro, "
-                 "tamburo, campanile, annessi, Duomo Nuovo incompiuto), "
-                 "proporzionati sulla pianta allegata. Raccolte 07*.")
+scene["nota"] = ("Modello procedurale v4.2: facciata v3.9 invariata + corpo "
+                 "semplice proporzionato sulle fotografie allegate. Navate "
+                 "laterali a 15,2 m, cleristorio a 21,8 m, cupola con lanterna "
+                 "a 48 m e campanile a 77 m sul fianco destro. Raccolte 07*.")
 bpy.ops.wm.save_as_mainfile(filepath=OUT_PATH, compress=True)
 print(f"Salvato: {OUT_PATH}")
 

@@ -3,10 +3,10 @@
 """
 Facciata del Duomo di Siena (fronte ovest) — modello 3D procedurale.
 
-NOTA v4.0: di per se' questo script modella SOLTANTO la facciata (nessun
-interno, nessuna navata, nessun edificio laterale).  Prima del salvataggio
+NOTA v4.2: di per se' questo script modella SOLTANTO la facciata (nessun
+interno, nessuna navata, nessun edificio laterale). Prima del salvataggio
 viene pero' richiamato `muri_esterni.costruisci_muri_esterni()`, che aggiunge
-i muri esterni SEMPLICI del corpo della chiesa, tarati sulla pianta allegata.
+il corpo SEMPLICE, con pianta e altezze tarate sulla facciata e sulle foto.
 Impostare `CHIESA_NO_MURI=1` (o `muri_esterni.attivi: false` nel JSON) per
 ottenere come un tempo la sola facciata.  Le anteprime di dettaglio del
 fronte nascondono i muri durante il render, restando identiche alla v3.9.
@@ -7747,13 +7747,12 @@ wlinks.new(w_bg_cam.outputs["Background"], w_mix_shader.inputs[2])
 wlinks.new(w_mix_shader.outputs["Shader"], w_out.inputs["Surface"])
 
 # =============================================================================
-# 9-bis. MURI ESTERNI DEL CORPO DELLA CHIESA (v4.0)
+# 9-bis. MURI ESTERNI DEL CORPO DELLA CHIESA (v4.2)
 # =============================================================================
-# La facciata modellata sopra resta INTATTA.  Dietro di essa il modulo
-# `muri_esterni.py` costruisce il perimetro semplice (navata, transetto, coro,
-# tamburo esagonale, campanile, annessi, Duomo Nuovo incompiuto) tarato sulla
-# pianta `riferimento_pianta.jpg`: 3 px = 1 m reale, asse X a x=166.5 px,
-# retro facciata a y=333 px.  Le misure sono in metri reali (scala=1.0):
+# La facciata modellata sopra resta INTATTA. Dietro di essa il modulo
+# `muri_esterni.py` costruisce il perimetro semplice, i due livelli di navata,
+# tamburo/calotta/lanterna e il campanile sul fianco destro. La pianta moderna
+# e le foto allegate controllano i rapporti; le misure sono reali (scala=1.0):
 # la scala globale 3x della sezione 10 le ingrandisce con tutto il resto.
 # Per escluderli: `CHIESA_NO_MURI=1` oppure `muri_esterni.attivi: false`.
 MURI_CFG = CFG.get("muri_esterni", {})
@@ -7764,9 +7763,9 @@ if MURI_CFG.get("attivi", True) and not os.environ.get("CHIESA_NO_MURI"):
         from muri_esterni import costruisci_muri_esterni
         costruisci_muri_esterni(scala=1.0, cfg=MURI_CFG)
         scene["titolo"] = "Duomo di Siena — facciata ovest e corpo della chiesa"
-        scene["nota"] = ("Modello procedurale v4.0: facciata v3.9 invariata + "
-                         "muri esterni semplici del corpo, proporzionati sulla "
-                         "pianta allegata. CHIESA_NO_MURI=1 rigenera il solo fronte.")
+        scene["nota"] = ("Modello procedurale v4.2: facciata v3.9 invariata + "
+                         "corpo semplice calibrato su pianta e fotografie; cupola "
+                         "48 m, campanile 77 m. CHIESA_NO_MURI=1 rigenera il solo fronte.")
     except Exception as e:
         print(f"Attenzione: muri esterni non generati ({e})")
 
