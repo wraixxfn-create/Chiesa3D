@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-MURI ESTERNI DEL CORPO DELLA CHIESA — Duomo di Siena (v4.4)
+MURI ESTERNI DEL CORPO DELLA CHIESA — Duomo di Siena (v5.0)
 ============================================================
 
 Il progetto nasce come SOLA facciata ovest. Questo modulo aggiunge il resto
@@ -88,8 +88,8 @@ H_COPING = 0.40
 H_FASCIA = 7.6          # unica fascia scura a mezza altezza dei muri bassi
 SPESSORE_FASCIA = 0.55
 H_TAMBURO_BASE = 23.6
-H_TAMBURO = 32.8        # sommita' delle due gallerie del tamburo
-H_CALOTTA = 42.0        # imposta della lanterna
+H_TAMBURO = 29.8        # sommita' delle due gallerie (cupola v5.0)
+H_CALOTTA = 40.4        # apice della calotta = imposta della lanterna
 H_CUPOLA = 48.0         # croce compresa: 48 / 37,5 = 1,28 volte la facciata
 H_CAMPANILE = 68.0      # filo superiore del fusto
 H_CAMPANILE_PUNTA = 77.0# 77 / 37,5 = 2,053 volte la facciata
@@ -653,6 +653,39 @@ def _calotta(nome, cx, cy, raggio, z_base, z_colmo,
     return _mesh(nome, verts, faces, materiale, col, scala)
 
 
+def _cupola_semplice(cx, cy, h_tamburo_base, h_tamburo, h_calotta,
+                     h_cupola, mats, col, scala):
+    """Ripiego della v4.4: calotta liscia con lanterna a cilindro.
+
+    Serve solo se `cupola.py` non e' importabile (per esempio in un Blender
+    con un `PYTHONPATH` diverso): il modello resta comunque chiuso e alla
+    quota di 48 m, invece di rimanere senza cupola.
+    """
+    hex_poly = _esagono(cx, cy, R_TAMBURO, scala)
+    _estrudi_poligono("Tamburo_Esagonale", hex_poly,
+                      h_tamburo_base * scala, h_tamburo * scala,
+                      mats["muro"], col, scala)
+    dodec = _poligono_regolare(cx, cy, R_TAMBURO * 0.94, 12, scala,
+                               math.pi / 12.0)
+    _estrudi_poligono("Tamburo_Dodecagonale", dodec,
+                      h_tamburo * scala, (h_tamburo + 0.4) * scala,
+                      mats["muro"], col, scala)
+    r_calotta = R_TAMBURO * 0.90
+    _calotta("Cupola_Calotta", cx, cy, r_calotta, h_tamburo + H_COPING,
+             h_calotta, mats["piombo"], col, scala, lati=96, anelli=28)
+    r_lanterna = max(1.65, R_TAMBURO * 0.17)
+    z_cupoletta = h_cupola - 2.25
+    lanterna = _poligono_regolare(cx, cy, r_lanterna, 12, scala)
+    _estrudi_poligono("Lanterna_Tamburo", lanterna, h_calotta * scala,
+                      z_cupoletta * scala, mats["muro"], col, scala)
+    _piramide("Lanterna_Cupoletta", lanterna, z_cupoletta * scala,
+              (h_cupola - 0.85) * scala, mats["piombo"], col, scala)
+    _estrudi_poligono("Lanterna_Croce_Stelo",
+                      _rettangolo(cx, cy, 0.13, 0.13, scala),
+                      (h_cupola - 0.85) * scala, h_cupola * scala,
+                      mats["cornice"], col, scala)
+
+
 def _curva_tubo(nome, punti, raggio, materiale, col, scala, cyclic=False):
     """Linea architettonica in rilievo (costoloni e giunti della copertura)."""
     curve = bpy.data.curves.new(nome + "Curve", type="CURVE")
@@ -841,88 +874,30 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
                   mats["cornice"], cols[col_key], scala)
             conteggio += 2
 
-    # --- 5.2 tamburo, calotta e lanterna (48 m complessivi) ---------------
-    cx, cy = ESAGONO_M
-    hex_poly = _esagono(cx, cy, R_TAMBURO, scala)
-    ct = cols["07d_Tiburio_e_Cupola"]
-    h_galleria = h_tamburo_base + (h_tamburo - h_tamburo_base) * 0.52
-    # Il tamburo scende SOTTO il filo del tetto: prima si fermava a 23,6 m,
-    # sopra la falda a 22,2 m, e restava sospeso con una fessura di luce ai
-    # piedi (uno dei "pezzi volanti").
-    z_imposta_tamburo = min(h_tamburo_base, h_cleristorio)
-    _estrudi_poligono("Tamburo_Esagonale", hex_poly,
-                      z_imposta_tamburo * scala, h_galleria * scala,
-                      mats["muro"], ct, scala)
-    dodec = _poligono_regolare(cx, cy, R_TAMBURO * 0.94, 12, scala,
-                               math.pi / 12.0)
-    _estrudi_poligono("Tamburo_Dodecagonale", dodec,
-                      h_galleria * scala, h_tamburo * scala,
-                      mats["muro"], ct, scala)
-    # La cornice INFERIORE ora e' esagona come il pieno sotto di lei: prima
-    # era un dodecagono piu' largo (raggio 11,5 contro l'inraggio 9,8
-    # dell'esagono) e sporgeva nel vuoto sopra le facce piane (altro pezzo
-    # sospeso).  La superiore resta dodecagonale, come il tamburo alto.
-    for nome, z, raggio, lati, rot in (
-            ("Tamburo_Cornice_Inferiore", h_galleria,
-             R_TAMBURO + AGGETTO_PL, 6, 0.0),
-            ("Tamburo_Cornice_Superiore", h_tamburo,
-             R_TAMBURO * 0.94 + AGGETTO_PL, 12, math.pi / 12.0)):
-        _estrudi_poligono(
-            nome, _poligono_regolare(cx, cy, raggio, lati, scala, rot),
-            z * scala, (z + H_COPING) * scala, mats["cornice"], ct, scala)
-    r_calotta = R_TAMBURO * 0.90
-    z_base_calotta = h_tamburo + H_COPING
-    _calotta("Cupola_Calotta", cx, cy, r_calotta,
-             z_base_calotta, h_calotta, mats["piombo"], ct, scala,
-             lati=96, anelli=28)
-    # La calotta fotografica è scandita da spicchi metallici e costoloni
-    # radiali: i rilievi seguono la superficie emisferica, invece di restare
-    # semplici linee dritte. Le costole sono appena in rilievo e leggibili
-    # anche da lontano, come nella cupola reale in lastre di piombo.
-    for i in range(24):
-        a = 2.0 * math.pi * i / 24
-        pts = []
-        for j in range(31):
-            theta = (j / 30) * (math.pi / 2 - 0.012)
-            r = r_calotta * math.cos(theta) + 0.035
-            z = z_base_calotta + (h_calotta - z_base_calotta) * math.sin(theta)
-            pts.append((cx + r * math.cos(a), cy + r * math.sin(a), z))
-        _curva_tubo("Cupola_Costolone_%02d" % i, pts, 0.075,
-                    mats["cornice"], ct, scala)
-    # Fasce concentriche sottili: giunti delle falde, non decorazione casuale.
-    for i, theta in enumerate((0.24, 0.48, 0.72, 0.96, 1.20)):
-        r = r_calotta * math.cos(theta) + 0.025
-        z = z_base_calotta + (h_calotta - z_base_calotta) * math.sin(theta)
-        pts = [(cx + r * math.cos(2 * math.pi * k / 96),
-                cy + r * math.sin(2 * math.pi * k / 96), z)
-               for k in range(96)]
-        _curva_tubo("Cupola_Giunto_Anulare_%02d" % i, pts, 0.025,
-                    mats["interno"], ct, scala, cyclic=True)
-
-    # Lanterna e croce: semplici, ma incluse nel colmo complessivo di 48 m.
-    r_lanterna = max(1.65, R_TAMBURO * 0.17)
-    z_cupoletta = h_cupola - 2.25
-    z_croce = h_cupola - 0.85
-    lanterna = _poligono_regolare(cx, cy, r_lanterna, 12, scala)
-    _estrudi_poligono("Lanterna_Tamburo", lanterna,
-                      h_calotta * scala, z_cupoletta * scala,
-                      mats["muro"], ct, scala)
-    _estrudi_poligono("Lanterna_Cornice",
-                      _poligono_regolare(cx, cy, r_lanterna + 0.16, 12, scala),
-                      z_cupoletta * scala, (z_cupoletta + 0.22) * scala,
-                      mats["cornice"], ct, scala)
-    _piramide("Lanterna_Cupoletta", lanterna,
-              (z_cupoletta + 0.22) * scala, z_croce * scala,
-              mats["piombo"], ct, scala)
-    _estrudi_poligono("Lanterna_Croce_Stelo",
-                      _rettangolo(cx, cy, 0.13, 0.13, scala),
-                      z_croce * scala, h_cupola * scala,
-                      mats["cornice"], ct, scala)
-    _estrudi_poligono("Lanterna_Croce_Braccio",
-                      _rettangolo(cx, cy, 0.72, 0.13, scala),
-                      (h_cupola - 0.34) * scala, (h_cupola - 0.20) * scala,
-                      mats["cornice"], ct, scala)
-    conteggio += 11
+    cx_d, cy_d = ESAGONO_M
+    # --- 5.2 tiburio, calotta e lanterna (v5.0, modulo `cupola.py`) ------
+    # La vecchia cupola "a campana liscia", con sopra un cilindro e una
+    # crocetta, e' stata sostituita dal gruppo disegnato sulle fotografie
+    # allegate: tamburo a due ordini di logge (colonne binate e archi acuti
+    # in basso, colonne singole e archi a tutto sesto in alto), calotta in
+    # lastre di piombo con otto costoloni e lanterna del Bernini con la
+    # mela dorata e la stella a dodici punte.  La geometria vive in
+    # `cupola.py`, cosi' resta leggibile e rigenerabile da sola.
+    try:
+        from cupola import costruisci_cupola
+    except ImportError as errore:  # pragma: no cover - solo se manca il file
+        costruisci_cupola = None
+        print("Cupola v5.0 non disponibile (%s): uso la calotta semplice"
+              % errore)
+    if costruisci_cupola is not None:
+        risultato_cupola = costruisci_cupola(
+            scala=scala, cfg=opt, col=cols["07d_Tiburio_e_Cupola"],
+            cx=cx_d, cy=cy_d)
+        conteggio += risultato_cupola["oggetti"]
+    else:
+        _cupola_semplice(cx_d, cy_d, h_tamburo_base, h_tamburo, h_calotta,
+                         h_cupola, mats, cols["07d_Tiburio_e_Cupola"], scala)
+        conteggio += 9
 
     # --- 5.3 campanile sul fianco DESTRO, prima del transetto -------------
     cx_c, cy_c = CAMPANILE_M
@@ -1093,6 +1068,21 @@ def riepilogo_dimensioni():
     }
 
 
+def quota_cupola(nome):
+    """Legge una quota da `cupola.py` (v5.0), con ripiego sui valori v4.4.
+
+    Le altezze del tiburio vivono in un solo posto: qui si evita di
+    duplicarle, cosi' il riepilogo non puo' divergere dal modello.
+    """
+    ripiego = {"H_LOGGE_SUP_TOP": 29.80, "H_CALOTTA_BASE": 30.05,
+               "H_CALOTTA": 40.40, "H_CUPOLA": H_CUPOLA}
+    try:
+        import cupola
+        return float(getattr(cupola, nome))
+    except Exception:  # pragma: no cover
+        return float(ripiego.get(nome, H_CUPOLA))
+
+
 def riepilogo_altezze(cfg=None):
     """Altezze reali usate dal generatore; facciata di riferimento 37,5 m."""
     opt = dict(cfg or {})
@@ -1100,8 +1090,11 @@ def riepilogo_altezze(cfg=None):
         "Muri navate laterali": float(opt.get("altezza_muri", H_MURO)),
         "Filo superiore cleristorio": float(opt.get("altezza_cleristorio", H_CLERISTORIO)),
         "Colmo tetti principali": float(opt.get("altezza_colmo_navata", H_COLMO_NAVATA)),
-        "Sommita tamburo": float(opt.get("altezza_tamburo", H_TAMBURO)),
-        "Imposta lanterna": float(opt.get("altezza_calotta", H_CALOTTA)),
+        "Sommita delle due logge del tamburo": quota_cupola("H_LOGGE_SUP_TOP"),
+        "Imposta della calotta": quota_cupola("H_CALOTTA_BASE"),
+        "Apice della calotta (imposta lanterna)":
+            float(opt.get("altezza_calotta",
+                          quota_cupola("H_CALOTTA"))),
         "Cupola (croce compresa)": float(opt.get("altezza_cupola", H_CUPOLA)),
         "Campanile (fusto)": float(opt.get("altezza_campanile", H_CAMPANILE)),
         "Campanile (punta centrale)": float(opt.get("altezza_campanile_punta", H_CAMPANILE_PUNTA)),
