@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-MURI ESTERNI DEL CORPO DELLA CHIESA — Duomo di Siena (v4.3)
+MURI ESTERNI DEL CORPO DELLA CHIESA — Duomo di Siena (v4.4)
 ============================================================
 
 Il progetto nasce come SOLA facciata ovest. Questo modulo aggiunge il resto
@@ -104,6 +104,7 @@ SPESSORE_FASCE_CAMPANILE = 0.32
 
 SPESSORE_ANNESSE = 1.2
 SPESSORE_INCOMPIUTO = 1.8
+SPESSORE_TETTO = 0.45   # le falde non sono piu' lamine senza spessore (v4.4)
 AGGETTO_PL = 0.18       # plinto e cornice sporgono di poco dal filo muro
 R_TAMBURO = 11.335      # raggio del tamburo esagonale (22,67 m fra i vertici)
 LATO_CAMPANILE = 7.5
@@ -169,14 +170,22 @@ PERIMETRO = [
     (X_NAVATA_DX, Y_NAVATA_FINE), (X_NAVATA_DX, Y_BACK_M),
     (X_SPALLA, Y_BACK_M),
 ]
+# I tratti sono RIFERITI ALL'ANELLO: (nome, raccolta, nodo iniziale, nodo
+# finale).  Il perimetro e' un anello chiuso e i giunti a mitra di ogni nodo
+# vengono calcolati una volta sola per tutte le fasce (plinto, paramento,
+# fascia scura, coronamento): cosi' due tratti consecutivi condividono
+# esattamente i due punti della testata e il muro non ha piu' fessure ne'
+# cunei sporgenti negli angoli interni della croce (v4.4).
+# L'ultimo lato dell'anello (nodo 17 -> nodo 0) e' la facciata: non viene
+# costruito, ma entra nel calcolo del giunto delle due spalline.
 TRATTI_MURO = [
-    ("Muro_Navata_Sx", "07a_Muri_Nave", PERIMETRO[0:3]),
-    ("Muro_Navata_Dx", "07a_Muri_Nave", PERIMETRO[16:18]),
-    ("Muro_Transetto_Sx", "07b_Muri_Transetto", PERIMETRO[2:8]),
-    ("Muro_Coro_Sx", "07c_Muri_Coro", PERIMETRO[7:9]),
-    ("Muro_Abside", "07c_Muri_Coro", PERIMETRO[8:10]),
-    ("Muro_Coro_Dx", "07c_Muri_Coro", PERIMETRO[9:12]),
-    ("Muro_Transetto_Dx", "07b_Muri_Transetto", PERIMETRO[11:17]),
+    ("Muro_Navata_Sx", "07a_Muri_Nave", 0, 2),
+    ("Muro_Transetto_Sx", "07b_Muri_Transetto", 2, 6),
+    ("Muro_Coro_Sx", "07c_Muri_Coro", 6, 8),
+    ("Muro_Abside", "07c_Muri_Coro", 8, 9),
+    ("Muro_Coro_Dx", "07c_Muri_Coro", 9, 11),
+    ("Muro_Transetto_Dx", "07b_Muri_Transetto", 11, 15),
+    ("Muro_Navata_Dx", "07a_Muri_Nave", 15, 17),
 ]
 ANNESSI = [
     ("Sacrestia_Obliqua", "07f_Annessi", H_ANNESSI,
@@ -199,11 +208,21 @@ ESAGONO_M = dalla_pianta_m(322.5, 400)
 # Duomo Nuovo: i muri superstiti del progetto mai completato (quota est
 # ~92,5 m dall'asse, come nella pianta Baedeker e in quella Touring).
 # Raccolta a parte, disattivabile da config (`includi_duomo_nuovo`).
+# I tre tratti Nord -> Facciatone -> Sud sono una CATENA unica: i due angoli
+# a 90 gradi hanno il giunto a mitra, mentre prima ogni parete finiva col
+# taglio netto e restava un cuneo aperto su ciascuno spigolo (v4.4).
+# La catena comprende anche il breve ATTACCO al transetto: cosi' l'angolo
+# Nord-Ovest del recinto e' un vero giunto a mitra e non resta il quadratino
+# scoperto che si vedeva dall'alto fra attacco e parete nord (v4.4).
+CATENA_DUOMO_NUOVO = [
+    (27.833, 58.967), (27.833, 69.633), (92.500, 69.633),
+    (92.500, 31.967), (56.167, 31.967),
+]
 TRATTI_DUOMO_NUOVO = [
-    ("DuomoNuovo_Parete_Nord", [(27.833, 69.633), (92.500, 69.633)]),
-    ("DuomoNuovo_Facciatone_Est", [(92.500, 69.633), (92.500, 31.967)]),
-    ("DuomoNuovo_Parete_Sud", [(56.167, 31.967), (92.500, 31.967)]),
-    ("DuomoNuovo_Attacco_Transetto", [(27.833, 58.967), (27.833, 69.633)]),
+    ("DuomoNuovo_Attacco_Transetto", 0, 1),
+    ("DuomoNuovo_Parete_Nord", 1, 2),
+    ("DuomoNuovo_Facciatone_Est", 2, 3),
+    ("DuomoNuovo_Parete_Sud", 3, 4),
 ]
 
 
@@ -217,6 +236,7 @@ NOMI_MAT = {
     "tetto": "Muro_Esterno_Tetto_Semplice",
     "piombo": "Muro_Esterno_Piombo_Semplice",
     "incompiuto": "Muro_Esterno_Incompiuto",
+    "interno": "Muro_Esterno_Riempimento",
 }
 
 
@@ -280,6 +300,10 @@ def _materiali(scala):
                              roughness=0.68, noise=0.05),
         "incompiuto": _materiale(NOMI_MAT["incompiuto"], (0.60, 0.57, 0.51),
                                  scala, roughness=0.82, noise=0.10),
+        # Volumi interni: scuri e opachi, cosi' dove si intravede un
+        # sottosquadro legge come ombra e non come un pezzo di marmo.
+        "interno": _materiale(NOMI_MAT["interno"], (0.30, 0.27, 0.24),
+                              scala, roughness=0.95, noise=0.04),
     }
 
 
@@ -341,34 +365,98 @@ def _estrudi_poligono(nome, poligono, z0, z1, materiale, col, scala):
     obj = bpy.data.objects.new(nome, mesh)
     col.objects.link(obj)
     mesh.materials.append(materiale)
+    _ricalcola_normali(mesh)
     return obj
 
 
 def _offset_polilinea(punti, spessore):
     """Crea il poligono di una polilinea APERTA con giunti a mitra.
-    `punti` sono (x, y) in unita' modello; ritorna il poligono chiuso."""
-    pts = [Vector((p[0], p[1])) for p in punti]
-    half = spessore / 2.0
-    dirs = []
-    for i in range(len(pts) - 1):
-        d = pts[i + 1] - pts[i]
-        d.normalize()
-        dirs.append(d)
-    normals = [Vector((-d.y, d.x)) for d in dirs]
+    `punti` sono (x, y) in unita' modello; ritorna il poligono chiuso.
+    (Resta per compatibilita'; il perimetro usa `poligono_tratto`.)"""
+    sinistra, destra = _offset_polilinea_m(punti, spessore, chiuso=False)
+    return sinistra + list(reversed(destra))
 
-    def miter(i):
-        """Punto sinistro/destro del giunto i (intersezione dei due offset)."""
-        a, b = normals[max(0, i - 1)], normals[min(len(normals) - 1, i)]
-        n = a + b
-        if n.length < 1e-6:
-            n = a
-        n.normalize()
-        coseno = max(0.35, n.dot(a))  # limita le mitre troppo acute
-        return n * (half / coseno)
 
-    left = [pts[i] + miter(i) for i in range(len(pts))]
-    right = [pts[i] - miter(i) for i in range(len(pts))]
-    return [(p.x, p.y) for p in left] + [(p.x, p.y) for p in reversed(right)]
+def _normale_segmento(p, q):
+    dx, dy = q[0] - p[0], q[1] - p[1]
+    lunghezza = math.hypot(dx, dy) or 1.0
+    return (-dy / lunghezza, dx / lunghezza)
+
+
+def _offset_polilinea_m(nodi, spessore, chiuso=False):
+    """Offset di una polilinea con giunti a MITRA, in pura matematica 2D
+    (nessuna dipendenza da `bpy`/`mathutils`: la usano anche i test).
+
+    Ritorna `(sinistra, destra)`: due liste di punti, uno per nodo, coi
+    giunti gia' raccordati.  Per un anello percorso in senso antiorario
+    `sinistra` sta all'interno e `destra` all'esterno.
+    """
+    n = len(nodi)
+    if n < 2:
+        raise ValueError("servono almeno due nodi")
+    meta = spessore / 2.0
+    normali = [_normale_segmento(nodi[i], nodi[(i + 1) % n]) for i in range(n)]
+    sinistra, destra = [], []
+    for i in range(n):
+        if chiuso:
+            a, b = normali[(i - 1) % n], normali[i]
+        else:
+            a = normali[i - 1] if i > 0 else normali[0]
+            b = normali[i] if i < n - 1 else normali[-1]
+        nx, ny = a[0] + b[0], a[1] + b[1]
+        lunghezza = math.hypot(nx, ny)
+        if lunghezza < 1e-9:            # nodo di inversione: usa la normale
+            nx, ny = a                  # entrante (testata piatta)
+        else:
+            nx, ny = nx / lunghezza, ny / lunghezza
+        coseno = max(0.35, nx * a[0] + ny * a[1])   # limita le mitre acute
+        ox, oy = nx * meta / coseno, ny * meta / coseno
+        sinistra.append((nodi[i][0] + ox, nodi[i][1] + oy))
+        destra.append((nodi[i][0] - ox, nodi[i][1] - oy))
+    return sinistra, destra
+
+
+def poligono_tratto(nodi, spessore_m, i0, i1):
+    """Poligono (metri reali) del tratto `i0 -> i1` dell'ANELLO `nodi`.
+
+    I giunti sono calcolati sull'anello completo, quindi due tratti
+    consecutivi condividono esattamente i due punti della testata: nessuna
+    fessura, nessun cuneo sporgente agli angoli interni (v4.4).
+    """
+    n = len(nodi)
+    indici = [(i0 + k) % n for k in range(((i1 - i0) % n) + 1)]
+    sinistra, destra = _offset_polilinea_m(nodi, spessore_m, chiuso=True)
+    return ([sinistra[i] for i in indici] +
+            [destra[i] for i in reversed(indici)])
+
+
+def poligono_catena(nodi, spessore_m, i0, i1):
+    """Come `poligono_tratto`, ma su una polilinea APERTA (Duomo Nuovo)."""
+    sinistra, destra = _offset_polilinea_m(nodi, spessore_m, chiuso=False)
+    indici = list(range(i0, i1 + 1))
+    return ([sinistra[i] for i in indici] +
+            [destra[i] for i in reversed(indici)])
+
+
+def _poligono_ccw(punti):
+    """Ritorna gli stessi punti in senso antiorario (area positiva)."""
+    n = len(punti)
+    area = sum(punti[i][0] * punti[(i + 1) % n][1] -
+               punti[(i + 1) % n][0] * punti[i][1] for i in range(n))
+    return list(punti) if area >= 0 else list(reversed(punti))
+
+
+def _muro_tratto(nome, i0, i1, spessore_m, z0_m, z1_m, materiale, col, scala):
+    poly = poligono_tratto(PERIMETRO, spessore_m, i0, i1)
+    return _estrudi_poligono(nome, _poligono_da_m(poly, scala),
+                             z0_m * scala, z1_m * scala, materiale, col, scala)
+
+
+def _muro_catena(nome, nodi, i0, i1, spessore_m, z0_m, z1_m,
+                 materiale, col, scala):
+    poly = poligono_catena(nodi, spessore_m, i0, i1)
+    return _estrudi_poligono(nome, _poligono_da_m(poly, scala),
+                             z0_m * scala, z1_m * scala, materiale, col, scala)
 
 
 def _muro(nome, punti_m, spessore_m, z0_m, z1_m, materiale, col, scala):
@@ -400,7 +488,20 @@ def _rettangolo(cx, cy, larghezza, profondita, scala):
             (cx * scala - hx, cy * scala + hy)]
 
 
-def _mesh(nome, verts, faces, materiale, col, scala):
+def _ricalcola_normali(mesh):
+    """Normali coerenti su tutte le facce (i solidi nuovi, tetti compresi,
+    hanno facce con versi diversi e senza questo passaggio si vedevano
+    bucherellati)."""
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()
+
+
+def _mesh(nome, verts, faces, materiale, col, scala, normali=True):
     mesh = bpy.data.meshes.new(nome + "Mesh")
     mesh.from_pydata(verts, [], faces)
     mesh.update()
@@ -408,36 +509,121 @@ def _mesh(nome, verts, faces, materiale, col, scala):
     obj = bpy.data.objects.new(nome, mesh)
     col.objects.link(obj)
     mesh.materials.append(materiale)
+    if normali:
+        _ricalcola_normali(mesh)
     return obj
 
 
+def _mesh_anello(nome, esterno, interno, z0, z1, materiale, col, scala):
+    """Muro CAVO attorno a un poligono: anello di muratura fra il filo
+    esterno e quello interno.  E' la forma giusta per gli annessi, che prima
+    erano gusci aperti con giunti che si incrociavano (v4.4)."""
+    n = len(esterno)
+    verts = []
+    for z in (z0, z1):
+        verts += [(p[0] * scala, p[1] * scala, z * scala) for p in esterno]
+    for z in (z0, z1):
+        verts += [(p[0] * scala, p[1] * scala, z * scala) for p in interno]
+    e0, e1, i0, i1 = 0, n, 2 * n, 3 * n
+    faces = []
+    for k in range(n):
+        j = (k + 1) % n
+        faces.append((e0 + k, e0 + j, e1 + j, e1 + k))    # faccia esterna
+        faces.append((i0 + j, i0 + k, i1 + k, i1 + j))    # faccia interna
+        faces.append((e1 + k, e1 + j, i1 + j, i1 + k))    # testa superiore
+        faces.append((e0 + j, e0 + k, i0 + k, i0 + j))    # testata inferiore
+    return _mesh(nome, verts, faces, materiale, col, scala)
+
+
+def _muro_anello(nome, poly_m, spessore_m, z0_m, z1_m,
+                 materiale, col, scala):
+    """Anello chiuso di muratura attorno a `poly_m` (metri reali)."""
+    poly = _poligono_ccw(poly_m)
+    interno, esterno = _offset_polilinea_m(poly, spessore_m, chiuso=True)
+    return _mesh_anello(nome, esterno, interno, z0_m, z1_m,
+                        materiale, col, scala)
+
+
+def _copertura_annesso(nome, poly_m, spessore_m, z_m, materiale, col, scala,
+                       aggetto=0.18, spessore=0.26):
+    """Lastra di copertura a filo del filo esterno delle murature (con un
+    piccolo aggetto di cornice): prima erano poligoni piu' piccoli del muro
+    e restavano appoggiati 'a mezz'aria' (v4.4)."""
+    poly = _poligono_ccw(poly_m)
+    _, esterno = _offset_polilinea_m(poly, spessore_m + 2 * aggetto,
+                                     chiuso=True)
+    return _estrudi_poligono(nome, _poligono_da_m(esterno, scala),
+                             z_m * scala, (z_m + spessore) * scala,
+                             materiale, col, scala)
+
+
 def _tetto_capanna(nome, x0, x1, y0, y1, z_gronda, z_colmo,
-                   asse, materiale, col, scala):
-    """Tetto semplice a due falde; coordinate e quote in metri reali."""
+                   asse, materiale, col, scala, spessore=SPESSORE_TETTO,
+                   aggetto=0.0):
+    """Tetto semplice a due falde, come VOLUME CHIUSO (v4.4).
+
+    Prima era un guscio di quattro facce senza fondo: ai bordi si vedeva un
+    filo solo e da sotto il tetto era aperto, cioe' leggeva come una lamina
+    sospesa.  Ora ha uno spessore vero, il fondo chiuso e i due timpani.
+    Coordinate e quote in metri reali.
+    """
+    t = spessore
+    # Sfalsamento della gronda lungo i due lati del tetto: e' quello che
+    # copre il piccolo dislivello fra il piano d'appoggio e il filo del
+    # coronamento e toglie le fessure nere che si vedevano lungo le gronde.
+    if asse == "Y":
+        x0, x1 = x0 - aggetto, x1 + aggetto
+    else:
+        y0, y1 = y0 - aggetto, y1 + aggetto
+    base = [(x0, y0, z_gronda), (x1, y0, z_gronda),
+            (x1, y1, z_gronda), (x0, y1, z_gronda)]
     if asse == "Y":
         xc = (x0 + x1) / 2.0
-        pts = [(x0,y0,z_gronda), (x1,y0,z_gronda),
-               (x1,y1,z_gronda), (x0,y1,z_gronda),
-               (xc,y0,z_colmo), (xc,y1,z_colmo)]
-        faces = [(0,4,5,3), (1,2,5,4), (0,1,4), (3,5,2)]
+        colmo = [(xc, y0, z_colmo), (xc, y1, z_colmo)]
+        # 0-3 gronda, 4-5 colmo, 6-9 fondo
+        faces = [(0, 3, 5, 4),      # falda lato x0
+                 (1, 4, 5, 2),      # falda lato x1
+                 (6, 7, 8, 9),      # fondo
+                 (0, 1, 7, 6),      # spessore testata y0
+                 (2, 3, 9, 8),      # spessore testata y1
+                 (0, 6, 9, 3),      # spessore fianco x0
+                 (1, 2, 8, 7),      # spessore fianco x1
+                 (0, 1, 4),         # timpano y0
+                 (2, 5, 3)]         # timpano y1
     else:
         yc = (y0 + y1) / 2.0
-        pts = [(x0,y0,z_gronda), (x1,y0,z_gronda),
-               (x1,y1,z_gronda), (x0,y1,z_gronda),
-               (x0,yc,z_colmo), (x1,yc,z_colmo)]
-        faces = [(0,1,5,4), (3,4,5,2), (0,4,3), (1,2,5)]
-    verts = [(x*scala, y*scala, z*scala) for x,y,z in pts]
+        colmo = [(x0, yc, z_colmo), (x1, yc, z_colmo)]
+        faces = [(0, 1, 5, 4),      # falda lato y0
+                 (2, 3, 4, 5),      # falda lato y1
+                 (6, 7, 8, 9),      # fondo
+                 (0, 3, 9, 6),      # spessore testata x0
+                 (1, 2, 8, 7),      # spessore testata x1
+                 (0, 1, 7, 6),      # spessore fianco y0
+                 (3, 2, 8, 9),      # spessore fianco y1
+                 (0, 3, 4),         # timpano x0
+                 (1, 5, 2)]         # timpano x1
+    pts = base + colmo + [(x, y, z_gronda - t) for x, y, _z in base]
+    verts = [(x * scala, y * scala, z * scala) for x, y, z in pts]
     return _mesh(nome, verts, faces, materiale, col, scala)
 
 
 def _falda_navata_laterale(nome, x_esterno, x_interno, y0, y1,
-                           z_esterno, z_interno, materiale, col, scala):
-    pts = [(x_esterno,y0,z_esterno), (x_interno,y0,z_interno),
-           (x_interno,y1,z_interno), (x_esterno,y1,z_esterno)]
+                           z_esterno, z_interno, materiale, col, scala,
+                           spessore=SPESSORE_TETTO, aggetto=0.0):
+    """Falda bassa delle navate laterali: lastra con spessore, non piu' un
+    quadrilatero isolato (v4.4).  `aggetto` allunga la gronda oltre il filo
+    del muro, come uno sporto di tetto vero."""
+    if aggetto:
+        x_esterno += aggetto if x_esterno > x_interno else -aggetto
+    pts = [(x_esterno, y0, z_esterno), (x_interno, y0, z_interno),
+           (x_interno, y1, z_interno), (x_esterno, y1, z_esterno)]
     if x_esterno < x_interno:
         pts.reverse()
-    verts = [(x*scala, y*scala, z*scala) for x,y,z in pts]
-    return _mesh(nome, verts, [(0,1,2,3)], materiale, col, scala)
+    sotto = [(x, y, z - spessore) for x, y, z in pts]
+    verts = [(p[0] * scala, p[1] * scala, p[2] * scala) for p in pts + sotto]
+    faces = [(0, 1, 2, 3), (7, 6, 5, 4),
+             (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)]
+    return _mesh(nome, verts, faces, materiale, col, scala)
 
 
 def _calotta(nome, cx, cy, raggio, z_base, z_colmo,
@@ -480,6 +666,7 @@ def _piramide(nome, base, z_base, z_colmo, materiale, col, scala):
     obj = bpy.data.objects.new(nome, mesh)
     col.objects.link(obj)
     mesh.materials.append(materiale)
+    _ricalcola_normali(mesh)
     return obj
 
 
@@ -523,6 +710,7 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
     h_campanile_punta = float(opt.get("altezza_campanile_punta",
                                       H_CAMPANILE_PUNTA))
     h_incompiuto = float(opt.get("altezza_duomo_nuovo", H_DUOMO_NUOVO))
+    sp_tetto = float(opt.get("spessore_tetti", SPESSORE_TETTO))
     includi_duomo_nuovo = bool(opt.get("includi_duomo_nuovo",
                                        includi_duomo_nuovo))
     tetti = bool(opt.get("tetti", tetti))
@@ -536,26 +724,87 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
 
     conteggio = 0
 
+    # --- 5.0 volumi interni (facoltativi, ma sono quelli che chiudono le
+    # fessure che si vedevano fra un muro e l'altro) -----------------------
+    # Il corpo era fatto di sole superfici: muri, falde e tetti.  Dove due
+    # superfici si incontravano con uno scarto di pochi centimetri (piedi
+    # del tamburo sopra le falde, falde appoggiate su nulla, cornice
+    # dodecagonale su un tamburo esagonale) si apriva una fessura da cui si
+    # vedeva il cielo: da li' i "pezzi volanti".  I volumi interni, opachi e
+    # tenuti APPENA SOTTO le coperture per non spuntare dal tetto, chiudono
+    # tutte queste viste senza spostare ne' quote ne' perimetro.
+    # Disattivabili con `muri_esterni.riempi_volumi: false`.
+    mezzo_cl = LARGHEZZA_CLERISTORIO / 2.0
+    riempi = bool(opt.get("riempi_volumi", True))
+    if riempi:
+        ci = _collezione("07i_Volumi_Interni", root)
+        mi = mats["interno"]
+        sotto = sp_tetto            # le coperture appoggiano sopra
+        quota_alta = h_colmo - sotto             # sotto il colmo centrale
+        quota_bassa = h_muro + 2.0 - sotto       # sotto le falde laterali
+        quota_transetto = h_cleristorio + H_COPING - sotto
+
+        def vol(nome, x0, x1, y0, y1, z0, z1, collezione=None):
+            _estrudi_poligono(
+                nome, _rettangolo((x0 + x1) / 2.0, (y0 + y1) / 2.0,
+                                  x1 - x0, y1 - y0, scala),
+                z0 * scala, z1 * scala, mi, collezione or ci, scala)
+
+        # Navata e coro: corpo centrale dentro i setti del cleristorio,
+        # navate laterali fino a sotto le falde basse.
+        for nome, y0, y1 in (("Navata", Y_BACK_M, Y_NAVATA_FINE),
+                             ("Coro", Y_CORO_INIZIO, Y_CORO_FINE)):
+            vol(f"Volume_{nome}_Centrale", -mezzo_cl, mezzo_cl, y0, y1,
+                h_plinto, quota_alta)
+            for lato, x0, x1 in (("Sx", X_NAVATA_SX, -mezzo_cl),
+                                 ("Dx", mezzo_cl, X_NAVATA_DX)):
+                vol(f"Volume_{nome}_Laterale_{lato}", x0, x1, y0, y1,
+                    h_plinto, quota_bassa)
+        # Transetto e crociera: pieno fino a sotto la gronda rialzata, cosi'
+        # il tamburo della cupola poggia davvero su qualcosa.  I due rettangoli
+        # seguono i risalti del perimetro (lato sinistro e destro non sono
+        # simmetrici) e restano dentro i muri.
+        vol("Volume_Transetto", X_TRANSETTO_SX, X_TRANSETTO_DX,
+            Y_NAVATA_FINE, Y_TRANSETTO_SX_TOP, h_plinto, quota_transetto)
+        vol("Volume_Transetto_Alto", X_STEP_SX, X_STEP_DX,
+            Y_TRANSETTO_SX_TOP, min(Y_CORO_INIZIO, Y_CORO_INIZIO_DX),
+            h_plinto, quota_transetto)
+        vol("Volume_Transetto_Risalto_Dx", X_STEP_DX, X_TRANSETTO_DX,
+            Y_TRANSETTO_SX_TOP, Y_TRANSETTO_DX_TOP, h_plinto,
+            quota_transetto)
+        # Duomo Nuovo: il recinto delle murature superstiti resta aperto
+        # (non fu mai coperto), ma riceve il piano di calpestio.
+        if includi_duomo_nuovo:
+            xs = [p[0] for p in CATENA_DUOMO_NUOVO]
+            ys = [p[1] for p in CATENA_DUOMO_NUOVO]
+            # (nella raccolta 07g, cosi' sparisce insieme ai muri del
+            # Duomo Nuovo quando l'anteprima d'insieme li nasconde)
+            vol("Volume_Duomo_Nuovo_Pavimento", min(xs), max(xs),
+                min(ys), max(ys), 0.0, h_plinto,
+                collezione=cols["07g_Duomo_Nuovo_Incompiuto"])
+
     # --- 5.1 muri perimetrici: navate basse e transetto rialzato ----------
-    for nome, col_key, punti_px in TRATTI_MURO:
+    # Ogni fascia (plinto, paramento, fascia scura, coronamento) nasce dallo
+    # STESSO anello di nodi, quindi i giunti a mitra coincidono e i tratti
+    # consecutivi si toccano esattamente: nessuna fessura agli angoli.
+    for nome, col_key, i0, i1 in TRATTI_MURO:
         col = cols[col_key]
         # Nelle foto il muro delle navate laterali e' molto piu' basso del
         # corpo centrale. Il transetto, invece, arriva alla gronda alta.
         h_tratto = h_cleristorio if col_key == "07b_Muri_Transetto" else h_muro
-        _muro(nome + "_Plinto", punti_px, sp + AGGETTO_PL * 2, 0.0,
-              h_plinto, mats["plinto"], col, scala)
-        _muro(nome, punti_px, sp, h_plinto, h_tratto,
-              mats["muro"], col, scala)
-        _muro(nome + "_Fascia", punti_px, sp + AGGETTO_PL,
-              H_FASCIA, H_FASCIA + SPESSORE_FASCIA,
-              mats["plinto"], col, scala)
-        _muro(nome + "_Coronamento", punti_px, sp + AGGETTO_PL * 2,
-              h_tratto, h_tratto + H_COPING, mats["cornice"], col, scala)
+        _muro_tratto(nome + "_Plinto", i0, i1, sp + AGGETTO_PL * 2, 0.0,
+                     h_plinto, mats["plinto"], col, scala)
+        _muro_tratto(nome, i0, i1, sp, h_plinto, h_tratto,
+                     mats["muro"], col, scala)
+        _muro_tratto(nome + "_Fascia", i0, i1, sp + AGGETTO_PL,
+                     H_FASCIA, H_FASCIA + SPESSORE_FASCIA,
+                     mats["plinto"], col, scala)
+        _muro_tratto(nome + "_Coronamento", i0, i1, sp + AGGETTO_PL * 2,
+                     h_tratto, h_tratto + H_COPING, mats["cornice"], col, scala)
         conteggio += 4
 
     # Cleristorio: due setti semplici per navata e coro, raccolti in raccolte
     # proprie ma senza modificare il perimetro ne' la facciata.
-    mezzo_cl = LARGHEZZA_CLERISTORIO / 2.0
     for nome, col_key, y0, y1 in (
         ("Navata", "07a_Muri_Nave", Y_BACK_M, Y_NAVATA_FINE),
         ("Coro", "07c_Muri_Coro", Y_CORO_INIZIO, Y_CORO_FINE),
@@ -574,21 +823,30 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
     hex_poly = _esagono(cx, cy, R_TAMBURO, scala)
     ct = cols["07d_Tiburio_e_Cupola"]
     h_galleria = h_tamburo_base + (h_tamburo - h_tamburo_base) * 0.52
+    # Il tamburo scende SOTTO il filo del tetto: prima si fermava a 23,6 m,
+    # sopra la falda a 22,2 m, e restava sospeso con una fessura di luce ai
+    # piedi (uno dei "pezzi volanti").
+    z_imposta_tamburo = min(h_tamburo_base, h_cleristorio)
     _estrudi_poligono("Tamburo_Esagonale", hex_poly,
-                      h_tamburo_base * scala, h_galleria * scala,
+                      z_imposta_tamburo * scala, h_galleria * scala,
                       mats["muro"], ct, scala)
     dodec = _poligono_regolare(cx, cy, R_TAMBURO * 0.94, 12, scala,
                                math.pi / 12.0)
     _estrudi_poligono("Tamburo_Dodecagonale", dodec,
                       h_galleria * scala, h_tamburo * scala,
                       mats["muro"], ct, scala)
-    for nome, z in (("Tamburo_Cornice_Inferiore", h_galleria),
-                    ("Tamburo_Cornice_Superiore", h_tamburo)):
-        _estrudi_poligono(nome,
-                          _poligono_regolare(cx, cy, R_TAMBURO + AGGETTO_PL,
-                                             12, scala, math.pi / 12.0),
-                          z * scala, (z + H_COPING) * scala,
-                          mats["cornice"], ct, scala)
+    # La cornice INFERIORE ora e' esagona come il pieno sotto di lei: prima
+    # era un dodecagono piu' largo (raggio 11,5 contro l'inraggio 9,8
+    # dell'esagono) e sporgeva nel vuoto sopra le facce piane (altro pezzo
+    # sospeso).  La superiore resta dodecagonale, come il tamburo alto.
+    for nome, z, raggio, lati, rot in (
+            ("Tamburo_Cornice_Inferiore", h_galleria,
+             R_TAMBURO + AGGETTO_PL, 6, 0.0),
+            ("Tamburo_Cornice_Superiore", h_tamburo,
+             R_TAMBURO * 0.94 + AGGETTO_PL, 12, math.pi / 12.0)):
+        _estrudi_poligono(
+            nome, _poligono_regolare(cx, cy, raggio, lati, scala, rot),
+            z * scala, (z + H_COPING) * scala, mats["cornice"], ct, scala)
     _calotta("Cupola_Calotta", cx, cy, R_TAMBURO * 0.90,
              h_tamburo + H_COPING, h_calotta,
              mats["piombo"], ct, scala)
@@ -630,7 +888,14 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
     _estrudi_poligono("Campanile_Cornice", quad, h_campanile * scala,
                       (h_campanile + H_COPING) * scala,
                       mats["cornice"], cc, scala)
-    _piramide("Campanile_Punta_Semplice", quad,
+    # Cuspide rientrata rispetto al filo del fusto: cosi' i quattro
+    # pinnacoli d'angolo (sotto) restano liberi e non vengono tagliati
+    # dalla piramide, che prima li attraversava aprendo due fessure scure
+    # sulla cuspide stessa (v4.4).
+    rientro_cuspide = 1.15
+    cuspide = _rettangolo(cx_c, cy_c, LATO_CAMPANILE - 2 * rientro_cuspide,
+                          LATO_CAMPANILE - 2 * rientro_cuspide, scala)
+    _piramide("Campanile_Punta_Semplice", cuspide,
               (h_campanile + H_COPING) * scala,
               h_campanile_punta * scala, mats["muro"], cc, scala)
     conteggio += 4
@@ -650,42 +915,47 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
         conteggio += 1
         z_fascia += PASSO_FASCE_CAMPANILE
 
-    # Quattro pinnacoli secondari; il colmo centrale resta a 77 m.
+    # Quattro pinnacoli secondari d'angolo, liberi dalla cuspide; il colmo
+    # centrale resta a 77 m.
     for i, (sx, sy) in enumerate(((-1,-1), (1,-1), (1,1), (-1,1)), 1):
-        px = cx_c + sx * (r - 0.38)
-        py = cy_c + sy * (r - 0.38)
-        base = _rettangolo(px, py, 0.76, 0.76, scala)
+        px = cx_c + sx * (r - 0.62)
+        py = cy_c + sy * (r - 0.62)
+        base = _rettangolo(px, py, 0.95, 0.95, scala)
         _piramide(f"Campanile_Pinnacolo_{i}", base,
                   (h_campanile + H_COPING) * scala,
-                  (h_campanile + 4.25) * scala, mats["cornice"], cc, scala)
+                  (h_campanile + 4.9) * scala, mats["cornice"], cc, scala)
         conteggio += 1
 
     # --- 5.4 annessi e cappelle circolari --------------------------------
+    # Muro CAVO (anello esterno/interno) invece di un guscio ottenuto
+    # offsettando il contorno come polilinea aperta: il giunto di chiusura
+    # non si accavallava e non lasciava i cunei che sporgevano dagli spigoli.
+    # La copertura ora appoggia sul filo esterno delle murature.
     ca = cols["07f_Annessi"]
     for nome, _col_key, altezza, poly_m in ANNESSI:
-        # Guscio vuoto: nessun volume pieno che riempia gli interni.
-        _muro(nome + "_Plinto", poly_m + [poly_m[0]],
-              SPESSORE_ANNESSE, 0, H_PLINTO, mats["plinto"], ca, scala)
-        _muro(nome, poly_m + [poly_m[0]], SPESSORE_ANNESSE,
-              H_PLINTO, altezza, mats["muro"], ca, scala)
+        _muro_anello(nome + "_Plinto", poly_m, SPESSORE_ANNESSE + 0.3,
+                     0.0, H_PLINTO, mats["plinto"], ca, scala)
+        _muro_anello(nome, poly_m, SPESSORE_ANNESSE,
+                     H_PLINTO, altezza, mats["muro"], ca, scala)
         conteggio += 2
         if tetti:
-            _estrusi = _poligono_da_m(poly_m, scala)
-            _estrudi_poligono(nome + "_Copertura", _estrusi,
-                              altezza * scala, (altezza + 0.24) * scala,
-                              mats["tetto"], cols["07h_Tetti_Semplici"], scala)
+            _copertura_annesso(nome + "_Copertura", poly_m, SPESSORE_ANNESSE,
+                               altezza, mats["tetto"],
+                               cols["07h_Tetti_Semplici"], scala)
             conteggio += 1
 
     # --- 5.5 tetti semplici a falde, su DUE livelli ----------------------
     if tetti:
         cr = cols["07h_Tetti_Semplici"]
         z_gronda_alta = h_cleristorio + H_COPING
+        aggetto_gronda = sp / 2.0 + 0.32     # sporto oltre il filo del muro
         for nome, y0, y1 in (("Navata", Y_BACK_M, Y_NAVATA_FINE),
                              ("Coro", Y_CORO_INIZIO, Y_CORO_FINE)):
             _tetto_capanna(f"Tetto_{nome}_Centrale",
                            -mezzo_cl, mezzo_cl, y0, y1,
                            z_gronda_alta, h_colmo, "Y",
-                           mats["piombo"], cr, scala)
+                           mats["piombo"], cr, scala, spessore=sp_tetto,
+                           aggetto=aggetto_gronda)
             for lato, x_esterno, x_interno in (
                 ("Sx", X_NAVATA_SX, -mezzo_cl),
                 ("Dx", X_NAVATA_DX, mezzo_cl),
@@ -694,31 +964,57 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
                     f"Tetto_{nome}_Laterale_{lato}",
                     x_esterno, x_interno, y0, y1,
                     h_muro + H_COPING, h_muro + 2.0,
-                    mats["tetto"], cr, scala)
+                    mats["tetto"], cr, scala, spessore=sp_tetto,
+                    aggetto=aggetto_gronda)
                 conteggio += 1
             conteggio += 1
+        # Il transetto non e' un rettangolo: la pianta ha due risalti (lato
+        # sinistro e lato destro a quote diverse).  Un unico tetto sul
+        # rettangolo circoscritto sporgeva di quasi 9 m nel vuoto sopra i
+        # risalti, cioe' era un pezzo sospeso.  Ora il tetto segue i tre
+        # tratti del perimetro.
         _tetto_capanna("Tetto_Transetto", X_TRANSETTO_SX, X_TRANSETTO_DX,
-                       Y_NAVATA_FINE, Y_CORO_INIZIO,
+                       Y_NAVATA_FINE, Y_TRANSETTO_SX_TOP,
                        z_gronda_alta, h_colmo, "X",
-                       mats["piombo"], cr, scala)
-        conteggio += 1
+                       mats["piombo"], cr, scala, spessore=sp_tetto,
+                       aggetto=aggetto_gronda)
+        _tetto_capanna("Tetto_Transetto_Alto", X_STEP_SX, X_STEP_DX,
+                       Y_TRANSETTO_SX_TOP,
+                       max(Y_CORO_INIZIO, Y_CORO_INIZIO_DX),
+                       z_gronda_alta, h_colmo, "X",
+                       mats["piombo"], cr, scala, spessore=sp_tetto,
+                       aggetto=aggetto_gronda)
+        # Risalto destro fra le due quote: lastra piana a filo della gronda.
+        _estrudi_poligono(
+            "Tetto_Transetto_Risalto_Dx",
+            _rettangolo((X_STEP_DX + X_TRANSETTO_DX) / 2.0,
+                        (Y_TRANSETTO_SX_TOP + Y_TRANSETTO_DX_TOP) / 2.0,
+                        X_TRANSETTO_DX - X_STEP_DX,
+                        Y_TRANSETTO_DX_TOP - Y_TRANSETTO_SX_TOP, scala),
+            (z_gronda_alta - sp_tetto) * scala, z_gronda_alta * scala,
+            mats["piombo"], cr, scala)
+        conteggio += 3
 
     # --- 5.6 Duomo Nuovo (incompiuto), raccolta propria ------------------
     if includi_duomo_nuovo:
         cn = cols["07g_Duomo_Nuovo_Incompiuto"]
-        for nome, punti_px in TRATTI_DUOMO_NUOVO:
-            _muro(nome + "_Plinto", punti_px,
-                  SPESSORE_INCOMPIUTO + AGGETTO_PL * 2, 0.0, h_plinto,
-                  mats["plinto"], cn, scala)
-            _muro(nome, punti_px, SPESSORE_INCOMPIUTO, h_plinto,
-                  h_incompiuto, mats["incompiuto"], cn, scala)
+        # Attacco -> Nord -> Facciatone -> Sud sono una CATENA continua: i
+        # tre angoli a 90 gradi hanno il giunto a mitra (prima ogni parete
+        # finiva col taglio netto e allo spigolo restava un cuneo aperto).
+        for nome, i0, i1 in TRATTI_DUOMO_NUOVO:
+            _muro_catena(nome + "_Plinto", CATENA_DUOMO_NUOVO, i0, i1,
+                         SPESSORE_INCOMPIUTO + AGGETTO_PL * 2, 0.0, h_plinto,
+                         mats["plinto"], cn, scala)
+            _muro_catena(nome, CATENA_DUOMO_NUOVO, i0, i1,
+                         SPESSORE_INCOMPIUTO, h_plinto, h_incompiuto,
+                         mats["incompiuto"], cn, scala)
             conteggio += 2
 
     # --- 5.7 riepilogo a console ----------------------------------------
     dims = riepilogo_dimensioni()
     altezze = riepilogo_altezze(opt)
     print("=" * 72)
-    print("MURI ESTERNI v4.3 — facciata invariata, perimetro sulle quote ufficiali")
+    print("MURI ESTERNI v4.4 — giunti chiusi, tetti solidi, niente pezzi sospesi")
     print("=" * 72)
     for k, v in {**dims, **altezze}.items():
         print(f"  {k:<42s} {v:>10.2f} m reali  = {v * SCALA_DEFAULT:>8.1f} u.m.")

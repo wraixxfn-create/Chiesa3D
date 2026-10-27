@@ -51,12 +51,14 @@ def main():
     # Il Duomo Nuovo prosegue oltre il taglio destro della pianta moderna:
     # le sue linee vengono ritagliate al bordo del foglio di riferimento.
     x_max = 25 + 593
-    for nome, punti in m.TRATTI_DUOMO_NUOVO:
-        pts = [px(p) for p in punti]
+    # Duomo Nuovo: catena Nord -> Facciatone -> Sud piu' l'attacco al
+    # transetto (v4.4: prima erano quattro pareti staccate).
+    for _nome, i0, i1 in m.TRATTI_DUOMO_NUOVO:
+        pts = [px(p) for p in m.CATENA_DUOMO_NUOVO[i0:i1 + 1]]
         pts = [(min(x, x_max), y) for x, y in pts]
         d.line(pts, fill="#7f8c8d", width=4)
 
-    d.text((25, 24), "SIENA / Corpo della chiesa — controllo proporzioni v4.3",
+    d.text((25, 24), "SIENA / Corpo della chiesa — controllo proporzioni v4.4",
            font=title, fill="#252a31")
     d.text((25, 62), "Facciata v3.9 invariata: larghezza 30 m, altezza 37,5 m",
            font=subtitle, fill="#525860")

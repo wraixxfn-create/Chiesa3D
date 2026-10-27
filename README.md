@@ -1,6 +1,6 @@
 # Chiesa3D — Facciata e corpo del Duomo di Siena
 
-Modello 3D (`.blend`) della **facciata ovest del Duomo di Siena** (v3.9) **e del corpo della chiesa** (v4.3): navate, transetto, coro, tamburo e calotta, lanterna, campanile, annessi e muri superstiti del Duomo Nuovo. Il corpo resta volutamente semplice, ma il perimetro è ora calibrato sulle **quote interne ufficiali** (89,4 × 24,37 × 54,48 m) agganciate alla facciata, e le altezze sulle fotografie aeree, laterali e sui rilievi allegati. **La facciata è il riferimento fisso e non è stata modificata**.
+Modello 3D (`.blend`) della **facciata ovest del Duomo di Siena** (v3.9) **e del corpo della chiesa** (v4.4): navate, transetto, coro, tamburo e calotta, lanterna, campanile, annessi e muri superstiti del Duomo Nuovo. Il corpo resta volutamente semplice, ma il perimetro è ora calibrato sulle **quote interne ufficiali** (89,4 × 24,37 × 54,48 m) agganciate alla facciata, e le altezze sulle fotografie aeree, laterali e sui rilievi allegati. **La facciata è il riferimento fisso e non è stata modificata**.
 
 ## File
 
@@ -21,17 +21,17 @@ Modello 3D (`.blend`) della **facciata ovest del Duomo di Siena** (v3.9) **e del
 | `anteprima_galleria.png` | Dettaglio panoramico v2.5 sul taglio della fotografia: fregio di cherubini, trabeazione a scacchiera, 15 edicole con profeti in altorilievo, pennacchi e sommità del rosone (Cycles CPU, 1600×520) |
 | `confronto_galleria.png` | Confronto fotografia di riferimento / versione 2.4 / versione 2.5 della galleria dei Profeti |
 | `genera_facciata.py` | Script procedurale che rigenera modello, texture, anteprime e GLB da zero (dalla v4.0 include anche i muri esterni del corpo) |
-| `muri_esterni.py` | **v4.3** — pianta digitalizzata, muri a due livelli, tetti a falde, cupola con lanterna e campanile nella posizione corretta |
-| `aggiorna_muri_esterni.py` | **v4.3** — ricostruisce soltanto le raccolte `07*` su un `.blend` esistente e genera le due anteprime generali |
-| `crea_pianta_proporzioni.py` | **v4.3** — compone `pianta_proporzioni.png`: tracciatura della pianta, quote orizzontali e verticali, rapporti con la facciata |
-| `pianta_proporzioni.png` | **v4.3** — tavola quotata di controllo delle proporzioni |
-| `anteprima_struttura.png` | **v4.3** — assonometria dal fianco destro (Duomo Nuovo nascosto per leggibilità) |
-| `anteprima_pianta.png` | **v4.3** — vista ortografica dall'alto, facciata in basso e campanile a destra; Duomo Nuovo compreso |
+| `muri_esterni.py` | **v4.4** — pianta digitalizzata, muri a due livelli, giunti a mitra chiusi, tetti solidi, volumi interni che chiudono ogni fessura, cupola con lanterna e campanile nella posizione corretta |
+| `aggiorna_muri_esterni.py` | **v4.4** — ricostruisce soltanto le raccolte `07*` su un `.blend` esistente e genera le due anteprime generali |
+| `crea_pianta_proporzioni.py` | **v4.4** — compone `pianta_proporzioni.png`: tracciatura della pianta, quote orizzontali e verticali, rapporti con la facciata |
+| `pianta_proporzioni.png` | **v4.4** — tavola quotata di controllo delle proporzioni |
+| `anteprima_struttura.png` | **v4.4** — assonometria dal fianco destro (Duomo Nuovo nascosto per leggibilità) |
+| `anteprima_pianta.png` | **v4.4** — vista ortografica dall'alto, facciata in basso e campanile a destra; Duomo Nuovo compreso |
 | `crea_confronto_torri.py` | Compone `confronto_torri.png` affiancando i ritagli della fotografia ai render `model_sx.png` / `model_dx.png` |
 | `crea_confronto_v39.py` | Compone `confronto_v39.png`: fotografia di riferimento e render d'insieme v3.9 affiancati alla stessa altezza |
 | `confronto_v39.png` | Confronto d'insieme fotografia / v3.9: torrioni bicromi, portali a rilievo e gradinata a bande |
 | `model_sx.png`, `model_dx.png` | Primi piani verticali di ciascuna torre usati dal confronto, rigenerati dallo script (Cycles CPU, 520×1420) |
-| `config_facciata.json` | Tutti i parametri (dimensioni, materiali PBR, luci, camera, render, export) + sezione `muri_esterni` della v4.3 |
+| `config_facciata.json` | Tutti i parametri (dimensioni, materiali PBR, luci, camera, render, export) + sezione `muri_esterni` della v4.4 |
 | `riferimento_aerea.webp` | **v4.2** — vista aerea allegata: posizione di cupola, campanile e Duomo Nuovo |
 | `riferimento_altezze.jpg` | **v4.2** — fotografia laterale allegata per i rapporti fra facciata, cupola e campanile |
 | `riferimento_assonometria.jpeg` | **v4.2** — vista generale allegata per controllare i due livelli delle navate e le coperture |
@@ -43,7 +43,7 @@ Modello 3D (`.blend`) della **facciata ovest del Duomo di Siena** (v3.9) **e del
 | `riferimento_galleria.jpg` | Fotografia di dettaglio (1866×619) della galleria dei Profeti e dei pennacchi del rosone, riferimento della versione 2.3 |
 | `riferimento_vetrata.jpg` | Fotografia di dettaglio (1453×1582) del rosone, delle nicchie laterali e dei pennacchi, riferimento della versione 2.6 |
 | `riferimento_cuspidi.jpg` | Nuovo dettaglio frontale (3120×1146) dei due frontoni con la Presentazione e la Natività, riferimento della versione 2.9 |
-| `firma_facciata.py` | **v4.3** — firma geometrica (vertici, poligoni, materiali, trasformazioni) di tutte le mesh non `07*`: prova che la facciata non cambia |
+| `firma_facciata.py` | **v4.4** — firma geometrica (vertici, poligoni, materiali, trasformazioni) di tutte le mesh non `07*`: prova che la facciata non cambia |
 | `riferimento_pianta_baedeker.jpg` | **v4.3** — pianta Baedeker con scala grafica da 20 m: controllo incrociato di navata, transetto e Duomo Nuovo |
 | `riferimento_pianta_touring.gif` | **v4.3** — pianta con scala 0–10 m e lettere: rapporti lunghezza/navata e perimetro del Duomo Nuovo |
 | `riferimento_prospetto_facciata.png` | **v4.3** — prospetto quotato a colori della facciata: conferma del riferimento fisso |
@@ -57,7 +57,7 @@ Modello 3D (`.blend`) della **facciata ovest del Duomo di Siena** (v3.9) **e del
 
 La facciata di riferimento è larga **30 m reali** e alta **37,5 m reali** all'angelo. Il progetto mantiene `scala_globale: 3.0`: in unità modello diventa quindi circa **90 × 112,5** (gradinata compresa: 126 di larghezza). Impostando la scala a `1.0` tutte le quote tornano direttamente in metri reali.
 
-| Elemento v4.3 | Metri reali | Unità modello (scala 3) |
+| Elemento v4.4 | Metri reali | Unità modello (scala 3) |
 |---|---:|---:|
 | Larghezza esterna navata (interni 24,37) | 27,37 | 82,11 |
 | Larghezza esterna transetto (interni 54,48) | 57,48 | 172,44 |
@@ -72,6 +72,66 @@ La facciata di riferimento è larga **30 m reali** e alta **37,5 m reali** all'a
 | Campanile, punta centrale | **77,00** | **231,00** |
 
 I rapporti verticali riferiti alla facciata sono quindi **1,28× per la cupola** e **2,053× per il campanile**. Le quote planimetriche sono esterne e comprendono i muri; non vanno confuse con le misure interne dell'aula.
+
+## Versione 4.4 — muri mancanti e pezzi volanti
+
+Richiesta: *«mancano alcuni muri e ci sono dei pezzi volanti»*.
+
+Il corpo della chiesa era costruito con **soltanto superfici**: muri, falde e
+lastre di copertura, senza volumi sotto.  Dove due superfici si incontravano
+con uno scarto di pochi centimetri si apriva una fessura da cui si vedeva il
+cielo (il "muro mancante"), e dove una superficie non aveva niente sotto
+restava sospesa (il "pezzo volante").  Quattro interventi, tutti dentro le
+raccolte `07*`: **quote, perimetro e facciata non cambiano di un millimetro**
+(la firma geometrica delle 3.905 mesh del fronte resta identica).
+
+1. **Giunti a mitra calcolati sull'anello, non sul tratto.**  Ogni fascia
+   (plinto, paramento, fascia scura, coronamento) veniva offsettata come
+   spezzata aperta: al primo e all'ultimo nodo la mitra veniva dimezzata e i
+   tratti consecutivi non si toccavano — da qui le fessure agli angoli
+   interni della croce e le due spalline sul retro della facciata.  Ora
+   `poligono_tratto()` calcola le mitre **una sola volta sull'anello chiuso**
+   e ogni tratto ne legge i due nodi: due tratti consecutivi condividono
+   esattamente gli stessi due punti, a qualunque spessore (plinto e
+   coronamento sporgono di 0,18 m in piu' e restano chiusi).
+2. **Tetti solidi.**  Le falde erano gusci di quattro facce senza fondo:
+   da sotto si vedeva il cielo e di taglio restava un filo.  Ora ogni tetto è
+   un volume chiuso con **spessore 0,45 m**, fondo e timpani
+   (`muri_esterni.spessore_tetti`).  La gronda sporge oltre il filo del muro
+   di 1,07 m, coprendo lo scarto fra piano d'appoggio e coronamento.
+3. **Niente più pezzi sospesi.**
+   - il **tamburo** scendeva a 23,6 m mentre il tetto sotto di lui è a
+     22,2 m: restava appeso con una fessura di luce ai piedi.  Ora si imposta
+     a 21,8 m (filo del cleristorio) e affonda nel volume della crociera;
+   - la **cornice inferiore del tamburo** era un dodecagono di raggio 11,5 m
+     sopra un esagono con inraggio 9,8 m: sporgeva nel vuoto.  Ora è
+     **esagona** come il pieno che la regge;
+   - il **tetto del transetto** era un unico rettangolo sul rettangolo
+     circoscritto e sporgeva di quasi 9 m sopra i risalti della pianta: ora
+     sono tre tetti che seguono i tre tratti del perimetro;
+   - la **cuspide del campanile** tagliava i quattro pinnacoli d'angolo
+     (due fessure scure sulla piramide): ora è rientrata di 1,15 m e i
+     pinnacoli, più snelli e alti, restano liberi;
+   - gli **annessi** erano gusci aperti, offsettati come polilinea chiusa a
+     mano (giunto di chiusura accavallato, cunei agli spigoli) e con una
+     copertura **più piccola del muro**, che sembrava appoggiata a mezz'aria.
+     Ora sono **muri cavi veri** (anello esterno/interno, `_muro_anello`) con
+     la lastra di copertura a filo del filo esterno;
+   - il **Duomo Nuovo** era quattro pareti staccate: attacco, parete nord,
+     facciatone e parete sud ora sono un'unica catena con tre giunti a mitra
+     e ricevono il piano di calpestio; il recinto resta aperto in alto, come
+     il progetto mai completato.
+4. **Volumi interni opachi (nuova raccolta `07i_Volumi_Interni`).**  Navata,
+   navate laterali, coro, transetto e risalti della crociera, interni degli
+   annessi e del Duomo Nuovo ricevono masse **scure e opache**, tenute 0,45 m
+   sotto i colmi per non spuntare dal tetto.  Non si vedono in nessuna vista
+   normale: servono a chiudere tutte le fessure residue fra una superficie e
+   l'altra.  Si spengono con `muri_esterni.riempi_volumi: false`.
+
+Verifiche: `tests/test_giunti.py` controlla la matematica delle mitre
+(larghezza costante, anello quadrato con area esatta), la condivisione delle
+testate fra tratti consecutivi, la continuità della catena del Duomo Nuovo e
+l'addossamento degli annessi.  Il conteggio passa da 100 a 106 oggetti `07*`.
 
 ## Versione 4.3 — perimetro sulle quote ufficiali, facciata come riferimento
 
@@ -116,7 +176,8 @@ volte, tavola gotica, modello di carta, foto aeree e dal suolo.
   di campanile e cupola e gerarchia delle altezze.
 
 Le sezioni dedicate alle versioni 4.2, 4.1, 4.0, 3.9 e precedenti restano qui
-sotto come **cronologia**; per lo stato attuale fanno fede questa sezione e
+sotto come **cronologia**; per lo stato attuale fanno fede la sezione 4.4 qui
+sopra (che corregge solo la geometria dei muri, non le quote) e
 `config_facciata.json`.
 
 ## Versione 4.2 — perimetro e altezze calibrati sulla facciata
@@ -1228,7 +1289,8 @@ continuità, scala uniforme e collocazione della torre.
 **Nota storica:** nella sessione v4.1 il `.blend` e le anteprime 3D non erano
 stati rigenerati per la mancanza di librerie di sistema del runtime Blender.
 La v4.2 ha invece aggiornato e verificato tutti gli artefatti con Blender
-4.2.23 LTS; la v4.3 corrente li ha rigenerati con il modulo `bpy` 4.2.0 in
-modalità headless (le librerie X11/GL mancanti nel runtime sono state
-sostituite da stub di compatibilità no-op) e ha certificato l'invarianza
-della facciata con `firma_facciata.py`.
+4.2.23 LTS; la v4.3 e la v4.4 li hanno rigenerati con il modulo `bpy` 4.2.0
+in modalità headless (le librerie X11/GL mancanti nel runtime sono state
+sostituite da stub di compatibilità no-op) e hanno certificato l'invarianza
+della facciata: `firma_facciata.py` dà la stessa firma su 3.905 mesh prima e
+dopo la v4.4.
