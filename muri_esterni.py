@@ -653,6 +653,24 @@ def _calotta(nome, cx, cy, raggio, z_base, z_colmo,
     return _mesh(nome, verts, faces, materiale, col, scala)
 
 
+def _curva_tubo(nome, punti, raggio, materiale, col, scala, cyclic=False):
+    """Linea architettonica in rilievo (costoloni e giunti della copertura)."""
+    curve = bpy.data.curves.new(nome + "Curve", type="CURVE")
+    curve.dimensions = "3D"
+    curve.resolution_u = 1
+    curve.bevel_depth = raggio * scala
+    curve.bevel_resolution = 2
+    spline = curve.splines.new("POLY")
+    spline.points.add(len(punti) - 1)
+    for p, co in zip(spline.points, punti):
+        co.co = (p[0] * scala, p[1] * scala, p[2] * scala, 1.0)
+    spline.use_cyclic_u = cyclic
+    obj = bpy.data.objects.new(nome, curve)
+    col.objects.link(obj)
+    obj.data.materials.append(materiale)
+    return obj
+
+
 def _piramide(nome, base, z_base, z_colmo, materiale, col, scala):
     """Piramide (o cono poligonale) su base poligonale, senza la faccia di base."""
     n = len(base)
@@ -852,9 +870,34 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
         _estrudi_poligono(
             nome, _poligono_regolare(cx, cy, raggio, lati, scala, rot),
             z * scala, (z + H_COPING) * scala, mats["cornice"], ct, scala)
-    _calotta("Cupola_Calotta", cx, cy, R_TAMBURO * 0.90,
-             h_tamburo + H_COPING, h_calotta,
-             mats["piombo"], ct, scala)
+    r_calotta = R_TAMBURO * 0.90
+    z_base_calotta = h_tamburo + H_COPING
+    _calotta("Cupola_Calotta", cx, cy, r_calotta,
+             z_base_calotta, h_calotta, mats["piombo"], ct, scala,
+             lati=96, anelli=28)
+    # La calotta fotografica è scandita da spicchi metallici e costoloni
+    # radiali: i rilievi seguono la superficie emisferica, invece di restare
+    # semplici linee dritte. Le costole sono appena in rilievo e leggibili
+    # anche da lontano, come nella cupola reale in lastre di piombo.
+    for i in range(24):
+        a = 2.0 * math.pi * i / 24
+        pts = []
+        for j in range(31):
+            theta = (j / 30) * (math.pi / 2 - 0.012)
+            r = r_calotta * math.cos(theta) + 0.035
+            z = z_base_calotta + (h_calotta - z_base_calotta) * math.sin(theta)
+            pts.append((cx + r * math.cos(a), cy + r * math.sin(a), z))
+        _curva_tubo("Cupola_Costolone_%02d" % i, pts, 0.075,
+                    mats["cornice"], ct, scala)
+    # Fasce concentriche sottili: giunti delle falde, non decorazione casuale.
+    for i, theta in enumerate((0.24, 0.48, 0.72, 0.96, 1.20)):
+        r = r_calotta * math.cos(theta) + 0.025
+        z = z_base_calotta + (h_calotta - z_base_calotta) * math.sin(theta)
+        pts = [(cx + r * math.cos(2 * math.pi * k / 96),
+                cy + r * math.sin(2 * math.pi * k / 96), z)
+               for k in range(96)]
+        _curva_tubo("Cupola_Giunto_Anulare_%02d" % i, pts, 0.025,
+                    mats["interno"], ct, scala, cyclic=True)
 
     # Lanterna e croce: semplici, ma incluse nel colmo complessivo di 48 m.
     r_lanterna = max(1.65, R_TAMBURO * 0.17)
