@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-MURI ESTERNI DEL CORPO DELLA CHIESA — Duomo di Siena (v5.0)
+MURI ESTERNI DEL CORPO DELLA CHIESA — Duomo di Siena (v5.2)
 ============================================================
 
 Il progetto nasce come SOLA facciata ovest. Questo modulo aggiunge il resto
@@ -88,8 +88,8 @@ H_COPING = 0.40
 H_FASCIA = 7.6          # unica fascia scura a mezza altezza dei muri bassi
 SPESSORE_FASCIA = 0.55
 H_TAMBURO_BASE = 23.6
-H_TAMBURO = 29.8        # sommita' delle due gallerie (cupola v5.1)
-H_CALOTTA = 39.2        # apice della calotta = imposta della lanterna (v5.1)
+H_TAMBURO = 29.8        # sommita' delle due gallerie (cupola v5.2)
+H_CALOTTA = 39.2        # apice della calotta = imposta della lanterna (v5.2)
 H_CUPOLA = 48.0         # croce compresa: 48 / 37,5 = 1,28 volte la facciata
 H_CAMPANILE = 68.0      # filo superiore del fusto
 H_CAMPANILE_PUNTA = 77.0# 77 / 37,5 = 2,053 volte la facciata
@@ -887,7 +887,7 @@ def costruisci_muri_esterni(scala=SCALA_DEFAULT, cfg=None,
         from cupola import costruisci_cupola
     except ImportError as errore:  # pragma: no cover - solo se manca il file
         costruisci_cupola = None
-        print("Cupola v5.0 non disponibile (%s): uso la calotta semplice"
+        print("Cupola v5.2 non disponibile (%s): uso la calotta semplice"
               % errore)
     if costruisci_cupola is not None:
         risultato_cupola = costruisci_cupola(
@@ -1069,7 +1069,7 @@ def riepilogo_dimensioni():
 
 
 def quota_cupola(nome):
-    """Legge una quota da `cupola.py` (v5.0), con ripiego sui valori v4.4.
+    """Legge una quota da `cupola.py` (v5.2), con ripiego sui valori v4.4.
 
     Le altezze del tiburio vivono in un solo posto: qui si evita di
     duplicarle, cosi' il riepilogo non puo' divergere dal modello.
