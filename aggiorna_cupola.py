@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Rigenera soltanto il gruppo TIBURIO + CALOTTA + LANTERNA (v5.1).
+Rigenera soltanto il gruppo TIBURIO + CALOTTA + LANTERNA (v5.2).
 
 Apre `Facciata_Duomo_Siena.blend`, cancella gli oggetti della raccolta
 `07d_Tiburio_e_Cupola` e li ricostruisce con `cupola.py`; opzionalmente
@@ -20,6 +20,7 @@ Variabili d'ambiente:
     CHIESA_CUPOLA_NO_RENDER=1  non generare le anteprime
     CHIESA_CUPOLA_SAMPLES=24   campioni Cycles delle anteprime
     CHIESA_CUPOLA_RES=900x1150 risoluzione delle viste della cupola
+    CHIESA_CUPOLA_FASTIGIO_RES=900x900  risoluzione del primo piano del fastigio
 
 La facciata e il resto del corpo non vengono toccati: tutto il lavoro avviene
 dentro la raccolta `07d*`.
@@ -124,10 +125,14 @@ cam_cupola = _camera("Camera_Cupola_3Q", _bersaglio(36.0), 205.0, 20.0, 9.0,
 # Il sole del .blend arriva da destra (rotazione Z 52,7): le camere della
 # cupola stanno dallo stesso lato, cosi' la calotta e la lanterna sono in luce
 # come nelle fotografie allegate invece che in controluce.
-cam_lanterna = _camera("Camera_Cupola_Lanterna", _bersaglio(45.2), 82.0, 18.0,
+cam_lanterna = _camera("Camera_Cupola_Lanterna", _bersaglio(44.4), 74.0, 18.0,
                        8.0, 85.0)
 cam_tamburo = _camera("Camera_Cupola_Tamburo", _bersaglio(27.6), 148.0, 12.0,
                       8.0, 85.0)
+# Primo piano del fastigio: mela, stella e segnavento.  Distanza 30 m e
+# lente 85 mm inquadrano gli ultimi 2,5 m senza tagliare la bandiera.
+cam_fastigio = _camera("Camera_Cupola_Fastigio", _bersaglio(47.2), 30.0, 18.0,
+                       8.0, 85.0)
 
 def _luce_riempimento_cupola():
     """Due soli deboli di riempimento per le anteprime.
@@ -139,8 +144,8 @@ def _luce_riempimento_cupola():
     """
     out = []
     for nome, energia, rz, rx in (
-            ("Luce_Riempimento_Cupola_A", 1.6, 52.0, 34.0),
-            ("Luce_Riempimento_Cupola_B", 0.9, -60.0, 46.0)):
+            ("Luce_Riempimento_Cupola_A", 1.8, 52.0, 34.0),
+            ("Luce_Riempimento_Cupola_B", 1.1, -60.0, 46.0)):
         dati = bpy.data.lights.new(nome, type="SUN")
         dati.energy = energia
         dati.angle = math.radians(18.0)
@@ -169,13 +174,13 @@ if os.environ.get("CHIESA_CUPOLA_BACKUP") and \
 
 scene.camera = camera_originale
 scene["nota_cupola"] = (
-    "v5.1: tiburio con due ordini di logge (colonne binate e archi acuti "
-    "sotto, colonne binate e archetti a tutto sesto sopra), calotta fatta di "
-    "768 LASTRE di piombo vere con pieghe di giunzione e otto costoloni a "
-    "nastro, lanterna del Bernini ad otto lati con finestre a sesto acuto e "
-    "grate, fascia in piombo con gli oculi, tetto a otto falde, vaso lapideo, "
-    "mela dorata a coste, stella a dodici punte e croce; punta della croce "
-    "a 48 m.")
+    "v5.2: tiburio con due ordini di logge (48 archi ciascuno), calotta "
+    "OGIVALE fatta di 768 LASTRE di piombo vere con pieghe di giunzione, "
+    "SEDICI costoloni a nastro e linguette di gronda; lanterna del Bernini "
+    "con corpo circolare a 64 facce, OTTO finestre rettangolari traforate, "
+    "fascia in piombo con oculi ovali, tetto concavo a OTTO LOBI, mela "
+    "dorata sfaccettata, stella a raggi piramidali e segnavento; punta "
+    "del segnavento a 48 m.")
 bpy.ops.wm.save_as_mainfile(filepath=OUT_PATH, compress=True)
 print(f"Salvato: {OUT_PATH}")
 
@@ -209,6 +214,8 @@ if not os.environ.get("CHIESA_CUPOLA_NO_RENDER"):
 
     rx, ry = (int(v) for v in os.environ.get(
         "CHIESA_CUPOLA_RES", "900x1150").split("x"))
+    fx, fy = (int(v) for v in os.environ.get(
+        "CHIESA_CUPOLA_FASTIGIO_RES", "900x900").split("x"))
     # Nel render d'insieme il Duomo Nuovo resta nascosto: le sue pareti vuote
     # toglierebbero leggibilita' alla cupola (come nelle altre anteprime).
     _rendi(cam_cupola, "anteprima_cupola.png", rx, ry,
@@ -216,6 +223,8 @@ if not os.environ.get("CHIESA_CUPOLA_NO_RENDER"):
     _rendi(cam_lanterna, "anteprima_cupola_lanterna.png", rx, ry,
            nascondi=("07g_Duomo_Nuovo_Incompiuto",))
     _rendi(cam_tamburo, "anteprima_cupola_tamburo.png", 1200, 800,
+           nascondi=("07g_Duomo_Nuovo_Incompiuto",))
+    _rendi(cam_fastigio, "anteprima_cupola_fastigio.png", fx, fy,
            nascondi=("07g_Duomo_Nuovo_Incompiuto",))
 
     scene.camera = camera_originale

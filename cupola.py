@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-TIBURIO, CALOTTA E LANTERNA DEL DUOMO DI SIENA (v5.1)
+TIBURIO, CALOTTA E LANTERNA DEL DUOMO DI SIENA (v5.2)
 =====================================================
 
 Sostituisce la vecchia cupola "a campana liscia" di `muri_esterni.py` con il
@@ -23,18 +23,20 @@ Che cosa cambia rispetto alla v4.4
    quindi la loggia ha profondita' e ombra.
 2. Bicromia senese: attico con fasce di serpentino, fregio a scacchiera fra
    i due ordini, dentelli sotto ogni cornice.
-3. CALOTTA a LASTRE, riscritta nella v5.1: il guscio liscio con una griglia
-   dipinta e' stato sostituito da 768 lastre di piombo vere disposte in
-   filari (12) e in strisce (8 per spicchio), con le pieghe di giunzione
-   rilevate, gli otto costoloni a nastro rastremato e una patina procedurale
-   (piombo scuro, velature chiare, colature) al posto del grigio uniforme.
-4. LANTERNA del Bernini (1667) ricostruita nella v5.1 sulla fotografia in
-   primo piano: corpo ottagono piu' largo, otto finestre con grata e arco a
-   sesto acuto, colonnine binate ai cantonali con basi e capitelli, cornice
-   a mensole, fascia in piombo con gli OCULI rotondi, tetto a campana in
-   lastre con i colmi di piombo, vaso lapideo a risalti, mela dorata a coste,
-   stella a dodici punte in due piani e croce a bracci ricurvi.
-5. Le quote ufficiali non cambiano: 48 m alla punta della croce, calotta
+3. CALOTTA a LASTRE, riscritta nella v5.2: il profilo non e' piu' una
+   semisfera ma una curva OGIVALE desunta dalle fotografie (spalla quasi
+   verticale, chiusura a punta).  768 lastre di piombo vere sono disposte in
+   12 filari e 16 spicchi da 4 strisce, con pieghe di giunzione rilevate,
+   SEDICI costoloni a nastro rastremato, linguette di gronda e una patina
+   procedurale piu' scura (velature, colature, ruggine) al posto del grigio
+   uniforme.
+4. LANTERNA del Bernini (1667) ricostruita nella v5.2 sulla fotografia in
+   primo piano: corpo circolare a 64 facce con OTTO finestre RETTANGOLARI
+   traforate (montanti, traversi e rosette ovali), colonnine binate, cornice
+   a mensole, fascia in piombo con oculi ovali, tetto concavo a OTTO LOBI
+   con i colmi di piombo, vaso lapideo a risalti, mela dorata sfaccettata,
+   stella d'oro a raggi piramidali e segnavento.
+5. Le quote ufficiali non cambiano: 48 m alla punta del segnavento, calotta
    impostata a 30,05 m.  La facciata (37,5 m) non viene toccata.
 
 Tutte le misure sono in METRI REALI e vengono moltiplicate per `scala`.
@@ -73,22 +75,24 @@ H_CALOTTA = 39.20         # apice della calotta = imposta della lanterna
 H_LANTERNA_BASE = H_CALOTTA
 H_CUPOLA = 48.00          # punta della croce (quota ufficiale)
 
-# --- lanterna (v5.1): quote interne, tutte riferite a H_LANTERNA_BASE -------
-# Le proporzioni vengono dal primo piano: il corpo finestrato e il tetto sono
-# alti fra loro circa 1 : 0,78, e il tetto e' una PIRAMIDE ripida a otto
-# falde, non una cupoletta schiacciata.
+# --- lanterna (v5.2): quote interne, tutte riferite a H_LANTERNA_BASE -------
+# Nelle fotografie il tempietto e' cilindrico, non ottagono: il corpo e' un
+# 64-gono con OTTO finestre rettangolari.  Il tetto e' una copertura concava
+# a otto lobi, piu' alta della piramide v5.1, e il fastigio (mela, stella e
+# segnavento) e' stato ridisegnato con volumi sfaccettati.
 L_ZOCOLO = 0.92           # dado pieno, dal basamento al davanzale
 L_DAVANZALE = 0.95        # piano delle finestre
-L_IMPOSTA = 3.02          # imposta degli archi delle finestre
-L_ARCHI = 0.46            # freccia dell'arco a sesto acuto
+L_IMPOSTA = 3.02          # sommita' delle finestre rettangolari
+L_ARCHI = 0.0             # niente arco: le finestre sono rettangolari
 L_CORONA = 3.58           # sommita' del corpo finestrato
 L_TRABEAZIONE = 3.98      # sommita' della cornice a mensole
 L_GRONDA = 4.48           # bordo della fascia in piombo con gli oculi
-L_TETTO = 6.45            # colmo del tetto a campana
-L_VASO = 7.08             # sommita' del vaso lapideo
-L_MELA = 7.42             # centro della mela dorata
-L_STELLA = 7.95           # centro della stella
-R_MELA = 0.30
+L_TETTO = 7.15            # colmo del tetto concavo a otto lobi
+L_VASO = 7.58             # sommita' del vaso lapideo
+L_MELA = 7.74             # centro della mela dorata (46,94 m)
+L_STELLA = 8.24           # centro della stella
+R_MELA = 0.40
+R_STELLA = 0.36
 
 R_ATTICO = 11.335         # esagono del tiburio (22,67 m fra i vertici)
 R_LOGGE_INF = 11.10       # 24-gono della loggia inferiore
@@ -96,27 +100,29 @@ R_LOGGE_SUP = 10.35       # dodecagono della loggia superiore
 R_CALOTTA = 10.10         # raggio della calotta alla base (diametro 20,2 m)
 R_GRONDA = 10.55          # ghiaccio di gronda in piombo (aggetto)
 
-# Ottagono del tempietto: 5,3 m fra i vertici.  Nelle fotografie la lanterna
-# e' circa un quarto del diametro della calotta (20,2 m) e il suo corpo,
-# escluse le modanature, e' piu' stretto che alto.
-R_LANTERNA = 2.64
-R_LANTERNA_BASE = 2.92    # basamento e cornice
+# Tempietto: 5,84 m di diametro.  Nelle fotografie la lanterna e' circa un
+# quarto del diametro della calotta (20,2 m) e il suo corpo, escluse le
+# modanature, e' piu' stretto che alto.
+R_LANTERNA = 2.92
+R_LANTERNA_BASE = 3.22    # basamento e cornice
 LATO_SUP = 0.55           # spessore dei muri delle logge
 LATO_LANTERNA = 0.40      # spessore dei muri della lanterna
 
 LATI_LOGGE_INF = 24       # due ordini entrambi a ventiquattro lati
 LATI_LOGGE_SUP = 24
-LATI_LANTERNA = 8
+LATI_CORPO_LANTERNA = 64  # cilindro del corpo finestrato
+LATI_LANTERNA = LATI_CORPO_LANTERNA   # compatibilita' con i test v5.1
+BAIE_LANTERNA = 8         # otto finestre rettangolari
 BAIE_LOGGE_INF = 48       # 48 archi acuti -> passo 1.45 m, luce 0.78 m
-BAIE_LOGGE_SUP = 72       # 72 archetti -> passo 0.90 m, luce 0.46 m
+BAIE_LOGGE_SUP = 48       # 48 archetti -> passo 1.35 m, come nella foto
 
 PASSO_DENTELLI = 0.46
 SPESSORE_FASCIA = 0.13
 
-COSTOLONI = 8             # otto costoloni esterni, come nella cupola reale
-SPICCHI = 8
+COSTOLONI = 16            # sedici costoloni esterni, come nella cupola reale
+SPICCHI = 16
 FILARI_CALOTTA = 12       # filari di lastre lungo il meridiano
-STRISCE_PER_SPICCHIO = 8  # lastre per spicchio lungo il giro (64 in tutto)
+STRISCE_PER_SPICCHIO = 4  # 16 x 4 x 12 = 768 lastre in tutto
 PANNELLO_V = 0.92         # altezza media dei filari (m), usata solo nei test
 
 
@@ -136,7 +142,7 @@ NOMI_MAT = {
 # -----------------------------------------------------------------------------
 # 2. MATERIALI
 # -----------------------------------------------------------------------------
-VERSIONE_MATERIALI = "5.1.0"
+VERSIONE_MATERIALI = "5.2.0"
 
 
 def _versione_ok(m):
@@ -235,13 +241,14 @@ def _tex_noise(nodes, links, coord, scala, metri, detail=6.0, rough=0.55,
 
 
 def _materiale_piombo(scala=3.0):
-    """Piombo vecchio della calotta (v5.1).
+    """Piombo vecchio della calotta (v5.2).
 
-    Le lastre non sono piu' disegnate da una texture: dalla v5.1 sono 768
+    Le lastre non sono piu' disegnate da una texture: dalla v5.2 sono 768
     piastre di geometria vera con le pieghe di giunzione rilevate, quindi il
-    materiale deve solo raccontare la MATERIA — piombo scuro con velature
-    chiare di patina, colature grigie, qualche chiazza di ruggine — e non la
-    griglia dei riquadri.
+    materiale deve solo raccontare la MATERIA.  Rispetto alla v5.1 il piombo
+    e' piu' scuro e meno azzurrato, con velature piu' fredde, colature lunghe
+    e poche chiazze di ruggine: nelle fotografie la calotta e' quasi nera
+    quando e' in ombra, non grigio chiaro.
     """
     nome = NOMI_MAT["piombo"]
     m = bpy.data.materials.get(nome)
@@ -269,11 +276,11 @@ def _materiale_piombo(scala=3.0):
     ramp_p.location = (-620, 300)
     e = ramp_p.color_ramp.elements
     e[0].position = 0.34
-    e[0].color = (0.248, 0.262, 0.272, 1.0)     # piombo annerito
+    e[0].color = (0.185, 0.195, 0.205, 1.0)     # piombo annerito
     e[1].position = 0.68
-    e[1].color = (0.372, 0.382, 0.388, 1.0)     # velatura chiara
+    e[1].color = (0.305, 0.315, 0.322, 1.0)     # velatura chiara
     medio = ramp_p.color_ramp.elements.new(0.50)
-    medio.color = (0.305, 0.318, 0.330, 1.0)
+    medio.color = (0.245, 0.255, 0.265, 1.0)
     links.new(patina.outputs["Fac"], ramp_p.inputs["Fac"])
 
     # 2) colature verticali: rumore stirato in altezza
@@ -307,9 +314,9 @@ def _materiale_piombo(scala=3.0):
     ramp_v.location = (-620, 620)
     ev = ramp_v.color_ramp.elements
     ev[0].position = 0.38
-    ev[0].color = (0.78, 0.78, 0.78, 1.0)
+    ev[0].color = (0.70, 0.70, 0.70, 1.0)
     ev[1].position = 0.72
-    ev[1].color = (1.08, 1.08, 1.08, 1.0)
+    ev[1].color = (0.98, 0.98, 0.98, 1.0)
     links.new(velo.outputs["Fac"], ramp_v.inputs["Fac"])
 
     rugg = _tex_noise(nodes, links, coord.outputs["Object"], scala, 0.85,
@@ -333,7 +340,7 @@ def _materiale_piombo(scala=3.0):
 
     ruggine = nodes.new("ShaderNodeMixRGB")
     ruggine.location = (-60, 160)
-    ruggine.inputs["Color2"].default_value = (0.250, 0.112, 0.055, 1.0)
+    ruggine.inputs["Color2"].default_value = (0.205, 0.090, 0.045, 1.0)
     links.new(velato.outputs["Color"], ruggine.inputs["Color1"])
     links.new(ramp_r.outputs["Color"], ruggine.inputs["Fac"])
     links.new(ruggine.outputs["Color"], bsdf.inputs["Base Color"])
@@ -385,8 +392,8 @@ def _materiale_piombo_costa(scala=3.0):
                      detail=6.0, rough=0.55, loc=(-480, 0))
     ramp = nodes.new("ShaderNodeValToRGB")
     ramp.location = (-220, 0)
-    ramp.color_ramp.elements[0].color = (0.315, 0.325, 0.330, 1.0)
-    ramp.color_ramp.elements[1].color = (0.470, 0.478, 0.474, 1.0)
+    ramp.color_ramp.elements[0].color = (0.270, 0.280, 0.286, 1.0)
+    ramp.color_ramp.elements[1].color = (0.410, 0.418, 0.416, 1.0)
     links.new(ntx.outputs["Fac"], ramp.inputs["Fac"])
     links.new(ramp.outputs["Color"], bsdf.inputs["Base Color"])
     bsdf.inputs["Roughness"].default_value = 0.36
@@ -408,7 +415,7 @@ def _materiale_giunti(scala=3.0):
     out.location = (320, 40)
     bsdf = nodes.new("ShaderNodeBsdfPrincipled")
     bsdf.location = (60, 40)
-    bsdf.inputs["Base Color"].default_value = (0.215, 0.225, 0.232, 1.0)
+    bsdf.inputs["Base Color"].default_value = (0.165, 0.175, 0.182, 1.0)
     bsdf.inputs["Metallic"].default_value = 0.30
     bsdf.inputs["Roughness"].default_value = 0.44
     links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
@@ -877,18 +884,23 @@ def _interp(nodi, t):
 
 
 def profilo_calotta(r_base, z_base, z_apice, passi=30):
-    """Profilo della calotta dal filo di gronda all'apice.
+    """Profilo OGIVALE della calotta dal filo di gronda all'apice (v5.2).
 
-    La cupola senese non e' un emisfero regolare: la spalla sale subito e la
-    volta si chiude piu' in fretta.  Un'esponente > 1 sul seno alza la
-    spalla, un coseno smorzato tiene il piede piu' pieno.
+    Nelle fotografie la cupola senese non e' una semisfera: la spalla e'
+    quasi verticale per i primi due metri, poi il meridiano si stringe con
+    una curva continua e si chiude a PUNTA sotto la lanterna.  La spezzata
+    qui sotto e' il rapporto raggio/quota letto sul fianco destro della
+    fotografia: e' monotona, parte da `r_base` e arriva a raggio zero con
+    una pendenza finita (non con la tangente orizzontale dell'emisfero).
     """
+    nodi = [(0.00, 1.000), (0.10, 0.985), (0.22, 0.930), (0.36, 0.835),
+            (0.50, 0.775), (0.64, 0.670), (0.78, 0.550), (0.88, 0.435),
+            (0.95, 0.300), (0.98, 0.100), (1.00, 0.000)]
     out = []
     for k in range(passi + 1):
-        th = (k / passi) * math.pi / 2.0
-        r = r_base * math.cos(th) ** 0.97
-        z = z_base + (z_apice - z_base) * math.sin(th) ** 0.90
-        out.append((r, z))
+        t = k / passi
+        out.append((r_base * _interp(nodi, t),
+                    z_base + (z_apice - z_base) * t))
     return out
 
 
@@ -1016,13 +1028,13 @@ def _nastro_anello(acc, cx, cy, nodi, k, larghezza, altezza, ds, passi=192):
 def calotta_lastre(acc_lastre, acc_giunti, acc_costoloni, cx, cy, nodi,
                    spicchi=SPICCHI, strisce=STRISCE_PER_SPICCHIO,
                    h_giunto=0.013, larg_giunto=0.072,
-                   h_costa=0.095, larg_costa=0.250):
+                   h_costa=0.086, larg_costa=0.220):
     """Guscio della calotta fatto di LASTRE, non di una superficie liscia.
 
     - `acc_lastre`: le piastre di piombo (una per filaro e per striscia);
     - `acc_giunti`: le pieghe di giunzione, orizzontali e verticali;
-    - `acc_costoloni`: gli otto costoloni, nastri piu' larghi e piu' alti che
-      salgono sui confini degli spicchi, allineati ai cantonali della lanterna.
+    - `acc_costoloni`: i sedici costoloni, nastri piu' larghi e piu' alti che
+      salgono sui confini degli spicchi, allineati alle finestre della lanterna.
 
     Le lastre sono un reticolo continuo: le strisce verticali corrono dalla
     gronda alla lanterna senza sfalsamenti, come nelle fotografie, dove le
@@ -1031,7 +1043,9 @@ def calotta_lastre(acc_lastre, acc_giunti, acc_costoloni, cx, cy, nodi,
     filari = len(nodi) - 1
     passo = 2.0 * math.pi / spicchi
     sub = passo / strisce
-    ruota = math.pi / LATI_LANTERNA      # costoloni sui cantieri della lanterna
+    # Mezzo passo di baia: i costoloni cadono in mezzo alle otto finestre
+    # rettangolari della lanterna e non sugli spigoli di un finto ottagono.
+    ruota = math.pi / BAIE_LANTERNA
     ds = _lunghezza_profilo(nodi) / filari
 
     for g in range(spicchi):
@@ -1059,9 +1073,11 @@ def calotta_lastre(acc_lastre, acc_giunti, acc_costoloni, cx, cy, nodi,
         _nastro_anello(acc_giunti, cx, cy, nodi, float(k), larg_giunto * 0.70,
                        h_giunto * 0.28, ds, passi=160)
 
-    # otto costoloni: nastri tondi, piu' larghi alla gronda e assottigliati
-    for g in range(spicchi):
-        ang = ruota + g * passo
+    # SEDICI costoloni: nastri tondi, piu' stretti che nella v5.1 perche'
+    # il passo dimezza, ma sempre piu' alti delle pieghe di giunzione.
+    passo_costa = 2.0 * math.pi / COSTOLONI
+    for g in range(COSTOLONI):
+        ang = ruota + g * passo_costa
         _nastro_meridiano(acc_costoloni, cx, cy, nodi, ang, larg_costa,
                           h_costa, 0.0, float(filari))
 
@@ -1193,25 +1209,197 @@ def _crea(nome, acc, materiale, col, scala, uv_sferiche=None, smooth=False,
     return obj
 
 
-def costruisci_lanterna(mats, col, scala, cx, cy, z0, h_cupola):
-    """Lanterna del Bernini (1667) misurata sul primo piano fotografico.
+# -----------------------------------------------------------------------------
+# 7. FINESTRE RETTANGOLARI, TRAFORI E FASTIGIO DELLA LANTERNA (v5.2)
+# -----------------------------------------------------------------------------
+def parete_finestre_rettangolari(acc, cx, cy, raggio, lati, z0, z1,
+                                 spessore, baie, luce, z_dav, z_top,
+                                 ruota=0.0):
+    """Parete cilindrica forata da `baie` finestre RETTANGOLARI passanti.
 
-    Ordine degli elementi, dal basso: basamento a risalti, dado e davanzale,
-    corpo ottagono con otto finestre a sesto acuto e grate in ferro, colonnine
-    binate ai cantonali, cornice a mensole, fascia in piombo con gli OCULI
-    rotondi, tetto a campana in lastre con i colmi, vaso lapideo a risalti,
-    mela dorata a coste, stella a dodici punte su due piani e croce a bracci
-    ricurvi.  La punta della croce cade esattamente sulla quota ufficiale.
+    Il corpo della lanterna senese non e' un ottagono: e' un cilindro (qui
+    un 64-gono) con otto aperture.  Ogni apertura e' un taglio rettangolare
+    nella parete, con spessore di muro e spalle verticali in muratura.
+    """
+    z_dav = max(z0, min(z_dav, z1))
+    z_top = max(z_dav, min(z_top, z1))
+    esterno = poligono(cx, cy, raggio, lati, ruota)
+    interno = poligono(cx, cy, raggio - spessore, lati, ruota)
+    semi_ang = min(0.42 * 2.0 * math.pi / baie,
+                   1.15 * luce / (2.0 * max(raggio, 1e-6)))
+    centri = [ruota + 2.0 * math.pi * (i + 0.5) / baie
+              for i in range(baie)]
+
+    def _in_finestra(ang):
+        return any(abs((ang - c + math.pi) % (2.0 * math.pi) - math.pi)
+                   < semi_ang for c in centri)
+
+    dentro = []
+    for j in range(lati):
+        a = ruota + 2.0 * math.pi * (j + 0.5) / lati
+        dentro.append(_in_finestra(a))
+
+    def _pannello(j, za, zb):
+        p0, p1 = esterno[j], esterno[(j + 1) % lati]
+        q0, q1 = interno[j], interno[(j + 1) % lati]
+        o0 = acc.v(p0[0], p0[1], za)
+        o1 = acc.v(p1[0], p1[1], za)
+        o2 = acc.v(p1[0], p1[1], zb)
+        o3 = acc.v(p0[0], p0[1], zb)
+        i0 = acc.v(q0[0], q0[1], za)
+        i1 = acc.v(q1[0], q1[1], za)
+        i2 = acc.v(q1[0], q1[1], zb)
+        i3 = acc.v(q0[0], q0[1], zb)
+        acc.faces.append((o0, o1, o2, o3))
+        acc.faces.append((i1, i0, i3, i2))
+        acc.faces.append((o3, o2, i2, i3))
+        acc.faces.append((i0, i1, o1, o0))
+
+    def _spalla(j, za, zb):
+        p, q = esterno[j], interno[j]
+        a = acc.v(p[0], p[1], za)
+        b = acc.v(p[0], p[1], zb)
+        c = acc.v(q[0], q[1], zb)
+        d = acc.v(q[0], q[1], za)
+        acc.faces.append((a, b, c, d))
+
+    for j in range(lati):
+        segmenti = ((z0, z_dav), (z_top, z1)) if dentro[j] else ((z0, z1),)
+        for za, zb in segmenti:
+            if zb - za > 1e-6:
+                _pannello(j, za, zb)
+
+    # spalle verticali delle finestre: una per ogni transizione aperto/chiuso
+    for j in range(lati):
+        if dentro[j] != dentro[(j - 1) % lati]:
+            _spalla(j, z_dav, z_top)
+    return sum(1 for x in dentro if x)
+
+
+def disco_ovale(acc, centro, asse_u, asse_v, normale, ru, rv,
+                spessore=0.03, lati=16):
+    """Disco ovale in un piano verticale, con spessore lungo `normale`.
+
+    Serve sia alle rosette dei trafori sia agli oculi della fascia di gronda
+    della lanterna: nelle fotografie sono ovali, non cerchi perfetti.
+    """
+    def _unita(v):
+        lung = math.sqrt(sum(q * q for q in v)) or 1.0
+        return tuple(q / lung for q in v)
+
+    ux, uy, uz = _unita(asse_u)
+    vx, vy, vz = _unita(asse_v)
+    nx, ny, nz = _unita(normale)
+    cx, cy, cz = centro
+    h = spessore / 2.0
+    fronte, retro = [], []
+    for k in range(lati):
+        a = 2.0 * math.pi * k / lati
+        du, dv = ru * math.cos(a), rv * math.sin(a)
+        px = cx + ux * du + vx * dv
+        py = cy + uy * du + vy * dv
+        pz = cz + uz * du + vz * dv
+        fronte.append(acc.v(px - nx * h, py - ny * h, pz - nz * h))
+        retro.append(acc.v(px + nx * h, py + ny * h, pz + nz * h))
+    acc.faces.append(tuple(fronte))
+    acc.faces.append(tuple(reversed(retro)))
+    for k in range(lati):
+        j = (k + 1) % lati
+        acc.faces.append((fronte[k], fronte[j], retro[j], retro[k]))
+
+
+def traforo_finestra(acc, cx, cy, raggio, baie, luce, z_dav, z_top,
+                     ruota=0.0):
+    """Montanti e traversi in pietra delle otto finestre rettangolari."""
+    h = z_top - z_dav
+    for i in range(baie):
+        am = ruota + 2.0 * math.pi * (i + 0.5) / baie
+        ux, uy = -math.sin(am), math.cos(am)
+        ca, sa = math.cos(am), math.sin(am)
+        r = raggio - 0.10
+        px, py = cx + r * ca, cy + r * sa
+        # due montanti -> tre luci verticali
+        for u in (-luce / 6.0, luce / 6.0):
+            acc.scatola(px + ux * u, py + uy * u, z_dav + h / 2.0,
+                        ux, uy, 0.055, 0.070, h)
+        # due traversi -> tre registri orizzontali
+        for f in (0.38, 0.72):
+            acc.scatola(px, py, z_dav + h * f, ux, uy,
+                        luce, 0.070, 0.055)
+
+
+def rosette_finestre(acc, cx, cy, raggio, baie, luce, z_dav, z_top,
+                     ruota=0.0):
+    """Piccole rosette ovali nel registro alto di ogni finestra."""
+    h = z_top - z_dav
+    for i in range(baie):
+        am = ruota + 2.0 * math.pi * (i + 0.5) / baie
+        ux, uy = -math.sin(am), math.cos(am)
+        ca, sa = math.cos(am), math.sin(am)
+        r = raggio - 0.10
+        px, py = cx + r * ca, cy + r * sa
+        for u in (-luce / 3.0, 0.0, luce / 3.0):
+            disco_ovale(acc,
+                        (px + ux * u, py + uy * u, z_dav + h * 0.86),
+                        (ux, uy, 0.0), (0.0, 0.0, 1.0), (ca, sa, 0.0),
+                        0.075, 0.098, 0.020, 12)
+
+
+def stella_oro(acc, cx, cy, z, raggio, punte=8, spessore=0.055):
+    """Stella d'oro sfaccettata: raggi piramidali su due piani incrociati."""
+    r_in = raggio * 0.30
+    delta = math.pi / punte * 0.78
+    # nucleo a bassa poligonizzazione: si legge come una stella di lamiera
+    prof = []
+    for k in range(9):
+        phi = -math.pi / 2.0 + math.pi * k / 8.0
+        prof.append((z + raggio * 0.26 * math.sin(phi),
+                     raggio * 0.26 * math.cos(phi)))
+    acc.rivoluzione(cx, cy, prof, seg=12)
+    for piano in (0, 1):
+        for k in range(punte):
+            a = math.pi / 2.0 + 2.0 * math.pi * k / punte
+            if piano == 0:
+                f = acc.v(cx, cy - spessore, z)
+                b = acc.v(cx, cy + spessore, z)
+                tip = acc.v(cx + raggio * math.cos(a), cy,
+                            z + raggio * math.sin(a))
+                s1 = acc.v(cx + r_in * math.cos(a - delta), cy,
+                           z + r_in * math.sin(a - delta))
+                s2 = acc.v(cx + r_in * math.cos(a + delta), cy,
+                           z + r_in * math.sin(a + delta))
+            else:
+                f = acc.v(cx - spessore, cy, z)
+                b = acc.v(cx + spessore, cy, z)
+                tip = acc.v(cx, cy + raggio * math.cos(a),
+                            z + raggio * math.sin(a))
+                s1 = acc.v(cx, cy + r_in * math.cos(a - delta),
+                           z + r_in * math.sin(a - delta))
+                s2 = acc.v(cx, cy + r_in * math.cos(a + delta),
+                           z + r_in * math.sin(a + delta))
+            acc.faces.extend(((f, s1, tip), (f, tip, s2),
+                              (b, tip, s1), (b, s2, tip),
+                              (f, s2, s1), (b, s1, s2)))
+
+
+def costruisci_lanterna(mats, col, scala, cx, cy, z0, h_cupola):
+    """Lanterna del Bernini (1667), v5.2: corpo circolare e fastigio rifatto.
+
+    Rispetto alla v5.1 il corpo non e' piu' un ottagono con archi acuti ma
+    un cilindro a 64 facce con OTTO finestre rettangolari traforate; il tetto
+    e' una copertura concava a OTTO LOBI; mela, stella e segnavento sono
+    volumi sfaccettati.  La punta del segnavento resta a `h_cupola` (48 m).
     """
     creati = []
     R = R_LANTERNA
     ri = R - LATO_LANTERNA
-    ruota = math.pi / LATI_LANTERNA
-    lant = poligono(cx, cy, R, LATI_LANTERNA, ruota)
-    lant_int = poligono(cx, cy, ri, LATI_LANTERNA, ruota)
+    lati = LATI_CORPO_LANTERNA
+    ruota = math.pi / BAIE_LANTERNA
+    luce = 1.18
 
     z_dav = z0 + L_DAVANZALE
     z_imp = z0 + L_IMPOSTA
+    z_top = z_imp + L_ARCHI
     z_corona = z0 + L_CORONA
     z_trab = z0 + L_TRABEAZIONE
     z_gronda = z0 + L_GRONDA
@@ -1219,10 +1407,12 @@ def costruisci_lanterna(mats, col, scala, cx, cy, z0, h_cupola):
     z_vaso = z0 + L_VASO
     z_mela = z0 + L_MELA
     z_stella = z0 + L_STELLA
-    luce = 1.02
 
-    def _p(r_, lati=LATI_LANTERNA, extra=0.0):
-        return poligono(cx, cy, r_ + extra, lati, ruota)
+    def _p(r_, extra=0.0, n=None):
+        return poligono(cx, cy, r_ + extra, n or lati, ruota)
+
+    def _centro_finestra(i):
+        return ruota + 2.0 * math.pi * (i + 0.5) / BAIE_LANTERNA
 
     # 1) basamento a risalti: raccorda la calotta al tempietto
     acc = Accumulatore()
@@ -1230,8 +1420,8 @@ def costruisci_lanterna(mats, col, scala, cx, cy, z0, h_cupola):
     for r_out, dz in ((R_LANTERNA_BASE + 0.28, 0.14),
                       (R_LANTERNA_BASE + 0.06, 0.13),
                       (R_LANTERNA_BASE - 0.16, 0.15)):
-        acc.anello(poligono(cx, cy, r_out, 40), poligono(cx, cy, R - 0.06, 40),
-                   z, z + dz)
+        acc.anello(poligono(cx, cy, r_out, 64),
+                   poligono(cx, cy, R - 0.06, 64), z, z + dz)
         z += dz
     acc.anello(_p(R, extra=0.14), _p(R, extra=-0.06), z, z + 0.05)
     creati.append(_crea("Lanterna_Basamento", acc, mats["cornice"], col, scala))
@@ -1242,174 +1432,199 @@ def costruisci_lanterna(mats, col, scala, cx, cy, z0, h_cupola):
     acc.anello(_p(R, extra=0.13), _p(ri), z_dav - 0.11, z_dav)
     creati.append(_crea("Lanterna_Zoccolo", acc, mats["marmo"], col, scala))
 
-    # 3) vano interno in ombra: dentro le finestre non si vede il cielo
+    # 3) vano interno in ombra
     acc = Accumulatore()
     acc.canna(_p(ri - 0.05), z_dav - 0.40, z_corona + 0.06)
-    acc.anello(_p(ri - 0.01), poligono(cx, cy, 0.24, LATI_LANTERNA, ruota),
+    acc.anello(_p(ri - 0.01), poligono(cx, cy, 0.24, 64, ruota),
                z_dav - 0.20, z_dav - 0.14)
     creati.append(_crea("Lanterna_Interno", acc, mats["interno"], col, scala))
 
-    # 4) corpo finestrato: otto aperture passanti con arco a sesto acuto
+    # 4) corpo finestrato: otto aperture rettangolari passanti
     acc = Accumulatore()
-    parete_arche(acc, lant, z_dav, z_corona, LATO_LANTERNA, LATI_LANTERNA,
-                 luce, L_ARCHI, z_imp, acuto=True, campioni=13, allunga=0.10)
+    parete_finestre_rettangolari(acc, cx, cy, R, lati,
+                                 z_dav - 0.10, z_corona,
+                                 LATO_LANTERNA, BAIE_LANTERNA, luce,
+                                 z_dav, z_top, ruota)
     creati.append(_crea("Lanterna_Pareti", acc, mats["marmo"], col, scala))
 
-    # 4b) cornici modanate intorno alle finestre: due stipiti, l'arco a
-    #     sesto acuto, il davanzale.  Sono tubi tondi sul filo del muro,
-    #     come le modanature vere, e fanno leggere il vano in profondita'.
+    # 4b) cornici modanate rettangolari intorno alle finestre
     acc = Accumulatore()
-    for i in range(LATI_LANTERNA):
-        am = ruota + 2.0 * math.pi * (i + 0.5) / LATI_LANTERNA
+    for i in range(BAIE_LANTERNA):
+        am = _centro_finestra(i)
         ux, uy = -math.sin(am), math.cos(am)
-        ox, oy = cx + (R + 0.012) * math.cos(am), cy + (R + 0.012) * math.sin(am)
-
-        def _pt(u, z):
-            return (ox + ux * u, oy + uy * u, z)
-
-        pts, ragg = [], []
-        for z in (z_dav - 0.06, z_imp - 0.12, z_imp):
-            pts.append(_pt(-luce / 2.0, z))
-            ragg.append(0.035)
-        for t in (-1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0):
-            pts.append(_pt(luce / 2.0 * t,
-                           z_imp + _quota_arco(t, L_ARCHI, True)))
-            ragg.append(0.035)
-        for z in (z_imp - 0.12, z_dav - 0.06):
-            pts.append(_pt(luce / 2.0, z))
-            ragg.append(0.035)
-        acc.tubo3d(pts, ragg, seg=8)
-        # davanzale sporgente
-        acc.scatola(ox, oy, z_dav - 0.075, ux, uy, luce + 0.20, 0.10, 0.07)
+        ca, sa = math.cos(am), math.sin(am)
+        px, py = cx + (R + 0.012) * ca, cy + (R + 0.012) * sa
+        for s in (-1.0, 1.0):
+            u = s * (luce / 2.0 + 0.055)
+            acc.scatola(px + ux * u, py + uy * u,
+                        (z_dav + z_top) / 2.0, ux, uy,
+                        0.075, 0.085, z_top - z_dav + 0.12)
+        for zz in (z_dav - 0.045, z_top + 0.045):
+            acc.scatola(px, py, zz, ux, uy, luce + 0.19, 0.085, 0.075)
     creati.append(_crea("Lanterna_Cornici_Finestre", acc, mats["cornice"],
-                        col, scala, smooth=True, angolo_spigolo=70.0))
+                        col, scala))
 
-    # 5) colonnine binate ai cantonali, seminglobate nello spigolo
+    # 4c) trafori in pietra: montanti, traversi e rosette ovali
     acc = Accumulatore()
-    colonne(acc, lant, z_dav - 0.10, z_imp + 0.01, 0.076, coppia=0.190,
-            sporgenza=0.070, seg=12)
+    traforo_finestra(acc, cx, cy, R, BAIE_LANTERNA, luce, z_dav, z_top, ruota)
+    creati.append(_crea("Lanterna_Trafori_Finestre", acc, mats["cornice"],
+                        col, scala))
+
+    acc = Accumulatore()
+    rosette_finestre(acc, cx, cy, R, BAIE_LANTERNA, luce, z_dav, z_top, ruota)
+    creati.append(_crea("Lanterna_Rosette_Ovali", acc, mats["ferro"],
+                        col, scala))
+
+    # 5) colonnine binate sugli stipiti delle otto finestre
+    acc = Accumulatore()
+    for i in range(BAIE_LANTERNA):
+        am = _centro_finestra(i)
+        for s in (-1.0, 1.0):
+            ang = am + s * (luce / (2.0 * R) + 0.09)
+            px = cx + (R + 0.045) * math.cos(ang)
+            py = cy + (R + 0.045) * math.sin(ang)
+            acc.cilindro(px, py, z_dav - 0.10, z_dav - 0.035,
+                         0.105, seg=12)
+            acc.cilindro(px, py, z_dav - 0.035, z_imp - 0.05,
+                         0.072, seg=12, raggio_alto=0.066)
+            acc.cilindro(px, py, z_imp - 0.05, z_imp + 0.03,
+                         0.105, seg=12)
     creati.append(_crea("Lanterna_Colonne", acc, mats["cornice"], col, scala))
 
-    # 6) grate in ferro delle finestre
+    # 6) grate in ferro delle finestre rettangolari
     acc = Accumulatore()
-    for i in range(LATI_LANTERNA):
-        am = ruota + 2.0 * math.pi * (i + 0.5) / LATI_LANTERNA
+    for i in range(BAIE_LANTERNA):
+        am = _centro_finestra(i)
         ux, uy = -math.sin(am), math.cos(am)
-        px, py = cx + (R - 0.16) * math.cos(am), cy + (R - 0.16) * math.sin(am)
-        for f in (-0.30, -0.10, 0.10, 0.30):
-            acc.cilindro(px + ux * f * luce, py + uy * f * luce,
-                         z_dav + 0.03, z_imp + L_ARCHI * 0.62, 0.015, seg=6)
-        for fz in (0.26, 0.58, 0.90, 1.22, 1.54, 1.82):
-            z = z_dav + fz
-            acc.tubo3d([(px - ux * (luce / 2.0 - 0.02),
-                         py - uy * (luce / 2.0 - 0.02), z),
-                        (px, py, z),
-                        (px + ux * (luce / 2.0 - 0.02),
-                         py + uy * (luce / 2.0 - 0.02), z)], 0.013, seg=6)
+        ca, sa = math.cos(am), math.sin(am)
+        px, py = cx + (R - 0.16) * ca, cy + (R - 0.16) * sa
+        for k in range(5):
+            u = -luce / 2.0 + 0.08 + (luce - 0.16) * k / 4.0
+            acc.cilindro(px + ux * u, py + uy * u,
+                         z_dav + 0.02, z_top - 0.02, 0.013, seg=6)
+        for f in (0.22, 0.48, 0.76):
+            z = z_dav + (z_top - z_dav) * f
+            acc.tubo3d([(px - ux * (luce / 2.0 - 0.03),
+                         py - uy * (luce / 2.0 - 0.03), z),
+                        (px + ux * (luce / 2.0 - 0.03),
+                         py + uy * (luce / 2.0 - 0.03), z)], 0.011, seg=6)
     creati.append(_crea("Lanterna_Grate", acc, mats["ferro"], col, scala))
 
-    # 7) chiavi d'arco e cornice a mensole
+    # 7) chiavi e cornice a mensole
     acc = Accumulatore()
-    for i in range(LATI_LANTERNA):
-        am = ruota + 2.0 * math.pi * (i + 0.5) / LATI_LANTERNA
+    for i in range(BAIE_LANTERNA):
+        am = _centro_finestra(i)
         ux, uy = -math.sin(am), math.cos(am)
-        acc.scatola(cx + (R + 0.01) * math.cos(am),
-                    cy + (R + 0.01) * math.sin(am),
-                    z_imp + L_ARCHI * 0.78, ux, uy, 0.15, 0.09, 0.24)
+        ca, sa = math.cos(am), math.sin(am)
+        acc.scatola(cx + (R + 0.02) * ca, cy + (R + 0.02) * sa,
+                    z_top + 0.09, ux, uy, 0.17, 0.10, 0.22)
     creati.append(_crea("Lanterna_Chiavi", acc, mats["cornice"], col, scala))
 
     acc = Accumulatore()
     acc.anello(_p(R, extra=0.06), _p(ri), z_corona, z_corona + 0.10)
     dentelli(acc, _p(R, extra=0.02), z_corona + 0.10, z_corona + 0.24,
              passo=0.24, sporgenza=0.12, larghezza=0.10, profondita=0.10)
-    acc.anello(_p(R, extra=0.26), _p(R, extra=-0.08), z_corona + 0.24, z_trab)
-    creati.append(_crea("Lanterna_Trabeazione", acc, mats["cornice"], col,
-                        scala))
+    acc.anello(_p(R, extra=0.26), _p(R, extra=-0.08),
+               z_corona + 0.24, z_trab)
+    creati.append(_crea("Lanterna_Trabeazione", acc, mats["cornice"],
+                        col, scala))
 
-    # 8) fascia in piombo con gli oculi: si allarga scendendo, come una
-    #    gonna che ripara il corpo finestrato
+    # 8) fascia in piombo con gli oculi ovali
     acc = Accumulatore()
     anelli = []
     for f, dz in ((0.0, 0.0), (0.35, 0.14), (0.70, 0.28), (1.0, 0.44)):
         r = R + 0.20 + 0.34 * f
-        anelli.append((acc.poligono(poligono(cx, cy, r, 48), z_trab + dz),
-                       acc.poligono(poligono(cx, cy, r - 0.12, 48),
+        anelli.append((acc.poligono(poligono(cx, cy, r, 64), z_trab + dz),
+                       acc.poligono(poligono(cx, cy, r - 0.12, 64),
                                     z_trab + dz + 0.02)))
     for (a0, b0), (a1, b1) in zip(anelli, anelli[1:]):
-        for i in range(48):
-            j = (i + 1) % 48
+        for i in range(64):
+            j = (i + 1) % 64
             acc.faces.append((a0[i], a0[j], a1[j], a1[i]))
             acc.faces.append((b1[i], b1[j], b0[j], b0[i]))
     a0, b0 = anelli[-1]
     a1, b1 = anelli[0]
-    for i in range(48):
-        j = (i + 1) % 48
+    for i in range(64):
+        j = (i + 1) % 64
         acc.faces.append((a0[i], a0[j], b0[j], b0[i]))
         acc.faces.append((a1[j], a1[i], b1[i], b1[j]))
-    creati.append(_crea("Lanterna_Fascia_Piombo", acc, mats["piombo"], col,
-                        scala, smooth=True, angolo_spigolo=30.0))
+    creati.append(_crea("Lanterna_Fascia_Piombo", acc, mats["piombo"],
+                        col, scala, smooth=True, angolo_spigolo=30.0))
 
-    # oculi rotondi: dischi scuri infilati nella fascia
     acc = Accumulatore()
-    for i in range(LATI_LANTERNA):
-        am = ruota + 2.0 * math.pi * (i + 0.5) / LATI_LANTERNA
-        z = z_trab + 0.20
-        acc.tubo3d([(cx + (R + 0.20) * math.cos(am),
-                     cy + (R + 0.20) * math.sin(am), z),
-                    (cx + (R + 0.44) * math.cos(am),
-                     cy + (R + 0.44) * math.sin(am), z)], 0.115, seg=16)
-    creati.append(_crea("Lanterna_Oculi", acc, mats["ferro"], col, scala))
+    for i in range(16):
+        ang = ruota + 2.0 * math.pi * i / 16.0
+        ca, sa = math.cos(ang), math.sin(ang)
+        disco_ovale(acc,
+                    (cx + (R + 0.34) * ca, cy + (R + 0.34) * sa,
+                     z_trab + 0.22),
+                    (-sa, ca, 0.0), (0.0, 0.0, 1.0), (ca, sa, 0.0),
+                    0.125, 0.082, 0.060, 16)
+    creati.append(_crea("Lanterna_Oculi_Ovali", acc, mats["ferro"],
+                        col, scala))
 
-    # 9) tetto a campana in lastre di piombo
+    # 9) tetto concavo a OTTO LOBI in lastre di piombo
     z_gr = z_gronda - 0.03
     r_gr = R + 0.34
-    # profilo quasi RETTILINEO con una leggera concavita': nel primo piano
-    # il tetto e' una piramide ripida, non una cupola
-    nodi = [(0.00, 1.000), (0.03, 1.012), (0.07, 0.998), (0.18, 0.940),
-            (0.32, 0.862), (0.46, 0.778), (0.60, 0.688), (0.72, 0.598),
-            (0.82, 0.510), (0.90, 0.408), (0.96, 0.268), (1.00, 0.075)]
-    passi = 34
-    prof = [(r_gr * _interp(nodi, k / passi),
-             z_gr + (z_tetto - z_gr) * (k / passi))
-            for k in range(passi + 1)]
-    # Otto falde PIATTE sui lati dell'ottagono della lanterna: nelle
-    # fotografie il tetto e' una piramide sfaccettata, e le falde piane
-    # prendono la luce una per una.  Una superficie di rotazione, per quanto
-    # rigata, resterebbe una cupola.
-    lati_t = LATI_LANTERNA
+    nodi_tetto = [(0.00, 1.000), (0.04, 0.960), (0.12, 0.820),
+                  (0.25, 0.620), (0.40, 0.440), (0.55, 0.300),
+                  (0.70, 0.190), (0.85, 0.105), (0.94, 0.055),
+                  (1.00, 0.000)]
+    passi = 36
+
+    def _r_lobo(t, ang):
+        r = r_gr * _interp(nodi_tetto, t)
+        # otto lobi: il colmo e' in asse con le finestre, l'avvallamento
+        # fra finestra e finestra; l'ampiezza si annulla all'apice
+        ampiezza = 0.055 * (1.0 - t) ** 0.55
+        return r * (1.0 - ampiezza *
+                    math.cos(BAIE_LANTERNA * (ang - ruota)))
+
     acc = Accumulatore()
     anelli = []
-    for r, z in prof:
-        anelli.append([acc.v(cx + r * math.cos(ruota + 2.0 * math.pi * i / lati_t),
-                             cy + r * math.sin(ruota + 2.0 * math.pi * i / lati_t), z)
-                       for i in range(lati_t)])
+    for k in range(passi):
+        t = k / float(passi)
+        z = z_gr + (z_tetto - z_gr) * t
+        riga = []
+        for i in range(lati):
+            ang = ruota + 2.0 * math.pi * i / lati
+            r = _r_lobo(t, ang)
+            riga.append(acc.v(cx + r * math.cos(ang),
+                              cy + r * math.sin(ang), z))
+        anelli.append(riga)
+    apice = acc.v(cx, cy, z_tetto)
     for a, b in zip(anelli, anelli[1:]):
-        for i in range(lati_t):
-            j = (i + 1) % lati_t
+        for i in range(lati):
+            j = (i + 1) % lati
             acc.faces.append((a[i], a[j], b[j], b[i]))
+    for i in range(lati):
+        j = (i + 1) % lati
+        acc.faces.append((anelli[-1][i], anelli[-1][j], apice))
     acc.faces.append(tuple(reversed(anelli[0])))
-    acc.faces.append(tuple(anelli[-1]))
     creati.append(_crea("Lanterna_Tetto", acc, mats["piombo"], col, scala,
                         smooth=True, angolo_spigolo=40.0))
 
-    # colmi di piombo: uno sui cantonali, uno a mezzo lato
+    # colmi di piombo: due per lobo (sedici in tutto)
     acc = Accumulatore()
-    for i in range(LATI_LANTERNA * 2):
-        ang = ruota + math.pi * i / LATI_LANTERNA
+    for i in range(COSTOLONI):
+        ang = ruota + 2.0 * math.pi * i / COSTOLONI
         pts, raggi = [], []
-        for k, (r, z) in enumerate(prof):
-            if r < 0.46:
+        for k in range(passi):
+            t = k / float(passi)
+            r = _r_lobo(t, ang)
+            if r < 0.30:
                 break
-            pts.append((r + 0.014, z, ang))
-            raggi.append(0.060 - 0.030 * (k / float(passi)))
-        acc.tubo(pts, raggi, seg=8, cx=cx, cy=cy)
+            pts.append((r + 0.014, z_gr + (z_tetto - z_gr) * t, ang))
+            raggi.append(0.055 - 0.027 * t)
+        if len(pts) > 1:
+            acc.tubo(pts, raggi, seg=8, cx=cx, cy=cy)
     creati.append(_crea("Lanterna_Colmi_Tetto", acc, mats["piombo_costa"],
                         col, scala, smooth=True, angolo_spigolo=60.0))
 
-    # risvolto di gronda del tetto
     acc = Accumulatore()
-    acc.anello(poligono(cx, cy, r_gr + 0.04, 64),
-               poligono(cx, cy, r_gr - 0.16, 64), z_gr - 0.11, z_gr + 0.06)
+    acc.anello(poligono(cx, cy, r_gr + 0.06, 64, ruota),
+               poligono(cx, cy, r_gr - 0.14, 64, ruota),
+               z_gr - 0.11, z_gr + 0.06)
     creati.append(_crea("Lanterna_Gronda_Tetto", acc, mats["piombo_costa"],
                         col, scala))
 
@@ -1421,89 +1636,58 @@ def costruisci_lanterna(mats, col, scala, cx, cy, z0, h_cupola):
              (0.80, 0.24), (0.90, 0.30), (1.00, 0.22)]
     profilo_vaso = [(z_fin + h_vaso * f, 0.46 * r) for f, r in forma]
     acc = Accumulatore()
-    acc.rivoluzione(cx, cy, profilo_vaso, seg=24)
+    acc.rivoluzione(cx, cy, profilo_vaso, seg=20)
     creati.append(_crea("Lanterna_Vaso", acc, mats["cornice"], col, scala,
                         smooth=True, angolo_spigolo=46.0))
 
-    # 11) mela dorata a coste: emisfero inferiore liscio, superiore a spicchi
+    # 11) mela dorata SFACCETTATA, con gambo e fascia equatoriale
     acc = Accumulatore()
-    basso = []
-    for k in range(0, 10):
-        a = -math.pi / 2.0 + (math.pi * 0.46) * k / 9.0
-        basso.append((z_mela + R_MELA * 1.02 * math.sin(a),
-                      R_MELA * 0.995 * math.cos(a)))
-    acc.rivoluzione(cx, cy, basso, seg=44)
-    alto = []
-    for k in range(0, 12):
-        a = (math.pi * 0.46) + (math.pi * 0.54) * k / 11.0
-        alto.append((z_mela + R_MELA * 1.02 * math.sin(a),
-                     R_MELA * 0.995 * math.cos(a)))
-    acc.rivoluzione(cx, cy, alto, seg=48, costa=0.065, coste=12)
-    creati.append(_crea("Lanterna_Mela_Dorata", acc, mats["oro"], col, scala,
-                        smooth=True, angolo_spigolo=40.0))
+    acc.cilindro(cx, cy, z_vaso - 0.04, z_mela - R_MELA * 0.82,
+                 0.075, seg=12, raggio_alto=0.055)
+    prof = []
+    for k in range(13):
+        a = -math.pi / 2.0 + math.pi * k / 12.0
+        prof.append((z_mela + R_MELA * 0.98 * math.sin(a),
+                     R_MELA * 0.98 * math.cos(a)))
+    acc.rivoluzione(cx, cy, prof, seg=20)
+    acc.anello(poligono(cx, cy, R_MELA * 1.02, 20),
+               poligono(cx, cy, R_MELA * 0.97, 20),
+               z_mela - 0.035, z_mela + 0.035)
+    creati.append(_crea("Lanterna_Mela_Dorata", acc, mats["oro"], col, scala))
 
-    # 12) stella a dodici punte su due piani perpendicolari
-    # dodici punte: una stella a SEI punte nel piano frontale e la gemella
-    # ruotata di 90 gradi, come nella fotografia.
-    r_out = 0.32
-    spess = 0.022
+    # 12) stella d'oro a raggi piramidali
     acc = Accumulatore()
-    for piano in (0, 1):
-        for segno in (-1, 1):
-            vs = []
-            for k in range(12):
-                a = math.pi * k / 6.0 + math.pi / 2.0
-                r = r_out if k % 2 == 0 else r_out * 0.20
-                px, pz = r * math.cos(a), r * math.sin(a)
-                if piano == 0:
-                    vs.append(acc.v(cx + px, cy + segno * spess,
-                                    z_stella + pz))
-                else:
-                    vs.append(acc.v(cx + segno * spess, cy + px,
-                                    z_stella + pz))
-            acc.faces.append(tuple(vs) if segno > 0 else tuple(reversed(vs)))
-        for k in range(12):
-            j = (k + 1) % 12
-            a = math.pi * k / 6.0 + math.pi / 2.0
-            b = math.pi * j / 6.0 + math.pi / 2.0
-            ra = r_out if k % 2 == 0 else r_out * 0.20
-            rb = r_out if j % 2 == 0 else r_out * 0.20
-            if piano == 0:
-                p = [(cx + ra * math.cos(a), cy - spess, z_stella + ra * math.sin(a)),
-                     (cx + rb * math.cos(b), cy - spess, z_stella + rb * math.sin(b)),
-                     (cx + rb * math.cos(b), cy + spess, z_stella + rb * math.sin(b)),
-                     (cx + ra * math.cos(a), cy + spess, z_stella + ra * math.sin(a))]
-            else:
-                p = [(cx - spess, cy + ra * math.cos(a), z_stella + ra * math.sin(a)),
-                     (cx - spess, cy + rb * math.cos(b), z_stella + rb * math.sin(b)),
-                     (cx + spess, cy + rb * math.cos(b), z_stella + rb * math.sin(b)),
-                     (cx + spess, cy + ra * math.cos(a), z_stella + ra * math.sin(a))]
-            acc.faces.append(tuple(acc.v(*q) for q in p))
+    stella_oro(acc, cx, cy, z_stella, R_STELLA, punte=8, spessore=0.055)
     creati.append(_crea("Lanterna_Stella_Dorata", acc, mats["oro"], col, scala))
 
-    # 13) croce a bracci ricurvi, con la punta esattamente a 48 m
-    z_arm = h_cupola - 0.30
+    # 13) segnavento: asta e bandiera a fiamma, punta esattamente a 48 m
+    z_base_asta = z_stella + R_STELLA * 0.55
+    h_pennello = 0.30
+    z_pennello = h_cupola - h_pennello
     acc = Accumulatore()
-    acc.cilindro(cx, cy, z_stella - 0.06, z_arm, 0.019, seg=10,
-                 raggio_alto=0.014)
-    acc.cilindro(cx, cy, z_arm - 0.035, z_arm + 0.015, 0.030, seg=12)
-    acc.cilindro(cx, cy, z_arm, h_cupola, 0.014, seg=10, raggio_alto=0.005)
-    # quattro bracci: asta diritta che in punta si arriccia verso l'alto
-    for k in range(4):
-        ang = math.pi / 2.0 * k + math.pi / 4.0
-        ux, uy = math.cos(ang), math.sin(ang)
-        pts, ragg = [], []
-        for s in (0.0, 0.25, 0.5, 0.72, 0.88, 1.0):
-            d = 0.20 * math.sin(s * math.pi / 2.0)
-            zz = z_arm + 0.09 * (1.0 - math.cos(s * math.pi / 2.0)) + \
-                0.055 * max(0.0, s - 0.8) * 5.0
-            pts.append((cx + ux * d, cy + uy * d, zz))
-            ragg.append(0.014 - 0.005 * s)
-        acc.tubo3d(pts, ragg, seg=8)
-    creati.append(_crea("Lanterna_Croce", acc, mats["oro"], col, scala,
-                        smooth=True, angolo_spigolo=60.0))
-    return creati
+    acc.cilindro(cx, cy, z_base_asta, z_pennello + 0.02,
+                 0.016, seg=8, raggio_alto=0.009)
+    acc.cilindro(cx, cy, z_pennello - 0.03, z_pennello + 0.03,
+                 0.027, seg=10)
+    creati.append(_crea("Lanterna_Segnavento_Asta", acc, mats["oro"],
+                        col, scala, smooth=True, angolo_spigolo=60.0))
 
+    acc = Accumulatore()
+    sagoma = [(0.000, 0.000), (0.110, 0.060), (0.030, 0.130),
+              (0.150, 0.210), (0.000, 0.300), (-0.040, 0.210),
+              (-0.120, 0.130), (-0.030, 0.060)]
+    fronte, retro = [], []
+    for dx, dz in sagoma:
+        fronte.append(acc.v(cx + dx, cy - 0.010, z_pennello + dz))
+        retro.append(acc.v(cx + dx, cy + 0.010, z_pennello + dz))
+    acc.faces.append(tuple(fronte))
+    acc.faces.append(tuple(reversed(retro)))
+    for k in range(len(sagoma)):
+        j = (k + 1) % len(sagoma)
+        acc.faces.append((fronte[k], fronte[j], retro[j], retro[k]))
+    creati.append(_crea("Lanterna_Segnavento_Bandiera", acc, mats["oro"],
+                        col, scala))
+    return creati
 
 def costruisci_cupola(scala=3.0, cfg=None, col=None, cx=None, cy=None):
     """Ricostruisce tiburio, calotta e lanterna nella raccolta 07d*.
@@ -1518,8 +1702,11 @@ def costruisci_cupola(scala=3.0, cfg=None, col=None, cx=None, cy=None):
     # lanterna (mela, stella, croce) le sta sopra: se l'apice fosse piu' alto
     # di H_CALOTTA la stella sfonderebbe la croce.  L'apice viene quindi
     # limitato, e la lanterna parte SEMPRE dalla quota effettiva del guscio.
+    # Il margine sopra la stella deve bastare all'asta e alla bandiera del
+    # segnavento; con L_STELLA + R_STELLA + 0,10 = 8,70 m l'apice ufficiale
+    # di 39,20 m resta disponibile (48 - 8,70 = 39,30 m).
     h_apice_calotta = min(float(opt.get("altezza_calotta", H_CALOTTA)),
-                          h_cupola - (L_STELLA + 0.65))
+                          h_cupola - (L_STELLA + R_STELLA + 0.10))
 
     mats = _materiali(scala)
 
@@ -1627,8 +1814,8 @@ def costruisci_cupola(scala=3.0, cfg=None, col=None, cx=None, cy=None):
     creati.append(_crea("Tamburo_Fascia_Rombi", acc, mats["scuro"], col, scala))
 
     # --- 6.4 loggetta superiore -----------------------------------------
-    # Tre archetti per lato (72): colonnine sottili con archi a tutto sesto,
-    # il ricamo che nella fotografia corona il tamburo sotto la gronda.
+    # Due archetti per lato (48): passo 1,35 m come nella fotografia, non i
+    # 72 archetti troppo fitti della v5.1.
     ruota_sup = math.pi / LATI_LOGGE_SUP
     acc_para, acc_archi, acc_col, acc_corn = (Accumulatore() for _ in range(4))
     z_sill_sup, z_imp_sup, z_corona_sup, z_corn_sup = loggia(
@@ -1703,7 +1890,24 @@ def costruisci_cupola(scala=3.0, cfg=None, col=None, cx=None, cy=None):
     creati.append(_crea("Cupola_Ghiaccio_di_Gronda", acc, mats["piombo"], col,
                         scala))
 
-    # --- 6.7 calotta: 768 lastre di piombo, giunti e costoloni ----------
+    # linguette di piombo battute sul bordo della gronda: 64 tasselli
+    # trapezoidali, uno ogni quarto di costolone
+    acc = Accumulatore()
+    n_lingue = COSTOLONI * 4
+    passo_l = 2.0 * math.pi / n_lingue
+    for i in range(n_lingue):
+        a0 = math.pi / BAIE_LANTERNA + i * passo_l
+        a1 = a0 + passo_l * 0.72
+        r0, r1 = R_GRONDA - 0.03, R_GRONDA + 0.13
+        poly = [(cx + r0 * math.cos(a0), cy + r0 * math.sin(a0)),
+                (cx + r1 * math.cos(a0), cy + r1 * math.sin(a0)),
+                (cx + r1 * math.cos(a1), cy + r1 * math.sin(a1)),
+                (cx + r0 * math.cos(a1), cy + r0 * math.sin(a1))]
+        acc.prisma(poly, H_CALOTTA_BASE - 0.23, H_CALOTTA_BASE + 0.05)
+    creati.append(_crea("Cupola_Gronda_Linguette", acc,
+                        mats["piombo_costa"], col, scala))
+
+    # --- 6.7 calotta: 768 lastre di piombo, giunti e 16 costoloni --------
     nodi = profilo_calotta_lastre(R_CALOTTA, H_CALOTTA_BASE, h_apice_calotta)
     acc_lastre, acc_giunti, acc_coste = (Accumulatore() for _ in range(3))
     calotta_lastre(acc_lastre, acc_giunti, acc_coste, cx, cy, nodi)
@@ -1741,7 +1945,8 @@ def costruisci_cupola(scala=3.0, cfg=None, col=None, cx=None, cy=None):
                                       h_apice_calotta, h_cupola))
 
     print("=" * 72)
-    print("CUPOLA v5.1 — calotta a 768 lastre, lanterna del Bernini")
+    print("CUPOLA v5.2 — calotta ogivale a 768 lastre, 16 costoloni, "
+          "lanterna a 8 lobi")
     print("=" * 72)
     for k, v in quote(h_apice_calotta).items():
         print(f"  {k:<44s} {v:>8.2f}")

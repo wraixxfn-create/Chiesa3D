@@ -1,8 +1,8 @@
-"""v5.0 — prove sulla cupola: quote, archi e proporzioni.
+"""v5.2 — prove sulla cupola: quote, profili, archi e proporzioni.
 
 Come gli altri test del progetto lavorano senza `bpy`: verificano solo la
-matematica del modulo `cupola.py` (profili, archi, poligoni, quote), quella
-che determina la silhouette nelle fotografie di riferimento.
+matematica del modulo `cupola.py` (profili, archi, poligoni, finestre, quote),
+quella che determina la silhouette nelle fotografie di riferimento.
 """
 
 import math
@@ -21,13 +21,13 @@ class QuoteTest(unittest.TestCase):
         self.assertLess(c.H_CALOTTA, c.H_CUPOLA)
 
     def test_croce_alla_quota_ufficiale(self):
-        # La quota ufficiale (48 m croce compresa) non si tocca: resta il
-        # rapporto 1,28 con la facciata da 37,5 m.
+        # La quota ufficiale (48 m croce/segnavento compresi) non si tocca:
+        # resta il rapporto 1,28 con la facciata da 37,5 m.
         self.assertEqual(c.H_CUPOLA, 48.0)
         self.assertAlmostEqual(c.H_CUPOLA / 37.5, 1.28, places=6)
 
     def test_calotta_impostata_sotto_la_facciata(self):
-        # La calotta parte a 31,55 m, sotto i 37,5 m della facciata: nelle
+        # La calotta parte a 30,05 m, sotto i 37,5 m della facciata: nelle
         # fotografie la cupola e' piu' bassa del fronte.
         self.assertLess(c.H_CALOTTA_BASE, 37.5)
         self.assertGreater(c.H_CALOTTA, 37.5)
@@ -75,6 +75,27 @@ class ProfiloTest(unittest.TestCase):
         self.assertAlmostEqual(c._interp(nodi, 0.5), 0.8)
         self.assertAlmostEqual(c._interp(nodi, 0.25), 0.9)
         self.assertAlmostEqual(c._interp(nodi, 1.0), 0.0)
+
+    def test_apice_ogivale_a_punta(self):
+        # v5.2: l'apice non ha la tangente orizzontale dell'emisfero.  A
+        # 0,98 della freccia il raggio e' quasi zero, non il 20% della base.
+        prof = c.profilo_calotta(c.R_CALOTTA, c.H_CALOTTA_BASE,
+                                 c.H_CALOTTA, 100)
+        r_quasi_cima = prof[98][0]
+        self.assertLess(r_quasi_cima, 0.12 * c.R_CALOTTA)
+        self.assertGreater(r_quasi_cima, 0.005 * c.R_CALOTTA)
+        # un emisfero avrebbe ancora r/R = sqrt(1 - 0,98^2) = 0,199
+        self.assertLess(r_quasi_cima / c.R_CALOTTA,
+                        0.199)
+
+    def test_spalla_verticale(self):
+        # Nei primi 2 m la calotta resta quasi cilindrica: nella fotografia
+        # dal Facciatone la spalla sale dritta sopra la gronda.
+        prof = c.profilo_calotta(c.R_CALOTTA, c.H_CALOTTA_BASE,
+                                 c.H_CALOTTA, 100)
+        r_10 = prof[10][0]
+        self.assertGreater(r_10 / c.R_CALOTTA, 0.96)
+        self.assertLess(r_10 / c.R_CALOTTA, 1.001)
 
 
 class ArchiTest(unittest.TestCase):
@@ -129,7 +150,7 @@ class PoligoniTest(unittest.TestCase):
 
 
 class LastreTest(unittest.TestCase):
-    """v5.1 — la calotta e' un reticolo di lastre, non una superficie."""
+    """v5.2 — la calotta e' un reticolo ogivale di 768 lastre."""
 
     def test_profilo_ricampionato_sull_arco(self):
         nodi = c.profilo_calotta_lastre(c.R_CALOTTA, c.H_CALOTTA_BASE,
@@ -144,9 +165,11 @@ class LastreTest(unittest.TestCase):
         self.assertAlmostEqual(nodi[0][0], c.R_CALOTTA, places=6)
         self.assertAlmostEqual(nodi[0][1], c.H_CALOTTA_BASE, places=6)
         self.assertLess(nodi[-1][0], c.R_LANTERNA_BASE)
+        # La calotta deve incontrare il basamento e non lasciare una fessura.
+        self.assertGreaterEqual(nodi[-1][1], c.H_CALOTTA - 0.50)
 
     def test_reticolo_di_lastre_completo(self):
-        # 8 spicchi x 8 strisce x 12 filari = 768 piastre, e nessun buco:
+        # 16 spicchi x 4 strisce x 12 filari = 768 piastre, e nessun buco:
         # ogni lastra ha quattro vertici distinti
         nodi = c.profilo_calotta_lastre(c.R_CALOTTA, c.H_CALOTTA_BASE,
                                         c.H_CALOTTA)
@@ -160,8 +183,8 @@ class LastreTest(unittest.TestCase):
             self.assertEqual(len(set(f)), 4)
 
     def test_costoloni_sugli_spigoli_degli_spicchi(self):
-        # otto costoloni, uno per spicchio, alla stessa rotazione dei
-        # cantonali della lanterna
+        # sedici costoloni, uno per spicchio, alla stessa rotazione delle
+        # finestre della lanterna
         nodi = c.profilo_calotta_lastre(c.R_CALOTTA, c.H_CALOTTA_BASE,
                                         c.H_CALOTTA)
         acc = c.Accumulatore()
@@ -173,14 +196,52 @@ class LastreTest(unittest.TestCase):
         for x, y, z in acc.verts:
             if abs(z - c.H_CALOTTA_BASE) < 0.02:
                 angoli.add(round((math.atan2(y, x) % (2.0 * math.pi)) / passo,
-                                 1))
+                                 1) % c.SPICCHI)
         self.assertEqual(len(angoli), c.SPICCHI)
         for x, y, z in acc.verts:
             self.assertLessEqual(math.hypot(x, y), r_max)
 
+    def test_sedici_costoloni_e_quattro_strisce(self):
+        # v5.2: il passo dei costoloni dimezza, quello delle lastre resta
+        # tale da conservare le 768 piastre della versione precedente.
+        self.assertEqual(c.COSTOLONI, 16)
+        self.assertEqual(c.SPICCHI, 16)
+        self.assertEqual(c.STRISCE_PER_SPICCHIO, 4)
+        self.assertEqual(c.FILARI_CALOTTA, 12)
+        self.assertEqual(c.COSTOLONI * c.STRISCE_PER_SPICCHIO *
+                         c.FILARI_CALOTTA, 768)
+
+
+class FinestreTest(unittest.TestCase):
+    """v5.2 — la lanterna ha finestre rettangolari, non archi acuti."""
+
+    def test_parete_con_finestre_rettangolari(self):
+        self.assertEqual(c.L_ARCHI, 0.0)
+        self.assertEqual(c.LATI_CORPO_LANTERNA, 64)
+        self.assertEqual(c.BAIE_LANTERNA, 8)
+        acc = c.Accumulatore()
+        z0 = c.H_CALOTTA + c.L_DAVANZALE - 0.10
+        z1 = c.H_CALOTTA + c.L_CORONA
+        z_dav = c.H_CALOTTA + c.L_DAVANZALE
+        z_top = c.H_CALOTTA + c.L_IMPOSTA + c.L_ARCHI
+        pannelli = c.parete_finestre_rettangolari(
+            acc, 0.0, 0.0, c.R_LANTERNA, c.LATI_CORPO_LANTERNA,
+            z0, z1, c.LATO_LANTERNA, c.BAIE_LANTERNA, 1.18,
+            z_dav, z_top, math.pi / c.BAIE_LANTERNA)
+        self.assertGreater(pannelli, 0)
+        self.assertLess(pannelli, c.LATI_CORPO_LANTERNA)
+        self.assertGreater(len(acc.faces), c.LATI_CORPO_LANTERNA * 4)
+        # gli ovali dei trafori e degli oculi sono dischi a due facce
+        acc2 = c.Accumulatore()
+        c.disco_ovale(acc2, (0.0, 0.0, 1.0), (1.0, 0.0, 0.0),
+                      (0.0, 0.0, 1.0), (0.0, 1.0, 0.0),
+                      0.12, 0.08, 0.03, 16)
+        self.assertEqual(len(acc2.verts), 32)
+        self.assertEqual(len(acc2.faces), 18)
+
 
 class LanternaTest(unittest.TestCase):
-    """v5.1 — la lanterna sta fra la calotta e i 48 m, senza sfondare."""
+    """v5.2 — la lanterna sta fra la calotta e i 48 m, senza sfondare."""
 
     def test_quote_della_lanterna_in_ordine(self):
         self.assertLess(c.L_ZOCOLO, c.L_DAVANZALE)
@@ -194,10 +255,9 @@ class LanternaTest(unittest.TestCase):
         self.assertLess(c.L_MELA, c.L_STELLA)
 
     def test_fastigio_sotto_la_croce(self):
-        # la stella deve stare sotto la punta della croce, con un margine
-        # per l'asta: e' il vincolo che limita l'altezza dell'apice
-        cima_stella = c.L_STELLA + 0.30
-        self.assertLess(cima_stella + 0.30, c.H_CUPOLA - c.H_LANTERNA_BASE)
+        # stella + asta + bandiera restano sotto la punta del segnavento
+        cima = c.L_STELLA + c.R_STELLA + 0.10
+        self.assertLess(cima, c.H_CUPOLA - c.H_LANTERNA_BASE)
 
     def test_lanterna_piu_slancia_che_larga(self):
         # Dalla base alla punta del tetto la lanterna e' piu' alta del suo
@@ -207,9 +267,25 @@ class LanternaTest(unittest.TestCase):
         diametro = 2.0 * c.R_LANTERNA
         self.assertGreater(altezza / diametro, 1.05)
         self.assertLess(altezza / diametro, 1.80)
-        # le finestre sono piu' alte che larghe, come nei primi piani
+        # le finestre rettangolari sono piu' alte che larghe
         self.assertGreater((c.L_IMPOSTA + c.L_ARCHI) - c.L_DAVANZALE,
                            1.6 * 1.02)
+
+    def test_tetto_a_otto_lobi_e_fastigio_sfaccettato(self):
+        # v5.2: tetto piu' alto, mela e stella piu' grandi, logge superiori
+        # riproporzionate da 72 a 48 archetti.
+        self.assertGreater(c.L_TETTO, 7.0)
+        self.assertAlmostEqual(c.H_LANTERNA_BASE + c.L_TETTO, 46.35,
+                               places=6)
+        self.assertAlmostEqual(c.H_LANTERNA_BASE + c.L_MELA, 46.94,
+                               places=6)
+        self.assertGreaterEqual(c.R_MELA, 0.38)
+        self.assertGreater(c.R_STELLA, 0.30)
+        self.assertEqual(c.BAIE_LOGGE_SUP, 48)
+        n = 8
+        stella = c.Accumulatore()
+        c.stella_oro(stella, 0.0, 0.0, 1.0, c.R_STELLA, punte=n)
+        self.assertGreater(len(stella.faces), 6 * n)
 
 
 if __name__ == "__main__":

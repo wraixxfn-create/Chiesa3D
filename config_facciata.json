@@ -527,29 +527,32 @@
     }
   },
   "cupola": {
-    "versione": "5.1",
+    "versione": "5.2",
     "modulo": "cupola.py",
     "logge": {
       "inferiore": "colonne binate su ogni piedritto, archi a sesto acuto",
-      "superiore": "colonne binate, archetti a tutto sesto"
+      "superiore": "48 archetti a tutto sesto con colonne binate"
     },
     "calotta": {
-      "costoloni": 8,
+      "costoloni": 16,
       "filari": 12,
-      "strisce_per_spicchio": 8,
+      "strisce_per_spicchio": 4,
       "lastre_totali": 768,
       "materiale": "Cupola_Piombo_Lastre",
       "freccia_su_diametro": 0.45,
-      "note": "lastre di piombo geometriche con pieghe di giunzione; la texture non disegna piu' i riquadri"
+      "note": "768 lastre geometriche con giunti rilevati, 16 costoloni e linguette di gronda",
+      "spicchi": 16,
+      "profilo": "ogivale"
     },
     "lanterna": {
-      "lati": 8,
-      "diametro_m": 6.0,
-      "finestre": "8 archi a sesto acuto con grata in ferro",
-      "tetto": "piramide a 8 falde in lastre di piombo",
+      "lati": 64,
+      "diametro_m": 5.84,
+      "finestre": "8 finestre rettangolari con trafori e grate",
+      "tetto": "copertura concava a 8 lobi in piombo",
       "mela_dorata": true,
-      "stella_dorata": "12 punte su due piani",
-      "alta_fino_alla_croce_m": 48.0
+      "stella_dorata": "raggi sfaccettati su due piani",
+      "alta_fino_alla_croce_m": 48.0,
+      "baie": 8
     }
   }
 }
